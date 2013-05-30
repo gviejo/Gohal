@@ -19,4 +19,6 @@ class GraphConstruction():
     Color Association Experiments from Brovelli & al 2011
     """
     
-    def __init__():
+    def __init__(state, action):
+        self.state = state
+        self.action = action
