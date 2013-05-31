@@ -41,21 +41,19 @@ def iterationStep(iteration, values, display = True):
     #display current stimulus
     state = cats.getStimulus(iteration)
 
-    #choose best action 
-    action = getBestActionSoftMax(state, values, beta)
+    #choose best action from model based
+    action = mods.chooseAction(state, beta)
     
     # set response + get outcome
     reward = cats.getOutcome(state, action, iteration)
     answer.append((reward==1)*1)
 
     # model based
-    #mods.addTransition((state, action))
+    mods.addTransition((state, action))
 
     # QLearning
     delta = reward + gamma*np.max(values[0][values[state]]) - values[0][values[(state,action)]]
     values[0][values[(state, action)]] = values[0][values[(state, action)]] + alpha*delta
-
-
 
     if display == True:
         print (state, action, reward)

@@ -24,12 +24,16 @@ class ModelBased():
     def __init__(self, state, action):
         self.state = state
         self.action = action
+        self.g = dict()
+        for s in state:
+            self.g[s] = nx.Graph()
+        
         self.g = nx.Graph()
         self.g.add_nodes_from(state)
         for i in range(3):
             self.g.add_nodes_from(action)
         self.g.add_edges_from(self.computeEdgesBunch(state, action))
-        
+    
     def reinitialize():
         self.__init__(self.state, self.action)
 
@@ -44,4 +48,8 @@ class ModelBased():
         nx.draw(self.g)
         plt.show()
 
-    #def addTransition
+    def chooseAction(self):
+        
+        
+    def updateTrees(self):
+        
