@@ -53,9 +53,9 @@ class ModelBased():
         if len(position[ind_action]) == 0:
             return self.action[ind_action]
         else:
-            return self.chooseActionRecursively(position[ind_action])
+            return self.chooseActionRecursive(position[ind_action])
 
-    def chooseActionRecursively(self, position):
+    def chooseActionRecursive(self, position):
         ind_action = self.SoftMax(position[0], beta)
         self.mental_path.append(ind_action)
         if len(position[ind_action]) == 0:
@@ -63,6 +63,9 @@ class ModelBased():
         else:
             return self.chooseActionRecursively(position[ind_action])        
 
-    def updateTrees(self):
-        return None
+    def updateTrees(self, state, action, reward):
+        self.g[state][0] = self.g[state]*0.0
+        id_action = self.action[action]
 
+    def branch(
+                                        

@@ -35,7 +35,7 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 
 # -----------------------------------
 # FONCTIONS
-# -----------------------------------    
+# -----------------------------------
 def iterationStep(iteration, values, display = True):
     
     #display current stimulus
