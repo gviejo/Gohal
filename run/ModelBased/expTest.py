@@ -48,8 +48,8 @@ def iterationStep(iteration, values, display = True):
     reward = cats.getOutcome(state, action, iteration)
     answer.append((reward==1)*1)
 
-    # model based
-    mods.addTransition((state, action))
+    # update Model Based
+    mods.updateTrees(state, action, reward)
 
     # QLearning
     delta = reward + gamma*np.max(values[0][values[state]]) - values[0][values[(state,action)]]
