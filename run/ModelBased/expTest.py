@@ -36,29 +36,26 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def iterationStep(iteration, values, display = True):
-    
-    #display current stimulus
+def iterationStep(iteration, mods, display = True):
+
+    print iteration
     state = cats.getStimulus(iteration)
+    print "state ", state
 
     #choose best action from model based
-    action = mods.chooseAction(state, beta)
-    
+    action = mods.chooseAction(mods.g[state])
+    print "action ", action
     # set response + get outcome
     reward = cats.getOutcome(state, action, iteration)
     answer.append((reward==1)*1)
-
+    print "reward", reward
     # update Model Based
-    mods.updateTrees(state, action, reward)
-
-    # QLearning
-    delta = reward + gamma*np.max(values[0][values[state]]) - values[0][values[(state,action)]]
-    values[0][values[(state, action)]] = values[0][values[(state, action)]] + alpha*delta
-
+    mods.updateTrees(state, reward)
+    mods.print_dict(mods.g[state])
+    print '\n'
     if display == True:
         print (state, action, reward)
         print cats.correct
-        displayQValues(cats.states, cats.actions, values)
         print '\n'
 # -----------------------------------
 
@@ -74,7 +71,6 @@ nb_trials = 42
 
 cats = CATS()
 mods = ModelBased(cats.states, cats.actions)
-values = createQValuesDict(cats.states, cats.actions)
 Qdata = []
 
 # -----------------------------------
@@ -83,15 +79,12 @@ Qdata = []
 answer = []
 cats.reinitialize(nb_trials, 'meg')
 for j in xrange(nb_trials):
-    iterationStep(j, values, False)
+    iterationStep(j, mods, False)
 # -----------------------------------
 
 # -----------------------------------
 # Plot
 # -----------------------------------
-Qdata = np.array(Qdata)
-
-mods.display()
 # -----------------------------------
 
 
