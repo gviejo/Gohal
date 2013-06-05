@@ -26,6 +26,9 @@ class CATS():
         self.used = []
         self.stimuli = self.createStimulusList(self.states, nb_trials)
         self.time = self.chooseExperiment(case)
+        self.incorrect = dict()
+        for i in self.states:
+            self.incorrect[i] = 0
 
     def chooseExperiment(self, case):
         if case == 'meg':            
@@ -56,6 +59,21 @@ class CATS():
             np.random.shuffle(tmp)
             s.append(list(tmp))
         return (np.array(s)).flatten()
+
+    def getOutcome(self, state, action):
+        if 
+        if np.sum(self.incorrect.values()) < 3:
+            self.asso[state][action] = -1
+            self.incorrect[state] = 1
+            return -1
+        elif np.sum(self.incorrect.values()) == 3:
+            self.asso[state][action] = 1
+            self.used.append(action)
+            self.used.append(state)
+            self.correct.append(state+" => "+action)
+        elif np.sum(self.incorrect.values()) == 7 and len(cats.correct) == 1:
+             
+                                   
       
     def getOutcome(self, state, action, i):
         if i < self.time[0]:
