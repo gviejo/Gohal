@@ -47,38 +47,28 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 nStepEm = 200
 pOutset = 0.2
 
-if 'PEPS_GoHaL' in options.input:
-    time_asso = CATS().chooseExperiment('meg')
-elif 'fMRI' in options.input:
-    time_asso = CATS().chooseExperiment('fmri')
 # -----------------------------------
 
 # -----------------------------------
 # Loading human data
 # -----------------------------------
+responses = []
+stimulus = []
+
 if 'PEPS_GoHaL' in options.input:
     data = loadDirectoryMEG(options.input)
-    responses = []
-    stimulus = []
-    for i in data.iterkeys():
-        for j in xrange(1, 5):
-            responses.append(data[i][j]['sar'][0:42,2])
-            stimulus.append(data[i][j]['sar'][0:42,0])
-    responses = np.array(responses)
-    stimulus = np.array(stimulus)
 elif 'fMRI' in options.input:
     data = loadDirectoryfMRI(options.input)
-    responses = []
-    stimulus = []
-    for i in data.iterkeys():
-        for j in xrange(4):
-            responses.append(data[i][j]['sar'][0:40,2])
-            stimulus.append(data[i][j]['sar'][0:40,0])
-    responses = np.array(responses)
-    stimulus = np.array(stimulus)
 else:
     print "No directory provided... can't load the data"
     sys.exit(0)
+
+for i in data.iterkeys():
+    for j in data[i].iterkeys():
+        responses.append(data[i][j]['sar'][0:42,2])
+        stimulus.append(data[i][j]['sar'][0:42,0])
+responses = np.array(responses)
+stimulus = np.array(stimulus)
 
 # -----------------------------------
 
@@ -114,37 +104,19 @@ Isd = np.log2(Psd/(0.5**3))
 # -----------------------------------
 
 # -----------------------------------
-# Performance analysis
-# -----------------------------------
-responses = []
-if 'PEPS_GoHaL' in options.input:
-    for i in data.iterkeys():
-        for j in xrange(1,5):
-            responses.append(data[i][j]['sar'][0:40,2])
-elif 'fMRI' in options.input:
-    for i in data.iterkeys():
-        for j in xrange(4):
-            responses.append(data[i][j]['sar'][0:40,2])
-#responses = np.array(responses)
-
-# -----------------------------------
-
-# -----------------------------------
 # Time Analysis
 # -----------------------------------
-if 'PEPS_GoHaL' in options.input:
-    reaction = []
-    for i in data.iterkeys():
-        for j in xrange(1, 5):
-            reaction.append(data[i][j]['time'][0:40,1]-data[i][j]['time'][0:40,0])
-    reaction = np.array(reaction)
-elif 'fMRI' in options.input:
-    reaction = []
-    for i in data.iterkeys():
-        for j in xrange(4):
-            reaction.append(data[i][j]['sar_time'][0:40,1]-data[i][j]['sar_time'][0:40,0])
-    reaction = np.array(reaction)
-    
+reaction = []
+for i in data.iterkeys():
+    for j in data[i].iterkeys():
+        reaction.append(data[i][j]['time'][0:42,1]-data[i][j]['time'][0:42,0])
+reaction = np.array(reaction)
+# -----------------------------------
+
+# -----------------------------------
+# Representative Steps
+# -----------------------------------
+
 # -----------------------------------
 
 # -----------------------------------

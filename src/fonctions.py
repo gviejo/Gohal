@@ -185,7 +185,7 @@ def loadDirectoryMEG(direct):
     for i in files:
         tmp = scipy.io.loadmat(direct+i+'/beh.mat')['beh']
         data[i] = dict()
-        for j in range(len(tmp[0])):
+        for j in range(1, len(tmp[0])-1):
             data[i][j] = {}
             for k in range(len(tmp.dtype.names)):
                 data[i][j][tmp.dtype.names[k]] = tmp[0][j][k]   
@@ -198,9 +198,12 @@ def loadDirectoryfMRI(direct):
     for i in xrange(m):        
         data['S'+str(i+1)] = dict()
         for j in xrange(n):
-            data['S'+str(i+1)][j] = dict()
+            data['S'+str(i+1)][j+1] = dict()
             for k in range(len(tmp[i][j].dtype.names)):
-                data['S'+str(i+1)][j][tmp[i][j].dtype.names[k]] = tmp[i][j][k]
+                if tmp[i][j].dtype.names[k] == 'sar_time':
+                    data['S'+str(i+1)][j+1]['time'] = tmp[i][j][k]
+                else:
+                    data['S'+str(i+1)][j+1][tmp[i][j].dtype.names[k]] = tmp[i][j][k]                                   
     return data
         
 def computeMeanReactionTime(data, case = None, ind = 40):

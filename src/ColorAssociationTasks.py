@@ -29,6 +29,12 @@ class CATS():
         self.incorrect = dict()
         for i in xrange(len(self.states)):
             self.incorrect[self.states[i]] = self.time[i]
+
+    def chooseExperiment(self, case):
+        if case == 'meg':            
+            return [3, 9, 15]
+        elif case == 'fmri':
+            return [3, 9, 15]
         
     def reinitialize(self, nb_trials, case):
         self.__init__(nb_trials, case)
