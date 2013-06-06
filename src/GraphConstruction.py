@@ -26,8 +26,8 @@ class ModelBased():
         self.g, self.action = self.initializeTree(state, action)
         self.mental_path = []
 
-    def reinitialize():
-        self.__init__(self.state, self.action)
+    def reinitialize(self, state, action):
+        self.__init__(state, action)
 
     def initializeTree(self, state, action):
         g = dict()
@@ -86,12 +86,3 @@ class ModelBased():
                 ptr_trees[i] = {}
             self.mental_path = []
 
-    def print_dict(self, dictionary, ident = '', braces=1):
-        """ Recursively prints nested dictionaries."""
-
-        for key, value in dictionary.iteritems():
-            if isinstance(value, dict):
-                print '%s%s%s%s' %(ident,braces*'[',key,braces*']') 
-                self.print_dict(value, ident+'  ', braces+1)
-            else:
-                print ident+'%s = %s' %(key, value)

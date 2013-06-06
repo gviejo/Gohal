@@ -22,19 +22,13 @@ class CATS():
         self.states = ['s1', 's2', 's3']
         self.actions = ['thumb', 'fore', 'midd', 'ring', 'little']
         self.asso = self.createAssociationDict(self.states)
-        self.correct = []
         self.used = []
+        self.correct = []
         self.stimuli = self.createStimulusList(self.states, nb_trials)
-        self.time = self.chooseExperiment(case)
+        self.time = [1, 3, 4]
         self.incorrect = dict()
-        for i in self.states:
-            self.incorrect[i] = 0
-
-    def chooseExperiment(self, case):
-        if case == 'meg':            
-            return [3, 9, 15]
-        elif case == 'fmri':
-            return [3, 9, 15]
+        for i in xrange(len(self.states)):
+            self.incorrect[self.states[i]] = self.time[i]
         
     def reinitialize(self, nb_trials, case):
         self.__init__(nb_trials, case)
@@ -61,20 +55,20 @@ class CATS():
         return (np.array(s)).flatten()
 
     def getOutcome(self, state, action):
-        if 
-        if np.sum(self.incorrect.values()) < 3:
-            self.asso[state][action] = -1
-            self.incorrect[state] = 1
-            return -1
-        elif np.sum(self.incorrect.values()) == 3:
+        tmp = self.asso[state].values()
+        if state in self.asso.keys() and action in self.asso[state].keys():
+            return self.asso[state][action]
+        elif tmp.count(-1) >= self.incorrect[state] and tmp.count(1) == 0:
             self.asso[state][action] = 1
             self.used.append(action)
-            self.used.append(state)
             self.correct.append(state+" => "+action)
-        elif np.sum(self.incorrect.values()) == 7 and len(cats.correct) == 1:
-             
-                                   
-      
+            return 1
+        else:
+            self.asso[state][action] = -1
+            return -1
+            
+
+    '''                                            
     def getOutcome(self, state, action, i):
         if i < self.time[0]:
             self.asso[state][action] = -1
@@ -100,7 +94,6 @@ class CATS():
             self.asso[state][action] = -1
             return -1
 
-'''            
     def getOutcome(self, state, action, i):
         if i < 3:
             self.asso[state][action] = -1
