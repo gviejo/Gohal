@@ -217,3 +217,63 @@ def computeMeanReactionTime(data, case = None, ind = 40):
                      'sem':stats.sem(tmp, 0)})
     return reaction
     
+def getRepresentativeSteps(data, stimulus, responses):
+    m, n = data.shape
+    assert(data.shape == stimulus.shape == responses.shape)
+
+    steps = dict()
+    for s in xrange(n/3):
+        steps[s] = []
+
+
+    steps[1] = data[:,0:3][responses[:,0:3] == 0]
+
+
+    for i in xrange(m):
+        for j in xrange(n):
+            if j < 3:
+                steps[1].append(reaction)
+       
+
+
+    for i in xrange(1,4):
+        tmp = []
+        tmpr = []
+        for j in xrange(m):
+            tmp.append(data[j][stimulus[j] == i].copy())
+            tmpr.append(responses[j][stimulus[j] == i].copy())
+ 
+    steps = dict()
+    for i in xrange(len(responses)):
+        if np.where(responses[i] == 1)[0][0] in steps.keys():
+            steps[np.where(responses[i] == 1)[0][0]].append(i)
+        else:
+            steps[np.where(responses[i] == 1)[0][0]] = [i]
+
+
+    for i in xrange(m):
+        ind = np.where(responses[i] == 1)[0]
+        rest = set([1,2,3])
+        #STEP 1
+        steps[1].append(data[i][0:ind[0]].copy())
+        first = stimulus[i][ind[0]]
+        rest.remove(first)
+        #STEP 2 first right
+        steps[2].append(reaction[i][ind[0]].copy())
+        steps[2].append(reaction[i][np.where(stimulus[i] == list(rest)[0])[0][1]].copy())
+        steps[2].append(reaction[i][np.where(stimulus[i] == list(rest)[1])[0][1]].copy())
+        #STEP 3
+        
+
+
+        
+
+ 
+            
+                
+
+            
+            
+    
+
+

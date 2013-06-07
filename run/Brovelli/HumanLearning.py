@@ -46,7 +46,7 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 nStepEm = 200
 pOutset = 0.2
-
+size = 42 if 'PEPS_GoHaL' in options.input else 39
 # -----------------------------------
 
 # -----------------------------------
@@ -65,11 +65,21 @@ else:
 
 for i in data.iterkeys():
     for j in data[i].iterkeys():
-        responses.append(data[i][j]['sar'][0:42,2])
-        stimulus.append(data[i][j]['sar'][0:42,0])
+        responses.append(data[i][j]['sar'][0:size,2])
+        stimulus.append(data[i][j]['sar'][0:size,0])
 responses = np.array(responses)
 stimulus = np.array(stimulus)
 
+# -----------------------------------
+
+# -----------------------------------
+# Time Analysis
+# -----------------------------------
+reaction = []
+for i in data.iterkeys():
+    for j in data[i].iterkeys():
+        reaction.append(data[i][j]['time'][0:size,1]-data[i][j]['time'][0:size,0])
+reaction = np.array(reaction)
 # -----------------------------------
 
 # -----------------------------------
@@ -101,16 +111,6 @@ for s in xrange(1,4):
             k = np.sum(responses[i, 0:j][stimulus[i,0:j]==s])
             Psd[i, j] = Psd[i, j] * binom.cdf(k, n, pOutset)            
 Isd = np.log2(Psd/(0.5**3))
-# -----------------------------------
-
-# -----------------------------------
-# Time Analysis
-# -----------------------------------
-reaction = []
-for i in data.iterkeys():
-    for j in data[i].iterkeys():
-        reaction.append(data[i][j]['time'][0:42,1]-data[i][j]['time'][0:42,0])
-reaction = np.array(reaction)
 # -----------------------------------
 
 # -----------------------------------
