@@ -8,6 +8,7 @@ import cPickle as pickle
 import scipy.io
 from scipy import misc
 from scipy import stats
+from scipy.stats import binom, sem
 
 def displayQValues(states, actions, values, ind = 0):
     foo = PrettyTable()
@@ -216,40 +217,14 @@ def computeMeanReactionTime(data, case = None, ind = 40):
     reaction = dict({'mean':np.mean(tmp, 0),
                      'sem':stats.sem(tmp, 0)})
     return reaction
-    
+'''    
 def getRepresentativeSteps(data, stimulus, responses):
     m, n = data.shape
     assert(data.shape == stimulus.shape == responses.shape)
 
     steps = dict()
-    for s in xrange(n/3):
+    for s in xrange(1,n/3+1):
         steps[s] = []
-
-
-    steps[1] = data[:,0:3][responses[:,0:3] == 0]
-
-
-    for i in xrange(m):
-        for j in xrange(n):
-            if j < 3:
-                steps[1].append(reaction)
-       
-
-
-    for i in xrange(1,4):
-        tmp = []
-        tmpr = []
-        for j in xrange(m):
-            tmp.append(data[j][stimulus[j] == i].copy())
-            tmpr.append(responses[j][stimulus[j] == i].copy())
- 
-    steps = dict()
-    for i in xrange(len(responses)):
-        if np.where(responses[i] == 1)[0][0] in steps.keys():
-            steps[np.where(responses[i] == 1)[0][0]].append(i)
-        else:
-            steps[np.where(responses[i] == 1)[0][0]] = [i]
-
 
     for i in xrange(m):
         ind = np.where(responses[i] == 1)[0]
@@ -259,20 +234,80 @@ def getRepresentativeSteps(data, stimulus, responses):
         first = stimulus[i][ind[0]]
         rest.remove(first)
         #STEP 2 first right
-        steps[2].append(reaction[i][ind[0]].copy())
-        steps[2].append(reaction[i][np.where(stimulus[i] == list(rest)[0])[0][1]].copy())
-        steps[2].append(reaction[i][np.where(stimulus[i] == list(rest)[1])[0][1]].copy())
+        steps[2].append(data[i][ind[0]].copy())
+        steps[2].append(data[i][np.where(stimulus[i] == list(rest)[0])[0][1]].copy())
+        steps[2].append(data[i][np.where(stimulus[i] == list(rest)[1])[0][1]].copy())
         #STEP 3
+        if stimulus[i][ind[1]] == first:
+            steps[3].append(data[i][ind[1]].copy())
+        steps[3].append(data[i][np.where(stimulus[i] == list(rest)[0])[0][2]].copy())
+        steps[3].append(data[i][np.where(stimulus[i] == list(rest)[1])[0][2]].copy())
+        #STEP 4 second right
+        steps[4].append(data[i][np.where(stimulus[i] == first)[0][3]])
+        for k in ind[2:]:
+            if stimulus[i][k] <> first:
+                second = stimulus[i][k]
+                break
+        steps[4].append(data[i][np.where(stimulus[i] == second)[0][3]])                                         
+        rest.remove(second)
+        steps[4].append(data[i][np.where(stimulus[i] == list(rest)[0])[0][3]].copy())
+        #STEPS 5 third right
+        steps[5].append(data[i][ind[4:7].copy()])
+
+    for i in steps.iterkeys():
+        steps[i] = np.array(steps[i])
+
+    return steps
+'''        
         
+def getRepresentativeSteps(data, stimulus, responses):
+    m, n = data.shape
+    assert(data.shape == stimulus.shape == responses.shape)
 
+    t = np.max([np.max(np.sum(stimulus == i,1)) for i in [1,2,3]])
+    steps = dict()
+    for s in xrange(1,t+1):
+        steps[s] = []
+    
+    for i in xrange(m):
+        #search for first right
+        ind = np.where(responses[i] == 1)[0]
+        first = stimulus[i][ind[0]]
+        #search for the second right
+        for k in ind[1:]:
+            if stimulus[i][k] <> first:
+                second = stimulus[i][k]
+                break
+        #search for the third right
+        for k in ind[2:]:
+            if stimulus[i][k] <> first and stimulus[i][k] <> second:
+                third = stimulus[i][k]
+                break
+        #extracting first right
+        for k in xrange(len(data[i][stimulus[i] == first])):
+            steps[k+1].append(data[i][stimulus[i] == first][k])
+        #extracting second right
+        for k in xrange(len(data[i][stimulus[i] == second])):
+            steps[k+1].append(data[i][stimulus[i] == second][k])
+        #extracting third right
+        for k in xrange(len(data[i][stimulus[i] == third])):
+            steps[k+1].append(data[i][stimulus[i] == third][k])
 
+    tmp = []
+    for i in steps.iterkeys():
+        steps[i] = np.array(steps[i])
+       
+    return steps
+               
+def computeMeanRepresentativeSteps(data):
+    assert(type(data) == dict)
+    m = []
+    s = []
+    for i in data.iterkeys():
+        m.append(np.mean(data[i]))
+        s.append(sem(data[i]))
         
-
- 
-            
-                
-
-            
+    return np.array(m), np.array(s)
             
     
 
