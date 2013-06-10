@@ -105,21 +105,19 @@ class PlotTree():
         fig = plt.figure(1, facecolor='white')
         fig.clf()
         axprops = dict(xticks=[], yticks=[])
-        self.ax1 = plt.subplot(111, frameon=False, **axprops)
-        self.totalW = float(self.getNumberLeafs(tree))
-        self.totalD = float(self.getTreeDepth(tree))
-        self.xOff = -0.5/self.totalW
-        self.yOff = 1.0;
-        self.plotTree(tree, [0.0,1.0], (0.5,1.0), 'origin')
+        self.ax1 = plt.subplot(111, frameon=False, **axprops)        
+        self.plotTree(tree, (0.0, 1.0))
         plt.show()
 
-    def plotTree(self, tree, parent, nodeTxt):
+    def plotTree(self, tree, xlimit)
         nnodes = 0
         for k in tree.iterkeys():
             if type(tree[k]).__name__=='dict':
                 nnodes += 1
-        
-                
+        step = xlimit[1]/float(nnodes)
+        for k in tree.iterkeys():
+            if type(tree[k]).__name__=='dict':
+                            
 
 
 
