@@ -12,7 +12,8 @@ sys.path.append("../../src")
 import os
 import numpy as np
 from fonctions import *
-import matplotlib.pyplot as plt
+from matplotlib import pyplot as plt
+from matplotlib import animation
 
 class PlotCATS():
     """Class that allow to plot in different way results
@@ -55,14 +56,38 @@ class PlotCATS():
         show()
         
 
-
 class PlotTree():
     """Class to plot trees ."""
 
-    def __init__(self):
+    def __init__(self, tree):
         self.decisionNode = dict(boxstyle="sawtooth", fc="0.8")
         self.leafNode = dict(boxstyle="round4", fc="0.8")
         self.arrow_args = dict(arrowstyle="<-")
+        self.fig = plt.figure(1,figsize=(6*3.13,4*3.13), facecolor='white')
+        #fig.clf()
+        axprops = dict(xticks=[], yticks=[])
+        self.ax1 = plt.subplot(111, frameon=False, **axprops)        
+        #self.depth = self.getTreeDepth(tree)
+        self.depth = 6.0
+        self.depth_step = 1.0/self.depth
+        self.updateTree(tree)
+        plt.show(block = False)
+
+    def updateTree(self, tree):
+        self.ax1.clear()
+        self.ax1.set_xticks([])
+        self.ax1.set_yticks([])
+        self.xlimit = dict()
+        step = 1/3.0
+        tmp = np.array([0.0, step])
+        for k in tree.iterkeys():
+            cntrPt = ((tmp[1]-tmp[0])/2.0+tmp[0], 1.0-self.depth_step)
+            self.plotNode(str(k), cntrPt, (0.5,1.0), self.leafNode)
+            self.xlimit[k] = tmp
+            self.plotTree(tree[k], cntrPt, 1.0-self.depth_step, k)
+            tmp += step
+        self.fig.canvas.draw()
+	plt.pause(0.6)
 
     def getNumberLeafs(self, tree):
         numLeafs = 0
@@ -84,7 +109,6 @@ class PlotTree():
                     depth.append(1)
         return np.max(depth)
                     
-
     def plotNode(self, nodeTxt, centerPt, parentPt, nodeType):
         self.ax1.annotate(nodeTxt,
                           xy=parentPt,
@@ -100,55 +124,55 @@ class PlotTree():
         xMid = (parentPt[0]-cntrPt[0])/2.0 + cntrPt[0]
         yMid = (parentPt[1]-cntrPt[1])/2.0 + cntrPt[1]
         self.ax1.text(xMid, yMid, txtString)
-
-    def createPlot(self, tree):
-        fig = plt.figure(1, facecolor='white')
-        fig.clf()
-        axprops = dict(xticks=[], yticks=[])
-        self.ax1 = plt.subplot(111, frameon=False, **axprops)        
-        self.plotTree(tree, (0.0, 1.0))
-        plt.show()
-
-    def plotTree(self, tree, xlimit)
+        
+    def plotTree(self, tree, parent, ylevel, state):
         nnodes = 0
         for k in tree.iterkeys():
             if type(tree[k]).__name__=='dict':
                 nnodes += 1
-        step = xlimit[1]/float(nnodes)
+        xlimit = self.xlimit[state]
+        step = (xlimit[1]-xlimit[0])/float(nnodes)
+        xlimit = np.array([xlimit[0], xlimit[0]+step])
         for k in tree.iterkeys():
             if type(tree[k]).__name__=='dict':
-                            
+                cntrPt = ((xlimit[1]-xlimit[0])/2.0+xlimit[0], ylevel-self.depth_step)
+                self.plotNode(str(k), cntrPt, parent, self.leafNode)
+                if 0 in tree.keys():
+                    ind = tree.keys()[1:].index(k)
+                    self.plotMidText(cntrPt, parent, '%.1f' % tree[0][ind])
+                if len(tree[k].keys()) <> 0:
+                    self.plotTree(tree[k], cntrPt, ylevel-self.depth_step, state)
+                xlimit += step
+
+###############
 
 
 
-    def plotTree2(self, myTree, parentPt, nodeTxt):
-        numLeafs = self.getNumberLeafs(myTree)
-        self.getTreeDepth(myTree)
-        firstStr = myTree.keys()[0]
-        cntrPt = (self.xOff + (1.0 + float(numLeafs))/2.0/self.totalW,\
-                  self.yOff)
-        self.plotMidText(cntrPt, parentPt, nodeTxt)
-        self.plotNode(firstStr, cntrPt, parentPt, self.decisionNode)
-        secondDict = myTree[firstStr]
-        self.yOff = self.yOff - 1.0/self.totalD
-        for key in secondDict.keys():
-            if type(secondDict[key]).__name__=='dict':
-                self.plotTree(secondDict[key],cntrPt,str(key))
-            else:
-                self.xOff = self.xOff + 1.0/self.totalW
-                self.plotNode(secondDict[key], (self.xOff, self.yOff),cntrPt, self.leafNode)
-                self.plotMidText((self.xOff, self.yOff), cntrPt, str(key))
-        self.yOff = self.yOff + 1.0/self.totalD
-            
-    
-                                                        
-        
-    def retrieveTree(i):
-        listOfTrees =[{'no surfacing': {0: 'no', 1: {'flippers': \
-                                                     {0: 'no', 1: 'yes'}}}},
-                      {'no surfacing': {0: 'no', 1: {'flippers': \
-                                                     {0: {'head': {0: 'no', 1: 'yes'}}, 1: 'no'}}}}
-                      ]
-        return listOfTrees[i]
 
 
+    def createPlot3(self, tree):
+        fig = plt.figure(1, facecolor='white')
+        fig.clf()
+        axprops = dict(xticks=[], yticks=[])
+        self.ax1 = plt.subplot(111, frameon=False, **axprops)        
+        self.depth = self.getTreeDepth(tree)
+        self.depth_step = 1.0/self.depth
+        self.limit = np.array([[0.0, 1/3.0], [1/3.0, 2/3.0], [2/3.0, 1.0]]) #TODO
+        self.plotTree(tree, np.array([0.0, 1.0]), 1.0)
+        plt.show()
+
+    def plotTree3(self, tree, xlimit, ylevel):
+        parent = ((xlimit[1]-xlimit[0])/2.0+xlimit[0], ylevel)
+        nnodes = 0
+        for k in tree.iterkeys():
+            if type(tree[k]).__name__=='dict':
+                nnodes += 1
+        step = (xlimit[1]-xlimit[0])/float(nnodes)
+        xlimit = np.array([xlimit[0], xlimit[0]+step])
+        for k in tree.iterkeys():
+            if type(tree[k]).__name__=='dict':
+                cntrPt = ((xlimit[1]-xlimit[0])/2.0+xlimit[0], ylevel-self.depth_step)
+                self.plotNode(str(k), cntrPt, parent, self.leafNode)
+                if len(tree[k].keys()) <> 0:
+                    self.plotTree(tree[k], xlimit, ylevel-self.depth_step)
+                xlimit += step

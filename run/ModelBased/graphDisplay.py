@@ -69,8 +69,7 @@ nb_trials = 42
 nb_blocs = 100
 cats = CATS()
 mods = ModelBased(cats.states, cats.actions)
-tree = PlotTree()
-
+tree = PlotTree(mods.g)
 # -----------------------------------
 # Learning session
 # -----------------------------------
@@ -79,7 +78,7 @@ mods.reinitialize(cats.states, cats.actions)
 answer = []
 for j in xrange(nb_trials):
     iterationStep(j, mods, False)
-
+    tree.updateTree(mods.g)
 # -----------------------------------
 
 # -----------------------------------
