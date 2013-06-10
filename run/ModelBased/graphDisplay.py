@@ -37,7 +37,6 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # FONCTIONS
 # -----------------------------------
 def iterationStep(iteration, mods, display = True):
-    print iteration
     state = cats.getStimulus(iteration)
 
     #choose best action from model based
@@ -49,12 +48,12 @@ def iterationStep(iteration, mods, display = True):
 
     # update Model Based
     mods.updateTrees(state, reward)
-
     if display == True:
         print (state, action, reward)
         print_dict(mods.g[state])
         print cats.correct
         print '\n'
+    return state, action
 # -----------------------------------
 
 
@@ -69,16 +68,18 @@ nb_trials = 42
 nb_blocs = 100
 cats = CATS()
 mods = ModelBased(cats.states, cats.actions)
-tree = PlotTree(mods.g)
+plottree = PlotTree(mods.g, mods.action)
 # -----------------------------------
 # Learning session
 # -----------------------------------
-cats.reinitialize(nb_trials, 'meg')
-mods.reinitialize(cats.states, cats.actions)
-answer = []
-for j in xrange(nb_trials):
-    iterationStep(j, mods, False)
-    tree.updateTree(mods.g)
+for i in xrange(nb_blocs):
+    cats.reinitialize(nb_trials, 'meg')
+    mods.reinitialize(cats.states, cats.actions)
+    answer = []
+    for j in xrange(nb_trials):
+        state, action = iterationStep(j, mods, False)
+        plottree.updateTree(mods.g, (state, action))
+
 # -----------------------------------
 
 # -----------------------------------
