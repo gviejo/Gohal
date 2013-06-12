@@ -184,27 +184,33 @@ def loadDirectoryMEG(direct):
     p = os.popen(line, "r").read()
     files = p.split('\n')[:-1]    
     for i in files:
-        tmp = scipy.io.loadmat(direct+i+'/beh.mat')['beh']
         data[i] = dict()
+        tmp = scipy.io.loadmat(direct+i+'/beh.mat')['beh']
         for j in range(1, len(tmp[0])-1):
             data[i][j] = {}
             for k in range(len(tmp.dtype.names)):
                 data[i][j][tmp.dtype.names[k]] = tmp[0][j][k]   
+        tmp = scipy.io.loadmat(direct+i+'/NC.mat')['NC']
+        for j in range(1, len(tmp[0])-1):
+            for k in range(len(tmp.dtype.names)):
+                data[i][j][tmp.dtype.names[k]] = tmp[0][j][k]
     return data
 
 def loadDirectoryfMRI(direct):
     data = dict()
     tmp = scipy.io.loadmat(direct+'/beh_allSubj.mat')['data']
     m, n = tmp.shape
-    for i in xrange(m):        
-        data['S'+str(i+1)] = dict()
+    for i in xrange(m):
+        sujet = str(tmp[i][0][-1][0]).split("\\")[-2]
+        data[sujet] = dict()
         for j in xrange(n):
-            data['S'+str(i+1)][j+1] = dict()
+            num = int(list(str(tmp[i][j][-1][0]).split("\\")[-1])[-1])
+            data[sujet][num] = dict()
             for k in range(len(tmp[i][j].dtype.names)):
                 if tmp[i][j].dtype.names[k] == 'sar_time':
-                    data['S'+str(i+1)][j+1]['time'] = tmp[i][j][k]
+                    data[sujet][num]['time'] = tmp[i][j][k]
                 else:
-                    data['S'+str(i+1)][j+1][tmp[i][j].dtype.names[k]] = tmp[i][j][k]                                   
+                    data[sujet][num][tmp[i][j].dtype.names[k]] = tmp[i][j][k]                                   
     return data
         
 def computeMeanReactionTime(data, case = None, ind = 40):
@@ -217,58 +223,16 @@ def computeMeanReactionTime(data, case = None, ind = 40):
     reaction = dict({'mean':np.mean(tmp, 0),
                      'sem':stats.sem(tmp, 0)})
     return reaction
-'''    
-def getRepresentativeSteps(data, stimulus, responses):
-    m, n = data.shape
-    assert(data.shape == stimulus.shape == responses.shape)
-
-    steps = dict()
-    for s in xrange(1,n/3+1):
-        steps[s] = []
-
-    for i in xrange(m):
-        ind = np.where(responses[i] == 1)[0]
-        rest = set([1,2,3])
-        #STEP 1
-        steps[1].append(data[i][0:ind[0]].copy())
-        first = stimulus[i][ind[0]]
-        rest.remove(first)
-        #STEP 2 first right
-        steps[2].append(data[i][ind[0]].copy())
-        steps[2].append(data[i][np.where(stimulus[i] == list(rest)[0])[0][1]].copy())
-        steps[2].append(data[i][np.where(stimulus[i] == list(rest)[1])[0][1]].copy())
-        #STEP 3
-        if stimulus[i][ind[1]] == first:
-            steps[3].append(data[i][ind[1]].copy())
-        steps[3].append(data[i][np.where(stimulus[i] == list(rest)[0])[0][2]].copy())
-        steps[3].append(data[i][np.where(stimulus[i] == list(rest)[1])[0][2]].copy())
-        #STEP 4 second right
-        steps[4].append(data[i][np.where(stimulus[i] == first)[0][3]])
-        for k in ind[2:]:
-            if stimulus[i][k] <> first:
-                second = stimulus[i][k]
-                break
-        steps[4].append(data[i][np.where(stimulus[i] == second)[0][3]])                                         
-        rest.remove(second)
-        steps[4].append(data[i][np.where(stimulus[i] == list(rest)[0])[0][3]].copy())
-        #STEPS 5 third right
-        steps[5].append(data[i][ind[4:7].copy()])
-
-    for i in steps.iterkeys():
-        steps[i] = np.array(steps[i])
-
-    return steps
-'''        
+        
         
 def getRepresentativeSteps(data, stimulus, responses):
     m, n = data.shape
     assert(data.shape == stimulus.shape == responses.shape)
 
-    t = np.max([np.max(np.sum(stimulus == i,1)) for i in [1,2,3]])
-    steps = dict()
-    for s in xrange(1,t+1):
-        steps[s] = []
-    
+    #t = np.max([np.max(np.sum(stimulus == i,1)) for i in [1,2,3]])
+
+    indice = np.zeros((m,n))
+
     for i in xrange(m):
         #search for first right
         ind = np.where(responses[i] == 1)[0]
@@ -283,22 +247,44 @@ def getRepresentativeSteps(data, stimulus, responses):
             if stimulus[i][k] <> first and stimulus[i][k] <> second:
                 third = stimulus[i][k]
                 break
-        #extracting first right
-        for k in xrange(len(data[i][stimulus[i] == first])):
-            steps[k+1].append(data[i][stimulus[i] == first][k])
-        #extracting second right
-        for k in xrange(len(data[i][stimulus[i] == second])):
-            steps[k+1].append(data[i][stimulus[i] == second][k])
-        #extracting third right
-        for k in xrange(len(data[i][stimulus[i] == third])):
-            steps[k+1].append(data[i][stimulus[i] == third][k])
+        #extracting first wrongs
+        for j in np.where(responses[i] == 0)[0][0:3]:
+            indice[i,j] = 1
+        #second step+first right
+        indice[i,np.where(stimulus[i] == first)[0][1]] = 2
+        indice[i,np.where(stimulus[i] == second)[0][1]] = 2
+        indice[i,np.where(stimulus[i] == third)[0][1]] = 2
+        #indicing for correct first from 6 to ...
+        tmp = 6
+        for j in np.where(stimulus[i] == first)[0][2:]:
+            if responses[i,j] == 1:
+                indice[i,j] = tmp; tmp += 1
+        #third step
+        indice[i,np.where(stimulus[i] == second)[0][2]] = 3
+        indice[i,np.where(stimulus[i] == third)[0][2]] = 3
+        #fourth step
+        indice[i,np.where(stimulus[i] == second)[0][3]] = 4
+        indice[i,np.where(stimulus[i] == third)[0][3]] = 4
+        #indicing for second from 6 to ...
+        tmp = 6
+        for j in np.where(stimulus[i] == second)[0][4:]:
+            if responses[i,j] == 1:
+                indice[i,j] = tmp; tmp += 1
+        #fifth step
+        indice[i,np.where(stimulus[i] == third)[0][4]] = 5
+        #indicing for third from 6 to ...
+        tmp = 6
+        for j in np.where(stimulus[i] == third)[0][5:]:
+            if responses[i,j] == 1:
+                indice[i,j] = tmp; tmp += 1
 
-    tmp = []
-    for i in steps.iterkeys():
-        steps[i] = np.array(steps[i])
-       
-    return steps
-               
+    steps = dict()
+    for i in range(1,16):
+        steps[i] = data[indice == i]
+            
+    return steps, indice
+
+
 def computeMeanRepresentativeSteps(data):
     assert(type(data) == dict)
     m = []

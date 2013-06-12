@@ -64,7 +64,7 @@ gamma = 0.1 #discount factor
 alpha = 1
 beta = 3
 
-nb_trials = 42
+nb_trials = 20
 nb_blocs = 100
 cats = CATS()
 mods = ModelBased(cats.states, cats.actions)

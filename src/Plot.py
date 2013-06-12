@@ -89,7 +89,7 @@ class PlotTree():
             self.plotTree(tree[k], cntrPt, 1.0-self.depth_step, k)
             tmp += step
         self.fig.canvas.draw()
-	#plt.pause(0.4)
+	#plt.pause(0.5)
 
     def getNumberLeafs(self, tree):
         numLeafs = 0

@@ -55,7 +55,9 @@ size = 42 if 'PEPS_GoHaL' in options.input else 39
 responses = []
 stimulus = []
 action = []
-
+reaction = []
+reaction2 = []
+indice2 = []
 if 'PEPS_GoHaL' in options.input:
     data = loadDirectoryMEG(options.input)
 elif 'fMRI' in options.input:
@@ -69,9 +71,13 @@ for i in data.iterkeys():
         responses.append(data[i][j]['sar'][0:size,2])
         stimulus.append(data[i][j]['sar'][0:size,0])
         action.append(data[i][j]['sar'][0:size,1])
+        reaction2.append(data[i][j]['time'][0:size,1]-data[i][j]['time'][0:size,0])
+        indice2.append(data[i][j]['SngTr'][0:size,0])
 responses = np.array(responses)
 stimulus = np.array(stimulus)
 action = np.array(action)
+reaction2 = np.array(reaction2)
+indice2 = np.array(indice2)
 # -----------------------------------
 
 # -----------------------------------
@@ -80,7 +86,11 @@ action = np.array(action)
 reaction = []
 for i in data.iterkeys():
     for j in data[i].iterkeys():
-        reaction.append(data[i][j]['time'][0:size,1]-data[i][j]['time'][0:size,0])
+        if 'PEPS_GoHaL' in options.input:
+            #reaction.append(data[i][j]['time'][0:size,1]-data[i][j]['time'][0:size,0])
+            reaction.append(data[i][j]['RT'].flatten()[0:size])
+        elif 'fMRI' in options.input:
+            reaction.append(data[i][j]['RT'].flatten()[0:size])
 reaction = np.array(reaction)
 # -----------------------------------
 
@@ -118,11 +128,12 @@ Isd = np.log2(Psd/(0.5**3))
 # -----------------------------------
 # Representative Steps
 # -----------------------------------
-steps_reaction = getRepresentativeSteps(reaction, stimulus, responses)
-steps_Ipm = getRepresentativeSteps(Ipm, stimulus, responses)
-steps_Icc = getRepresentativeSteps(Ipm+Icc, stimulus, responses)
-steps_Isd = getRepresentativeSteps(Isd, stimulus, responses)
-steps_responses = getRepresentativeSteps(responses, stimulus, responses)
+steps, indice = getRepresentativeSteps(reaction, stimulus, responses)
+steps_reaction = steps
+steps_Ipm,ind = getRepresentativeSteps(Ipm, stimulus, responses)
+steps_Icc,ind = getRepresentativeSteps(Ipm+Icc, stimulus, responses)
+steps_Isd,ind = getRepresentativeSteps(Isd, stimulus, responses)
+steps_responses,ind = getRepresentativeSteps(responses, stimulus, responses)
 # -----------------------------------
 
 # -----------------------------------
