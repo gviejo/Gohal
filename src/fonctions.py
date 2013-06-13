@@ -225,11 +225,9 @@ def computeMeanReactionTime(data, case = None, ind = 40):
     return reaction
         
         
-def getRepresentativeSteps(data, stimulus, responses):
+def getRepresentativeSteps(data, stimulus, action, responses):
     m, n = data.shape
     assert(data.shape == stimulus.shape == responses.shape)
-
-    #t = np.max([np.max(np.sum(stimulus == i,1)) for i in [1,2,3]])
 
     indice = np.zeros((m,n))
 
@@ -248,42 +246,51 @@ def getRepresentativeSteps(data, stimulus, responses):
                 third = stimulus[i][k]
                 break
         #extracting first wrongs
-        for j in np.where(responses[i] == 0)[0][0:3]:
-            indice[i,j] = 1
-        #second step+first right
+        first_action = []
+        for j in [first, second, third]:
+            first_action.append(action[i, np.where(stimulus[i] == j)[0][0]])
+            indice[i, np.where((responses[i] == 0) & (stimulus[i] == j) & (action[i] == first_action[-1]))[0]] = 1
+
+        #second step+first right+persistance for [second, third]
         indice[i,np.where(stimulus[i] == first)[0][1]] = 2
-        indice[i,np.where(stimulus[i] == second)[0][1]] = 2
-        indice[i,np.where(stimulus[i] == third)[0][1]] = 2
-        #indicing for correct first from 6 to ...
-        tmp = 6
-        for j in np.where(stimulus[i] == first)[0][2:]:
-            if responses[i,j] == 1:
-                indice[i,j] = tmp; tmp += 1
+        second_action = []
+        for j in [second, third]:
+            second_action.append(action[i, np.where((stimulus[i] == j) & (indice[i] == 0))[0][0]])
+            indice[i,np.where((stimulus[i] == j) & (action[i] == second_action[-1]) & (responses[i] == 0) & (indice[i] == 0))] = 2
+
         #third step
-        indice[i,np.where(stimulus[i] == second)[0][2]] = 3
-        indice[i,np.where(stimulus[i] == third)[0][2]] = 3
-        #fourth step
-        indice[i,np.where(stimulus[i] == second)[0][3]] = 4
-        indice[i,np.where(stimulus[i] == third)[0][3]] = 4
-        #indicing for second from 6 to ...
-        tmp = 6
-        for j in np.where(stimulus[i] == second)[0][4:]:
-            if responses[i,j] == 1:
-                indice[i,j] = tmp; tmp += 1
+        third_action = []
+        for j,k in zip([second, third], second_action):
+            third_action.append(action[i,np.where((stimulus[i] == j) & (action[i] <> k) & (indice[i] == 0))[0][0]])
+            indice[i, np.where((stimulus[i] == j) & (action[i] == third_action[-1]) & (indice[i] == 0))[0]] = 3
+                
+        #fourth step + second right
+        indice[i, np.where((stimulus[i] == second) & (responses[i] == 1) & (indice[i] == 0))[0][0]] = 4
+        if len(np.where((stimulus[i] == third) & (action[i] <> third_action[1]) & (indice[i] == 0) & (responses[i] == 0))[0]) > 0:
+            fourth_action = action[i, np.where((stimulus[i] == third) & (action[i] <> third_action[1]) & (indice[i] == 0))[0][0]]
+            indice[i, np.where((stimulus[i] == third) & (action[i] == fourth_action) & (indice[i] == 0))[0]] = 4
+
         #fifth step
-        indice[i,np.where(stimulus[i] == third)[0][4]] = 5
-        #indicing for third from 6 to ...
-        tmp = 6
-        for j in np.where(stimulus[i] == third)[0][5:]:
-            if responses[i,j] == 1:
+        indice[i, np.where((stimulus[i] == third) & (responses[i] == 1) & (indice[i] == 0))[0][0]] = 5
+
+        #indicing for correct first from 6 to ...
+        for k in [first, second, third]:
+            tmp = 6
+            for j in np.where((stimulus[i] == k) & (responses[i] == 1) & (indice[i] == 0))[0]:
                 indice[i,j] = tmp; tmp += 1
+
+        #setting maintenance errors
+        for k in [first, second, third]:
+            essai_correct = np.where((stimulus[i] == k) & (responses[i] == 1))[0][0]
+            for j in xrange(essai_correct, len(stimulus[i])):
+                if stimulus[i, j] == k and responses[i,j] == 0:
+                    indice[i,j] = 0
 
     steps = dict()
     for i in range(1,16):
         steps[i] = data[indice == i]
             
     return steps, indice
-
 
 def computeMeanRepresentativeSteps(data):
     assert(type(data) == dict)

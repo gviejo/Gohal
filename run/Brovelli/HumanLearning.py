@@ -1,4 +1,4 @@
-#!/usr/bin/python
+7#!/usr/bin/python
 # encoding: utf-8
 """
 HumanLearning.py
@@ -128,12 +128,12 @@ Isd = np.log2(Psd/(0.5**3))
 # -----------------------------------
 # Representative Steps
 # -----------------------------------
-steps, indice = getRepresentativeSteps(reaction, stimulus, responses)
+steps, indice = getRepresentativeSteps(reaction, stimulus, action, responses)
 steps_reaction = steps
-steps_Ipm,ind = getRepresentativeSteps(Ipm, stimulus, responses)
-steps_Icc,ind = getRepresentativeSteps(Ipm+Icc, stimulus, responses)
-steps_Isd,ind = getRepresentativeSteps(Isd, stimulus, responses)
-steps_responses,ind = getRepresentativeSteps(responses, stimulus, responses)
+steps_Ipm,ind = getRepresentativeSteps(Ipm, stimulus, action, responses)
+steps_Icc,ind = getRepresentativeSteps(Ipm+Icc, stimulus, action, responses)
+steps_Isd,ind = getRepresentativeSteps(Isd, stimulus, action, responses)
+steps_responses,ind = getRepresentativeSteps(responses, stimulus, action, responses)
 # -----------------------------------
 
 # -----------------------------------
