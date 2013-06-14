@@ -177,41 +177,6 @@ def loadData(file_name):
     data = pickle.load(f)
     f.close()
     return data
-
-def loadDirectoryMEG(direct):
-    data = dict()
-    line = "ls "+direct
-    p = os.popen(line, "r").read()
-    files = p.split('\n')[:-1]    
-    for i in files:
-        data[i] = dict()
-        tmp = scipy.io.loadmat(direct+i+'/beh.mat')['beh']
-        for j in range(1, len(tmp[0])-1):
-            data[i][j] = {}
-            for k in range(len(tmp.dtype.names)):
-                data[i][j][tmp.dtype.names[k]] = tmp[0][j][k]   
-        tmp = scipy.io.loadmat(direct+i+'/NC.mat')['NC']
-        for j in range(1, len(tmp[0])-1):
-            for k in range(len(tmp.dtype.names)):
-                data[i][j][tmp.dtype.names[k]] = tmp[0][j][k]
-    return data
-
-def loadDirectoryfMRI(direct):
-    data = dict()
-    tmp = scipy.io.loadmat(direct+'/beh_allSubj.mat')['data']
-    m, n = tmp.shape
-    for i in xrange(m):
-        sujet = str(tmp[i][0][-1][0]).split("\\")[-2]
-        data[sujet] = dict()
-        for j in xrange(n):
-            num = int(list(str(tmp[i][j][-1][0]).split("\\")[-1])[-1])
-            data[sujet][num] = dict()
-            for k in range(len(tmp[i][j].dtype.names)):
-                if tmp[i][j].dtype.names[k] == 'sar_time':
-                    data[sujet][num]['time'] = tmp[i][j][k]
-                else:
-                    data[sujet][num][tmp[i][j].dtype.names[k]] = tmp[i][j][k]                                   
-    return data
         
 def computeMeanReactionTime(data, case = None, ind = 40):
     tmp = []
@@ -223,8 +188,7 @@ def computeMeanReactionTime(data, case = None, ind = 40):
     reaction = dict({'mean':np.mean(tmp, 0),
                      'sem':stats.sem(tmp, 0)})
     return reaction
-        
-        
+                
 def getRepresentativeSteps(data, stimulus, action, responses):
     m, n = data.shape
     assert(data.shape == stimulus.shape == responses.shape)
