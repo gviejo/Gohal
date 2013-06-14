@@ -17,7 +17,6 @@ import os
 from optparse import OptionParser
 import numpy as np
 from fonctions import *
-from plot import plotCATS
 from LearningAnalysis import SSLearning
 import scipy.io
 from scipy.stats import binom, sem
