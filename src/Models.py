@@ -24,24 +24,26 @@ class QLearning():
         self.responses = []
         self.states = states
         self.actions = actions
-        self.action = None
-        self.state = None
+        self.action = []
+        self.state = []
 
     def reinitialize(self):
         if len(self.answer) <> 0:
             self.responses.append(list(self.answer))
             self.answer = list()
         self.values = createQValuesDict(self.states, self.actions)
+        self.action.append([])
+        self.state.append([])
         
     def chooseAction(self, state):
-        self.state = state
-        self.action = getBestActionSoftMax(state, self.values, self.beta)
-        return self.action
+        self.state[-1].append(state)         
+        self.action[-1].append(getBestActionSoftMax(state, self.values, self.beta))
+        return self.action[-1][-1]
     
     def update(self, reward):
         self.answer.append((reward==1)*1)
-        delta = reward+self.gamma*np.max(self.values[0][self.values[self.state]])-self.values[0][self.values[(self.state,self.action)]]
-        self.values[0][self.values[(self.state,self.action)]] = self.values[0][self.values[(self.state,self.action)]]+self.alpha*delta
+        delta = reward+self.gamma*np.max(self.values[0][self.values[self.state[-1][1]]])-self.values[0][self.values[(self.state[-1][-1],self.action[-1][-1])]]
+        self.values[0][self.values[(self.state[-1][-1],self.action[-1][-1])]] = self.values[0][self.values[(self.state[-1][-1],self.action[-1][-1])]]+self.alpha*delta
     
 
 class KalmanQLearning():

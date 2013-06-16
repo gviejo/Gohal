@@ -10,8 +10,8 @@ evaluation of all models on ColorAssociationTask.py
        -> QLearning :       <Slow>     <Fast>
 
 For each model => Time Reaction + Accuracy
-see "Differential roles of caudate nucleus and putamen during instrumental learning.
-     Brovelli & al, 2011"
+see 'Differential roles of caudate nucleus and putamen during instrumental learning.
+     Brovelli & al, 2011'
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -101,7 +101,7 @@ for i in xrange(nb_blocs):
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('/home/viejo/Gohal/fMRI',39)}))
+human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI',39)}))
 steps1, indice = getRepresentativeSteps(human.reaction['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 steps2, indice = getRepresentativeSteps(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 # -----------------------------------
