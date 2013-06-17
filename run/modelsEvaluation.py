@@ -111,15 +111,16 @@ human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI'
 steps1, indice = getRepresentativeSteps(human.reaction['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 steps2, indice = getRepresentativeSteps(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 # -----------------------------------
+
 data = dict()
 for model in [qlearning, klearning, tlearning]:
     data[model.__class__.__name__] = dict()
     model.state = convertStimulus(np.array(model.state))
     model.action = convertAction(np.array(model.action))
     model.responses = np.array(model.responses)
-    step, indice = getRepresentativeSteps(model.responses, model.state, model.action, model.responses)
-    data[model.__class__.__name__]['step'] = step
-    data[model.__class__.__name__]['indice'] = indice
+    #step, indice = getRepresentativeSteps(model.responses, model.state, model.action, model.responses)
+    #data[model.__class__.__name__]['step'] = step
+    #data[model.__class__.__name__]['indice'] = indice
 
 # -----------------------------------
 # Plot
