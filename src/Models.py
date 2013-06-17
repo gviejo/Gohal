@@ -20,17 +20,14 @@ class QLearning():
     def __init__(self, states, actions, gamma, alpha, beta):
         self.gamma=gamma;self.alpha=alpha;self.beta=beta
         self.values = createQValuesDict(states, actions)
-        self.answer = []
-        self.responses = []
+        self.responses = list()
         self.states = states
         self.actions = actions
-        self.action = []
-        self.state = []
+        self.action = list()
+        self.state = list()
 
-    def reinitialize(self):
-        if len(self.answer) <> 0:
-            self.responses.append(list(self.answer))
-            self.answer = list()
+    def initialize(self):
+        self.responses.append([])
         self.values = createQValuesDict(self.states, self.actions)
         self.action.append([])
         self.state.append([])
@@ -40,9 +37,9 @@ class QLearning():
         self.action[-1].append(getBestActionSoftMax(state, self.values, self.beta))
         return self.action[-1][-1]
     
-    def update(self, reward):
-        self.answer.append((reward==1)*1)
-        delta = reward+self.gamma*np.max(self.values[0][self.values[self.state[-1][1]]])-self.values[0][self.values[(self.state[-1][-1],self.action[-1][-1])]]
+    def updateValue(self, reward):
+        self.responses[-1].append((reward==1)*1)
+        delta = reward+self.gamma*np.max(self.values[0][self.values[self.state[-1][-1]]])-self.values[0][self.values[(self.state[-1][-1],self.action[-1][-1])]]
         self.values[0][self.values[(self.state[-1][-1],self.action[-1][-1])]] = self.values[0][self.values[(self.state[-1][-1],self.action[-1][-1])]]+self.alpha*delta
     
 
@@ -54,32 +51,31 @@ class KalmanQLearning():
     def __init__(self, states, actions, gamma, beta, eta, var_obs, sigma, init_cov, kappa):
         self.gamma=gamma;self.beta=beta;self.eta=eta;self.var_obs=var_obs;self.sigma=sigma;self.init_cov=init_cov;self.kappa=kappa
         self.values = createQValuesDict(states, actions)
-        self.reward_rate = createRewardRateDict()
         self.covariance = createCovarianceDict(len(states)*len(actions), self.init_cov, self.eta)
-        self.answer = []
-        self.responses = []
         self.states = states
         self.actions = actions
-        self.action = None
-        self.state = None
+        self.action = list()
+        self.state = list()
+        self.responses = list()
 
-    def reinitialize(self):
-        if len(self.answer) <> 0:
-            self.responses.append(list(self.answer))
-            self.answer = list()
+    def initialize(self):
+        self.responses.append([])
         self.values = createQValuesDict(self.states, self.actions)
+        self.action.append([])
+        self.state.append([])
 
     def chooseAction(self, state):
-        self.state = state
+        self.state[-1].append(state)
         self.covariance['noise'] = self.covariance['cov']*self.eta
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']
-        self.action = getBestActionSoftMax(state, self.values, self.beta, 0)
-        return self.action
+        self.action[-1].append(getBestActionSoftMax(state, self.values, self.beta, 0))
+        return self.action[-1][-1]
 
-    def update(self, reward):
-        self.answer.append((reward==1)*1)
+    def updateValue(self, reward):
+        self.responses[-1].append((reward==1)*1)
+        s = self.state[-1][-1]; a = self.action[-1][-1]
         sigma_points, weights = computeSigmaPoints(self.values[0], self.covariance['cov'], self.kappa)
-        rewards_predicted = (sigma_points[:,self.values[(self.state, self.action)]]-self.gamma*np.max(sigma_points[:,self.values[self.state]], 1)).reshape(len(sigma_points), 1)
+        rewards_predicted = (sigma_points[:,self.values[(s,a)]]-self.gamma*np.max(sigma_points[:,self.values[s]], 1)).reshape(len(sigma_points), 1)
         reward_predicted = np.dot(rewards_predicted.flatten(), weights.flatten())
         cov_values_rewards = np.sum(weights*(sigma_points-self.values[0])*(rewards_predicted-reward_predicted), 0)
         cov_rewards = np.sum(weights*(rewards_predicted-reward_predicted)**2) + self.var_obs
@@ -95,46 +91,51 @@ class TreeConstruction():
     def __init__(self, states, actions, alpha, beta, gamma):
         self.alpha=alpha;self.beta=beta;self.gamma=gamma
         self.states=states
-        self.actions_list=actions
+        self.actions=actions
         self.n_action=len(actions)
-        self.g, self.action = self.initializeTree(states, actions)
-        self.mental_path = []
-        self.state=None
-        self.answer = []
-        self.responses = []
+        self.initializeTree(states, actions)
+        self.state=list()
+        self.answer=list()
+        self.responses=list()
+        self.mental_path=list()
+        self.action=list()
 
     def initializeTree(self, state, action):
-        g = dict()
-        dict_action = dict()
+        self.g = dict()
+        self.dict_action = dict()
         for s in state:
-            g[s] = dict()            
-            g[s][0] = np.ones(len(action))*(1/float(len(action)))
+            self.g[s] = dict()            
+            self.g[s][0] = np.ones(len(action))*(1/float(len(action)))
             for a in range(1, len(action)+1):
-                g[s][a] = dict()
-                dict_action[a] = action[a-1]
-                dict_action[action[a-1]] = a
-        return g, dict_action
+                self.g[s][a] = dict()
+                self.dict_action[a] = action[a-1]
+                self.dict_action[action[a-1]] = a
 
-    def reinitialize(self):
-        self.g, self.actions = self.initializeTree(self.states, self.actions_list)
+    def initialize(self):
+        self.initializeTree(self.states, self.actions)
         self.mental_path = []
-        if len(self.answer) <> 0:
-            self.responses.append(list(self.answer))
-            self.answer = list()
-        
-    def chooseAction(self, ptr_trees):
+        self.responses.append([])
+        self.action.append([])
+        self.state.append([])
+    
+    def chooseAction(self, state):
+        self.state[-1].append(state)
+        self.action[-1].append(self.branching(self.g[state]))
+        return self.action[-1][-1]
+
+    def branching(self, ptr_trees):
         id_action = ptr_trees.keys()[self.sample(ptr_trees[0])]
         if id_action == 0:
             sys.stderr.write("End of trees\n")
             sys.exit()
         self.mental_path.append(id_action)
         if len(ptr_trees[id_action]):
-            return self.chooseAction(ptr_trees[id_action])
+            return self.branching(ptr_trees[id_action])
         else:
-            return self.action[id_action]
+            return self.dict_action[id_action]
 
     def updateTrees(self, state, reward):        
-        self.answer.append((reward==1)*1)
+        self.responses[-1].append((reward==1)*1)
         if reward <> 1:
             self.extendTrees(self.mental_path, self.mental_path, self.g[state])
         elif reward == 1:

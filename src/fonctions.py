@@ -196,19 +196,37 @@ def getRepresentativeSteps(data, stimulus, action, responses):
     indice = np.zeros((m,n))
 
     for i in xrange(m):
-        #search for first right
+        print i
+        incorrect = dict()
+
+        for j in [1,2,3]:
+            correct = np.where((responses[i] == 1) & (stimulus[i] == j))[0][0]
+            t = len(np.unique(action[i][np.where((responses[i][0:correct] == 0) & (stimulus[i][0:correct] == j))[0]]))
+            incorrect[t] = j
+        
+        if 1 in incorrect.keys() and 3 in incorrect.keys() and 4 in incorrect.keys():            
+            first = incorrect[1]
+            second = incorrect[3]
+            third = incorrect[4]
+        else:
+            print "Incorrect trials for line ",i
+            continue
+            
+        '''
+        #search for first right == 1 error
         ind = np.where(responses[i] == 1)[0]
         first = stimulus[i][ind[0]]
-        #search for the second right
+        #search for the second right == 3 error
         for k in ind[1:]:
             if stimulus[i][k] <> first:
                 second = stimulus[i][k]
                 break
-        #search for the third right
+        #search for the third right == 4 error
         for k in ind[2:]:
             if stimulus[i][k] <> first and stimulus[i][k] <> second:
                 third = stimulus[i][k]
                 break
+        '''
         #extracting first wrongs
         first_action = []
         for j in [first, second, third]:
