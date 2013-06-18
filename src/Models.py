@@ -17,7 +17,8 @@ class QLearning():
     """Class that implement a Qlearning
     """
     
-    def __init__(self, states, actions, gamma, alpha, beta):
+    def __init__(self, name, states, actions, gamma, alpha, beta):
+        self.name = name
         self.gamma=gamma;self.alpha=alpha;self.beta=beta
         self.values = createQValuesDict(states, actions)
         self.responses = list()
@@ -48,7 +49,8 @@ class KalmanQLearning():
     Kalman Temporal Differences : The deterministic case, Geist & al, 2009
     """
 
-    def __init__(self, states, actions, gamma, beta, eta, var_obs, sigma, init_cov, kappa):
+    def __init__(self, name, states, actions, gamma, beta, eta, var_obs, sigma, init_cov, kappa):
+        self.name=name
         self.gamma=gamma;self.beta=beta;self.eta=eta;self.var_obs=var_obs;self.sigma=sigma;self.init_cov=init_cov;self.kappa=kappa
         self.values = createQValuesDict(states, actions)
         self.covariance = createCovarianceDict(len(states)*len(actions), self.init_cov, self.eta)
@@ -88,7 +90,8 @@ class TreeConstruction():
     Color Association Experiments from Brovelli & al 2011
     """
 
-    def __init__(self, states, actions, alpha, beta, gamma):
+    def __init__(self, name, states, actions, alpha, beta, gamma):
+        self.name = name
         self.alpha=alpha;self.beta=beta;self.gamma=gamma
         self.states=states
         self.actions=actions

@@ -38,6 +38,42 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------    
+def loadDirectoryMEG(direct):
+    data = dict()
+    line = "ls "+direct
+    p = os.popen(line, "r").read()
+    files = p.split('\n')[:-1]    
+    for i in files:
+        data[i] = dict()
+        tmp = scipy.io.loadmat(direct+i+'/beh.mat')['beh']
+        for j in range(1, len(tmp[0])-1):
+            data[i][j] = {}
+            for k in range(len(tmp.dtype.names)):
+                data[i][j][tmp.dtype.names[k]] = tmp[0][j][k]   
+        tmp = scipy.io.loadmat(direct+i+'/NC.mat')['NC']
+        for j in range(1, len(tmp[0])-1):
+            for k in range(len(tmp.dtype.names)):
+                data[i][j][tmp.dtype.names[k]] = tmp[0][j][k]
+    return data
+
+def loadDirectoryfMRI(direct):
+    data = dict()
+    tmp = scipy.io.loadmat(direct+'/beh_allSubj.mat')['data']
+    m, n = tmp.shape
+    for i in xrange(m):
+        sujet = str(tmp[i][0][-1][0]).split("\\")[-2]
+        data[sujet] = dict()
+        for j in xrange(n):
+            num = int(list(str(tmp[i][j][-1][0]).split("\\")[-1])[-1])
+            data[sujet][num] = dict()
+            for k in range(len(tmp[i][j].dtype.names)):
+                if tmp[i][j].dtype.names[k] == 'sar_time':
+                    data[sujet][num]['time'] = tmp[i][j][k]
+                else:
+                    data[sujet][num][tmp[i][j].dtype.names[k]] = tmp[i][j][k]                                   
+    return data
+
+
 # -----------------------------------
 
 # -----------------------------------
@@ -71,12 +107,10 @@ for i in data.iterkeys():
         stimulus.append(data[i][j]['sar'][0:size,0])
         action.append(data[i][j]['sar'][0:size,1])
         reaction2.append(data[i][j]['time'][0:size,1]-data[i][j]['time'][0:size,0])
-        indice2.append(data[i][j]['SngTr'][0:size,0])
 responses = np.array(responses)
 stimulus = np.array(stimulus)
 action = np.array(action)
 reaction2 = np.array(reaction2)
-indice2 = np.array(indice2)
 # -----------------------------------
 
 # -----------------------------------

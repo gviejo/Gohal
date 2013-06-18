@@ -1,6 +1,5 @@
 import numpy as np
 from scipy.stats import norm
-from matplotlib import *
 from prettytable import PrettyTable
 import operator
 from copy import deepcopy
@@ -200,10 +199,14 @@ def getRepresentativeSteps(data, stimulus, action, responses):
         incorrect = dict()
 
         for j in [1,2,3]:
-            correct = np.where((responses[i] == 1) & (stimulus[i] == j))[0][0]
-            t = len(np.unique(action[i][np.where((responses[i][0:correct] == 0) & (stimulus[i][0:correct] == j))[0]]))
-            incorrect[t] = j
-        
+            if len(np.where((responses[i] == 1) & (stimulus[i] == j))[0]):
+                correct = np.where((responses[i] == 1) & (stimulus[i] == j))[0][0]
+                t = len(np.unique(action[i][np.where((responses[i][0:correct] == 0) & (stimulus[i][0:correct] == j))[0]]))
+                incorrect[t] = j
+            else:
+                print "Bad Trials for line", i
+                continue
+            
         if 1 in incorrect.keys() and 3 in incorrect.keys() and 4 in incorrect.keys():            
             first = incorrect[1]
             second = incorrect[3]
@@ -212,21 +215,6 @@ def getRepresentativeSteps(data, stimulus, action, responses):
             print "Incorrect trials for line ",i
             continue
             
-        '''
-        #search for first right == 1 error
-        ind = np.where(responses[i] == 1)[0]
-        first = stimulus[i][ind[0]]
-        #search for the second right == 3 error
-        for k in ind[1:]:
-            if stimulus[i][k] <> first:
-                second = stimulus[i][k]
-                break
-        #search for the third right == 4 error
-        for k in ind[2:]:
-            if stimulus[i][k] <> first and stimulus[i][k] <> second:
-                third = stimulus[i][k]
-                break
-        '''
         #extracting first wrongs
         first_action = []
         for j in [first, second, third]:
@@ -274,6 +262,8 @@ def getRepresentativeSteps(data, stimulus, action, responses):
             
     return steps, indice
 
+ 
+
 def computeMeanRepresentativeSteps(data):
     assert(type(data) == dict)
     m = []
@@ -285,5 +275,43 @@ def computeMeanRepresentativeSteps(data):
     return np.array(m), np.array(s)
             
     
+def extractStimulusPresentation(stimulus, action, responses):
+    tmp = dict({1:[],2:[],3:[]})
+    m, n = responses.shape
+    assert(stimulus.shape == responses.shape)
 
+    for i in xrange(m):
+        incorrect = dict()
 
+        for j in [1,2,3]:
+            if len(np.where((responses[i] == 1) & (stimulus[i] == j))[0]):
+                correct = np.where((responses[i] == 1) & (stimulus[i] == j))[0][0]
+                t = len(np.unique(action[i][np.where((responses[i][0:correct] == 0) & (stimulus[i][0:correct] == j))[0]]))
+                incorrect[t] = j
+            else:
+                print "Bad Trials for line", i
+                continue
+            
+        if 1 in incorrect.keys() and 3 in incorrect.keys() and 4 in incorrect.keys():            
+            first = incorrect[1]
+            second = incorrect[3]
+            third = incorrect[4]
+            tmp[1].append(responses[i,stimulus[i] == first][0:10])
+            tmp[2].append(responses[i,stimulus[i] == second][0:10])
+            tmp[3].append(responses[i,stimulus[i] == third][0:10])
+
+        else:
+            print "Incorrect trials for line ",i
+            continue
+
+    final = dict({'mean':[],'sem':[]})
+
+    for i in tmp.keys():
+        tmp[i] = np.array(tmp[i])
+        final['mean'].append(np.mean(tmp[i], 0))
+        final['sem'].append(sem(tmp[i], 0))
+    final['mean'] = np.array(final['mean'])
+    final['sem'] = np.array(final['sem'])
+
+    return final
+    

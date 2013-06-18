@@ -15,7 +15,6 @@ from fonctions import *
 from LearningAnalysis import SSLearning
 import scipy.io
 from scipy.stats import binom, sem
-from pylab import *
 
 class HLearning():
     def __init__(self, directory):
@@ -53,7 +52,8 @@ class HLearning():
                 self.responses[case].append(data[i][j]['sar'][0:size,2])
                 self.stimulus[case].append(data[i][j]['sar'][0:size,0])
                 self.action[case].append(data[i][j]['sar'][0:size,1])
-                self.reaction[case].append(data[i][j]['time'][0:size,1]-data[i][j]['time'][0:size,0])
+                #self.reaction[case].append(data[i][j]['time'][0:size,1]-data[i][j]['time'][0:size,0])
+                self.reaction[case].append(data[i][j]['RT'].flatten()[0:size])
         self.responses[case] = np.array(self.responses[case])
         self.stimulus[case] = np.array(self.stimulus[case])
         self.action[case] = np.array(self.action[case])

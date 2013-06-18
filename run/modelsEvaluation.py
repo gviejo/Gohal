@@ -20,14 +20,17 @@ import sys
 import os
 from optparse import OptionParser
 import numpy as np
-from pylab import *
+#from pylab import *
 sys.path.append("../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
+from ColorAssociationTasks import CATS_MODELS
 from HumanLearning import HLearning
 from Models import QLearning
 from Models import KalmanQLearning
 from Models import TreeConstruction
+from matplotlib import *
+from pylab import *
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
@@ -48,31 +51,23 @@ def convertStimulus(state):
 def convertAction(action):
     return (action=='thumb')*1+(action=='fore')*2+(action=='midd')*3+(action=='ring')*4+(action=='little')*5
 
-def iterationStep(iteration, qlearning, klearning, t_learning, display = True):
-    #get state
+def iterationStep(iteration, qlearning, klearning, tlearning, display = True):
     state = cats.getStimulus(iteration)
 
-    #choose best Action
-    q_action = qlearning.chooseAction(state)
-    k_action = klearning.chooseAction(state)
-    t_action = tlearning.chooseAction(state)
+    for m in [qlearning, klearning, tlearning]:
+        action = m.chooseAction(state)
+        reward = cats.getOutcome(state, action, m.name)
+        if m.name == 't':
+            m.updateTrees(state, reward)
+        else:
+            m.updateValue(reward)
 
-    #set reward 
-    print state, q_action
-    q_reward = cats.getOutcome(state, q_action)
-    k_reward = cats.getOutcome(state, k_action)
-    t_reward = cats.getOutcome(state, t_action)
-
-    #update models
-    qlearning.updateValue(q_reward)
-    klearning.updateValue(k_reward)
-    tlearning.updateTrees(state, t_reward)
 # -----------------------------------
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-gamma = 0.1 #discount facto
+gamma = 0.1 #discount factor
 alpha = 1
 beta = 1
 eta = 0.0001     # variance of evolution noise v
@@ -84,11 +79,13 @@ kappa = 0.1      # unscentered transform parameters
 
 nb_trials = 42
 nb_blocs = 100
-
 cats = CATS()
-qlearning = QLearning(cats.states, cats.actions, gamma, alpha, beta)
-klearning = KalmanQLearning(cats.states, cats.actions, gamma, beta, eta, var_obs, sigma, init_cov, kappa)
-tlearning = TreeConstruction(cats.states, cats.actions, alpha, beta, gamma)
+qlearning = QLearning('q', cats.states, cats.actions, gamma, alpha, beta)
+klearning = KalmanQLearning('k', cats.states, cats.actions, gamma, beta*3.0, eta, var_obs, sigma, init_cov, kappa)
+tlearning = TreeConstruction('t', cats.states, cats.actions, alpha, beta, gamma)
+models=[m.name for m in [qlearning, klearning, tlearning]]    
+cats = CATS_MODELS(nb_trials, models)
+
 # -----------------------------------
 
 # -----------------------------------
@@ -104,35 +101,92 @@ for i in xrange(nb_blocs):
         iterationStep(j, qlearning, klearning, tlearning, False)
 # -----------------------------------
 
+
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
 human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI',39)}))
-steps1, indice = getRepresentativeSteps(human.reaction['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
-steps2, indice = getRepresentativeSteps(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 # -----------------------------------
 
+#order data
 data = dict()
-for model in [qlearning, klearning, tlearning]:
-    data[model.__class__.__name__] = dict()
-    model.state = convertStimulus(np.array(model.state))
-    model.action = convertAction(np.array(model.action))
-    model.responses = np.array(model.responses)
-    #step, indice = getRepresentativeSteps(model.responses, model.state, model.action, model.responses)
-    #data[model.__class__.__name__]['step'] = step
-    #data[model.__class__.__name__]['indice'] = indice
+data['pcr'] = dict()
+for i in human.directory.keys():
+    data['pcr'][i] = extractStimulusPresentation(human.stimulus[i], human.action[i], human.responses[i])
+for m in [qlearning, klearning, tlearning]:
+    m.state = convertStimulus(np.array(m.state))
+    m.action = convertAction(np.array(m.action))
+    m.responses = np.array(m.responses)
+    data['pcr'][m.name] = extractStimulusPresentation(m.state, m.action, m.responses)
+
+data['rt'] = dict()
+for i in human.directory.keys():
+    data['rt'][i] = dict()
+    step, indice = getRepresentativeSteps(human.reaction[i], human.stimulus[i], human.action[i], human.responses[i])
+    data['rt'][i]['mean'], data['rt'][i]['sem'] = computeMeanRepresentativeSteps(step) 
+
+# -----------------------------------
+
 
 # -----------------------------------
 # Plot
 # -----------------------------------
-#HUMAN
-
-subplot(111)
-m,s = computeMeanRepresentativeSteps(steps1)
-errorbar(range(len(m)), m, s, linewidth = 2)
-xlabel('representative steps')
-ylabel('reaction time (s)')
+figure()
+subplot(421)
+for mean, sem in zip(data['pcr']['fmri']['mean'], data['pcr']['fmri']['sem']):
+    #ax1.plot(range(len(mean)), mean, linewidth = 2)
+    errorbar(range(len(mean)), mean, sem, linewidth = 2)
+legend()
 grid()
+ylim(0,1)
+title('fMRI')
+subplot(422)
+for mean, sem in zip(data['pcr']['meg']['mean'], data['pcr']['meg']['sem']):
+    #ax2.plot(range(len(mean)), mean, linewidth = 2)
+    errorbar(range(len(mean)), mean, sem, linewidth = 2)
+legend()
+grid()
+ylim(0,1)
+title('MEG')
+
+subplot(423)
+for mean, sem in zip(data['pcr']['t']['mean'], data['pcr']['t']['sem']):
+    #ax1.plot(range(len(mean)), mean, linewidth = 2)
+    errorbar(range(len(mean)), mean, sem, linewidth = 2)
+legend()
+grid()
+ylim(0,1)
+title('Tree-Learning')
+
+
+subplot(425)
+for mean, sem in zip(data['pcr']['q']['mean'], data['pcr']['q']['sem']):
+    #ax1.plot(range(len(mean)), mean, linewidth = 2)
+    errorbar(range(len(mean)), mean, sem, linewidth = 2)
+legend()
+grid()
+ylim(0,1)
+title('Q-learning')
+
+subplot(427)
+for mean, sem in zip(data['pcr']['k']['mean'], data['pcr']['k']['sem']):
+    #ax1.plot(range(len(mean)), mean, linewidth = 2)
+    errorbar(range(len(mean)), mean, sem, linewidth = 2)
+legend()
+grid()
+ylim(0,1)
+title('Kalman-Qlearning')
+
+
+figure()
+subplot(421)
+errorbar(range(1,16), data['rt']['fmri']['mean'], data['rt']['fmri']['sem'], linewidth = 2)
+grid()
+title('fMRI')
+subplot(422)
+errorbar(range(1,16), data['rt']['meg']['mean'], data['rt']['meg']['sem'], linewidth = 2)
+grid()
+title('MEG')
 
 show()
 
