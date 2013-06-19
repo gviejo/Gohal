@@ -73,6 +73,7 @@ class CATS():
             self.asso[state][action] = -1
             return -1
 
+
 class CATS_MODELS():
     """ Class that implement the visuo-motor learning task
     as described in Brovelli & al, 2011 

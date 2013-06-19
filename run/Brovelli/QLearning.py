@@ -16,7 +16,7 @@ from copy import deepcopy
 from optparse import OptionParser
 import numpy as np
 from fonctions import *
-from pylab import plot, figure, show, subplot, legend, xlim
+from pylab import plot, figure, show, subplot, legend, xlim, errorbar, grid
 from ColorAssociationTasks import CATS
 
 # -----------------------------------
@@ -34,16 +34,23 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------    
+def convertStimulus(state):
+    return (state == 's1')*1+(state == 's2')*2 + (state == 's3')*3
+def convertAction(action):
+    return (action=='thumb')*1+(action=='fore')*2+(action=='midd')*3+(action=='ring')*4+(action=='little')*5
+
 def iterationStep(iteration, values, display = True):
     
     #display current stimulus
     state = cats.getStimulus(iteration)
+    stimulus[-1].append(state)
 
     #choose best action 
     action = getBestActionSoftMax(state, values, beta)
-    
+    action_list[-1].append(action)
+
     # set response + get outcome
-    reward = cats.getOutcome(state, action, iteration)
+    reward = cats.getOutcome(state, action)
     answer.append((reward==1)*1)
 
     # QLearning
@@ -63,8 +70,8 @@ def iterationStep(iteration, values, display = True):
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-gamma = 0.1 #discount facto
-alpha = 1
+gamma = 1 #discount facto
+alpha = 0.1
 beta = 1
 
 nb_trials = 42
@@ -72,20 +79,31 @@ nb_trials = 42
 cats = CATS()
 values = createQValuesDict(cats.states, cats.actions)
 Qdata = []
+stimulus = []
+action_list = []
 # -----------------------------------
 # Learning session
 # -----------------------------------
 for i in xrange(72):
     answer = []
-    cats.reinitialize(nb_trials, 'meg')
+    action_list.append([])
+    stimulus.append([])
+    cats.reinitialize()
     for j in xrange(nb_trials):
         iterationStep(j, values, False)
     Qdata.append(list(answer))
 # -----------------------------------
 
-Qdata = np.array(Qdata)
+responses = np.array(Qdata)
+action = convertAction(np.array(action_list))
+stimulus = convertStimulus(np.array(stimulus))
 
-plot(np.mean(Qdata, 0))
+data = extractStimulusPresentation(stimulus, action, responses)
+
+for m, s in zip(data['mean'],data['sem']):
+    errorbar(range(1, len(m)+1), m, s)
+
+grid()
 show()
 
 
