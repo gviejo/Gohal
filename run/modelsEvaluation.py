@@ -46,10 +46,6 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def convertStimulus(state):
-    return (state == 's1')*1+(state == 's2')*2 + (state == 's3')*3
-def convertAction(action):
-    return (action=='thumb')*1+(action=='fore')*2+(action=='midd')*3+(action=='ring')*4+(action=='little')*5
 
 def iterationStep(iteration, qlearning, klearning, tlearning, display = True):
     state = cats.getStimulus(iteration)

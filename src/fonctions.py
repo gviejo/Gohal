@@ -315,3 +315,7 @@ def extractStimulusPresentation(stimulus, action, responses):
 
     return final
     
+def convertStimulus(state):
+    return (state == 's1')*1+(state == 's2')*2 + (state == 's3')*3
+def convertAction(action):
+    return (action=='thumb')*1+(action=='fore')*2+(action=='midd')*3+(action=='ring')*4+(action=='little')*5

@@ -20,14 +20,16 @@ class ModelBased():
     Color Association Experiments from Brovelli & al 2011
     """
     
-    def __init__(self, state, action):
+    def __init__(self, state, action, noise):
+        self.width = 0.0001
+        self.noise = noise
         self.state = state
         self.n_action = len(action)
         self.g, self.action = self.initializeTree(state, action)
         self.mental_path = []
 
     def reinitialize(self, state, action):
-        self.__init__(state, action)
+        self.__init__(state, action, self.noise)
 
     def initializeTree(self, state, action):
         g = dict()
@@ -63,6 +65,11 @@ class ModelBased():
             self.extendTrees(self.mental_path, self.mental_path, self.g[state])
         elif reward == 1:
             self.reinforceTrees(self.mental_path, self.mental_path, self.g[state])
+        #TO ADD NOISE TO OTHERS STATE
+        if self.noise == True:
+            for s in set(self.state)-set([state]):
+                print s
+                self.addNoise(self.g[s])
 
     def reinforceTrees(self, path, position, ptr_trees):
         if len(position) > 1:
@@ -86,3 +93,12 @@ class ModelBased():
                 ptr_trees[i] = {}
             self.mental_path = []
 
+    def addNoise(self, ptr_tree):
+        print ptr_tree.keys()
+        print ptr_tree[0]
+        #sys.stdin.read(1)
+        tmp = np.random.normal(ptr_tree[0], np.ones(len(ptr_tree[0]))*self.width)
+        ptr_tree[0] = tmp/np.sum(tmp)
+        for k in ptr_tree.iterkeys():
+            if type(ptr_tree[k]) == dict and len(ptr_tree[k].values()) > 0:
+                self.addNoise(ptr_tree[k])

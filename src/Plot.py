@@ -59,7 +59,8 @@ class PlotCATS():
 class PlotTree():
     """Class to plot trees ."""
 
-    def __init__(self, tree, action_dict):
+    def __init__(self, tree, action_dict, time_sleep):
+        self.time_sleep = time_sleep
         self.action = action_dict
         self.decisionNode = dict(boxstyle="sawtooth", fc="0.8")
         self.leafNode = dict(boxstyle="round4", fc="0.8")
@@ -89,7 +90,7 @@ class PlotTree():
             self.plotTree(tree[k], cntrPt, 1.0-self.depth_step, k)
             tmp += step
         self.fig.canvas.draw()
-	#plt.pause(0.5)
+	plt.pause(self.time_sleep)
 
     def getNumberLeafs(self, tree):
         numLeafs = 0

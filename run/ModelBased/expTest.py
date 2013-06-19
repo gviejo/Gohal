@@ -37,11 +37,12 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # FONCTIONS
 # -----------------------------------
 def iterationStep(iteration, mods, display = True):
-    print iteration
     state = cats.getStimulus(iteration)
+    stimulus[-1].append(state)
 
     #choose best action from model based
     action = mods.chooseAction(mods.g[state])
+    action_list[-1].append(action)
 
     # set response + get outcome
     reward = cats.getOutcome(state, action)
@@ -49,7 +50,6 @@ def iterationStep(iteration, mods, display = True):
 
     # update Model Based
     mods.updateTrees(state, reward)
-
     if display == True:
         print (state, action, reward)
         print_dict(mods.g[state])
@@ -67,21 +67,33 @@ beta = 3
 
 nb_trials = 42
 nb_blocs = 100
+
 cats = CATS()
-mods = ModelBased(cats.states, cats.actions)
-data = []
+
+mods = ModelBased(cats.states, cats.actions, True)
+
+responses = []
+stimulus = []
+action_list = []
+
 # -----------------------------------
 # Learning session
 # -----------------------------------
 for i in xrange(nb_blocs):
     answer = []
-    cats.reinitialize(nb_trials, 'meg')
+    action_list.append([])
+    stimulus.append([])
+    cats.reinitialize()
     mods.reinitialize(cats.states, cats.actions)
     for j in xrange(nb_trials):
         iterationStep(j, mods, False)
-    data.append(answer)
+    responses.append(answer)
 
-data = np.array(data)
+responses = np.array(responses)
+action = convertAction(np.array(action_list))
+stimulus = convertStimulus(np.array(stimulus))
+
+data = extractStimulusPresentation(stimulus, action, responses)
 # -----------------------------------
 
 # -----------------------------------
@@ -94,7 +106,9 @@ label_size = 19
 
 rc('legend',**{'fontsize':legend_size})
 tick_params(labelsize = ticks_size)
-plot(np.mean(data, 0))
+for m, s in zip(data['mean'],data['sem']):
+    errorbar(range(1, len(m)+1), m, s)
+
 
 show()
 # -----------------------------------

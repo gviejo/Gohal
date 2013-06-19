@@ -4,7 +4,7 @@
 expGraph.py
 
 script to test the modelbased
-
+display the evoluation of the tree with matplotlib
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
@@ -17,9 +17,8 @@ from matplotlib import *
 sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
-from GraphConstruction import ModelBased
 from Plot import PlotTree
-
+from GraphConstruction import ModelBased
 
 # -----------------------------------
 # ARGUMENT MANAGER
@@ -36,6 +35,7 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
+
 def iterationStep(iteration, mods, display = True):
     state = cats.getStimulus(iteration)
 
@@ -65,15 +65,17 @@ alpha = 1
 beta = 3
 
 nb_trials = 20
-nb_blocs = 100
+nb_blocs = 1
 cats = CATS()
-mods = ModelBased(cats.states, cats.actions)
-plottree = PlotTree(mods.g, mods.action)
+
+mods = ModelBased(cats.states, cats.actions, True)
+
+plottree = PlotTree(mods.g, mods.action, 1)
 # -----------------------------------
 # Learning session
 # -----------------------------------
 for i in xrange(nb_blocs):
-    cats.reinitialize(nb_trials, 'meg')
+    cats.reinitialize()
     mods.reinitialize(cats.states, cats.actions)
     answer = []
     for j in xrange(nb_trials):

@@ -3,3 +3,4 @@ Rapport/
 .idea/
 PEPS_GoHaL/
 fMRI/
+*.pyc
