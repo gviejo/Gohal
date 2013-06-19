@@ -21,7 +21,6 @@ class ModelBased():
     """
     
     def __init__(self, state, action, noise):
-        self.width = 0.0001
         self.noise = noise
         self.state = state
         self.n_action = len(action)
@@ -66,9 +65,8 @@ class ModelBased():
         elif reward == 1:
             self.reinforceTrees(self.mental_path, self.mental_path, self.g[state])
         #TO ADD NOISE TO OTHERS STATE
-        if self.noise == True:
+        if self.noise:
             for s in set(self.state)-set([state]):
-                print s
                 self.addNoise(self.g[s])
 
     def reinforceTrees(self, path, position, ptr_trees):
@@ -94,11 +92,10 @@ class ModelBased():
             self.mental_path = []
 
     def addNoise(self, ptr_tree):
-        print ptr_tree.keys()
-        print ptr_tree[0]
-        #sys.stdin.read(1)
-        tmp = np.random.normal(ptr_tree[0], np.ones(len(ptr_tree[0]))*self.width)
-        ptr_tree[0] = tmp/np.sum(tmp)
-        for k in ptr_tree.iterkeys():
-            if type(ptr_tree[k]) == dict and len(ptr_tree[k].values()) > 0:
-                self.addNoise(ptr_tree[k])
+        if 0 in ptr_tree.keys():
+            #sys.stdin.read(1)
+            tmp = np.random.normal(ptr_tree[0], np.ones(len(ptr_tree[0]))*self.noise, len(ptr_tree[0]))
+            ptr_tree[0] = tmp/np.sum(tmp)
+            for k in ptr_tree.iterkeys():
+                if type(ptr_tree[k]) == dict and len(ptr_tree[k].values()) > 0:
+                    self.addNoise(ptr_tree[k])

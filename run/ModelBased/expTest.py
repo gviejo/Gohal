@@ -64,13 +64,14 @@ def iterationStep(iteration, mods, display = True):
 gamma = 0.1 #discount factor
 alpha = 1
 beta = 3
+noise_width = 0.01
 
 nb_trials = 42
 nb_blocs = 100
 
 cats = CATS()
 
-mods = ModelBased(cats.states, cats.actions, True)
+mods = ModelBased(cats.states, cats.actions, noise_width)
 
 responses = []
 stimulus = []

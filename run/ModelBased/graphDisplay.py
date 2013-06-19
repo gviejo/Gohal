@@ -63,14 +63,15 @@ def iterationStep(iteration, mods, display = True):
 gamma = 0.1 #discount factor
 alpha = 1
 beta = 3
+noise_width = 0.1
 
 nb_trials = 20
 nb_blocs = 1
 cats = CATS()
 
-mods = ModelBased(cats.states, cats.actions, True)
+mods = ModelBased(cats.states, cats.actions, noise_width)
 
-plottree = PlotTree(mods.g, mods.action, 1)
+plottree = PlotTree(mods.g, mods.action, time_sleep = 0.1)
 # -----------------------------------
 # Learning session
 # -----------------------------------
