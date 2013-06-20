@@ -46,25 +46,25 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-
-def iterationStep(iteration, qlearning, klearning, tlearning, display = True):
+def iterationStep(iteration, models, display = True):
     state = cats.getStimulus(iteration)
 
-    for m in [qlearning, klearning, tlearning]:
+    for m in models.itervalues():
         action = m.chooseAction(state)
         reward = cats.getOutcome(state, action, m.name)
-        if m.name == 't':
+        if m.__class__.__name__ == 'TreeConstruction':
             m.updateTrees(state, reward)
         else:
             m.updateValue(reward)
+
 
 # -----------------------------------
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-gamma = 0.1 #discount factor
-alpha = 1
+#gamma = 0.9 #discount factor
+#alpha = 0.9
 beta = 1
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
@@ -73,14 +73,19 @@ sigma = 0.02    # updating rate of the average reward
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 
+noise_width = 0.008 #model based noise If 0, no noise
+
 nb_trials = 42
 nb_blocs = 100
 cats = CATS()
-qlearning = QLearning('q', cats.states, cats.actions, gamma, alpha, beta)
-klearning = KalmanQLearning('k', cats.states, cats.actions, gamma, beta*3.0, eta, var_obs, sigma, init_cov, kappa)
-tlearning = TreeConstruction('t', cats.states, cats.actions, alpha, beta, gamma)
-models=[m.name for m in [qlearning, klearning, tlearning]]    
-cats = CATS_MODELS(nb_trials, models)
+models = dict({'qslow':QLearning('qslow', cats.states, cats.actions, 0.1, 0.1, beta),
+               'qfast':QLearning('qfast', cats.states, cats.actions, 0.9, 0.9, beta),
+               'kslow':KalmanQLearning('kslow', cats.states, cats.actions, 0.1, beta, eta, var_obs, sigma, init_cov, kappa),
+               'kfast':KalmanQLearning('kfast', cats.states, cats.actions, 0.1, beta, eta, var_obs, sigma, init_cov, kappa),
+               'tree':TreeConstruction('tree', cats.states, cats.actions),
+               'treenoise':TreeConstruction('treenoise', cats.states, cats.actions, noise_width)})
+
+cats = CATS_MODELS(nb_trials, models.keys())
 
 # -----------------------------------
 
@@ -90,11 +95,9 @@ cats = CATS_MODELS(nb_trials, models)
 for i in xrange(nb_blocs):
     sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                        
     cats.reinitialize()
-    qlearning.initialize()
-    klearning.initialize()
-    tlearning.initialize()
+    [m.initialize() for m in models.itervalues()]
     for j in xrange(nb_trials):
-        iterationStep(j, qlearning, klearning, tlearning, False)
+        iterationStep(j, models, False)
 # -----------------------------------
 
 
@@ -109,7 +112,7 @@ data = dict()
 data['pcr'] = dict()
 for i in human.directory.keys():
     data['pcr'][i] = extractStimulusPresentation(human.stimulus[i], human.action[i], human.responses[i])
-for m in [qlearning, klearning, tlearning]:
+for m in models.itervalues():
     m.state = convertStimulus(np.array(m.state))
     m.action = convertAction(np.array(m.action))
     m.responses = np.array(m.responses)
@@ -120,7 +123,11 @@ for i in human.directory.keys():
     data['rt'][i] = dict()
     step, indice = getRepresentativeSteps(human.reaction[i], human.stimulus[i], human.action[i], human.responses[i])
     data['rt'][i]['mean'], data['rt'][i]['sem'] = computeMeanRepresentativeSteps(step) 
-
+for i in ['tree', 'treenoise']:
+    data['rt'][i] = dict()
+    step, indice = getRepresentativeSteps(np.array(models[i].reaction), models[i].state, models[i].action, models[i].responses)
+    data['rt'][i]['mean'], data['rt'][i]['sem'] = computeMeanRepresentativeSteps(step) 
+ 
 # -----------------------------------
 
 
@@ -146,32 +153,61 @@ ylim(0,1)
 title('MEG')
 
 subplot(423)
-for mean, sem in zip(data['pcr']['t']['mean'], data['pcr']['t']['sem']):
+for mean, sem in zip(data['pcr']['tree']['mean'], data['pcr']['tree']['sem']):
     #ax1.plot(range(len(mean)), mean, linewidth = 2)
     errorbar(range(len(mean)), mean, sem, linewidth = 2)
 legend()
 grid()
 ylim(0,1)
 title('Tree-Learning')
+subplot(424)
+for mean, sem in zip(data['pcr']['treenoise']['mean'], data['pcr']['treenoise']['sem']):
+    #ax1.plot(range(len(mean)), mean, linewidth = 2)
+    errorbar(range(len(mean)), mean, sem, linewidth = 2)
+legend()
+grid()
+ylim(0,1)
+title('Noisy Tree-Learning')
+
 
 
 subplot(425)
-for mean, sem in zip(data['pcr']['q']['mean'], data['pcr']['q']['sem']):
+for mean, sem in zip(data['pcr']['qslow']['mean'], data['pcr']['qslow']['sem']):
     #ax1.plot(range(len(mean)), mean, linewidth = 2)
     errorbar(range(len(mean)), mean, sem, linewidth = 2)
 legend()
 grid()
 ylim(0,1)
-title('Q-learning')
+title('Slow Q-learning')
+
+subplot(426)
+for mean, sem in zip(data['pcr']['qfast']['mean'], data['pcr']['qfast']['sem']):
+    #ax1.plot(range(len(mean)), mean, linewidth = 2)
+    errorbar(range(len(mean)), mean, sem, linewidth = 2)
+legend()
+grid()
+ylim(0,1)
+title('Fast Q-learning')
+
 
 subplot(427)
-for mean, sem in zip(data['pcr']['k']['mean'], data['pcr']['k']['sem']):
+for mean, sem in zip(data['pcr']['kslow']['mean'], data['pcr']['kslow']['sem']):
     #ax1.plot(range(len(mean)), mean, linewidth = 2)
     errorbar(range(len(mean)), mean, sem, linewidth = 2)
 legend()
 grid()
 ylim(0,1)
-title('Kalman-Qlearning')
+title('Slow Kalman-Qlearning')
+
+subplot(428)
+for mean, sem in zip(data['pcr']['kfast']['mean'], data['pcr']['kfast']['sem']):
+    #ax1.plot(range(len(mean)), mean, linewidth = 2)
+    errorbar(range(len(mean)), mean, sem, linewidth = 2)
+legend()
+grid()
+ylim(0,1)
+title('Fast Kalman-Qlearning')
+
 
 
 figure()
@@ -183,6 +219,17 @@ subplot(422)
 errorbar(range(1,16), data['rt']['meg']['mean'], data['rt']['meg']['sem'], linewidth = 2)
 grid()
 title('MEG')
+
+subplot(423)
+errorbar(range(1,16), data['rt']['tree']['mean'], data['rt']['tree']['sem'], linewidth = 2)
+grid()
+title('Tree Learning')
+subplot(424)
+errorbar(range(1,16), data['rt']['treenoise']['mean'], data['rt']['treenoise']['sem'], linewidth = 2)
+grid()
+title('Noisy Tree Learning')
+
+
 
 show()
 

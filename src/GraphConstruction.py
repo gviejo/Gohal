@@ -26,6 +26,8 @@ class ModelBased():
         self.n_action = len(action)
         self.g, self.action = self.initializeTree(state, action)
         self.mental_path = []
+        self.reaction_time = 0.0
+        self.time_step = 0.08
 
     def reinitialize(self, state, action):
         self.__init__(state, action, self.noise)
@@ -48,15 +50,16 @@ class ModelBased():
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
         return np.sum(np.array(tmp) < np.random.rand())
 
-    def chooseAction(self, ptr_trees):
-        id_action = ptr_trees.keys()[self.sample(ptr_trees[0])]
+    def chooseAction(self, ptr_trees, rt):
+        id_action = ptr_trees.keys()[self.sample(ptr_trees[0])]        
         if id_action == 0:
             sys.stderr.write("End of trees\n")
             sys.exit()
         self.mental_path.append(id_action)
         if len(ptr_trees[id_action]):
-            return self.chooseAction(ptr_trees[id_action])
+            return self.chooseAction(ptr_trees[id_action], rt+1)
         else:
+            self.reaction_time = rt*self.time_step
             return self.action[id_action]
             
     def updateTrees(self, state, reward):        
@@ -93,8 +96,7 @@ class ModelBased():
 
     def addNoise(self, ptr_tree):
         if 0 in ptr_tree.keys():
-            #sys.stdin.read(1)
-            tmp = np.random.normal(ptr_tree[0], np.ones(len(ptr_tree[0]))*self.noise, len(ptr_tree[0]))
+            tmp = np.abs(np.random.normal(ptr_tree[0], np.ones(len(ptr_tree[0]))*self.noise, len(ptr_tree[0])))
             ptr_tree[0] = tmp/np.sum(tmp)
             for k in ptr_tree.iterkeys():
                 if type(ptr_tree[k]) == dict and len(ptr_tree[k].values()) > 0:

@@ -90,9 +90,9 @@ class TreeConstruction():
     Color Association Experiments from Brovelli & al 2011
     """
 
-    def __init__(self, name, states, actions, alpha, beta, gamma):
+    def __init__(self, name, states, actions, noise = 0.0):
         self.name = name
-        self.alpha=alpha;self.beta=beta;self.gamma=gamma
+        self.noise = noise
         self.states=states
         self.actions=actions
         self.n_action=len(actions)
@@ -102,6 +102,8 @@ class TreeConstruction():
         self.responses=list()
         self.mental_path=list()
         self.action=list()
+        self.reaction=list()
+        self.time_step=0.08
 
     def initializeTree(self, state, action):
         self.g = dict()
@@ -120,21 +122,23 @@ class TreeConstruction():
         self.responses.append([])
         self.action.append([])
         self.state.append([])
+        self.reaction.append([])
     
     def chooseAction(self, state):
-        self.state[-1].append(state)
-        self.action[-1].append(self.branching(self.g[state]))
+        self.state[-1].append(state)        
+        self.action[-1].append(self.branching(self.g[state], 0))
         return self.action[-1][-1]
 
-    def branching(self, ptr_trees):
+    def branching(self, ptr_trees, edge_count):
         id_action = ptr_trees.keys()[self.sample(ptr_trees[0])]
         if id_action == 0:
             sys.stderr.write("End of trees\n")
             sys.exit()
         self.mental_path.append(id_action)
         if len(ptr_trees[id_action]):
-            return self.branching(ptr_trees[id_action])
+            return self.branching(ptr_trees[id_action], edge_count+1)
         else:
+            self.reaction[-1].append(edge_count*self.time_step)
             return self.dict_action[id_action]
 
     def updateTrees(self, state, reward):        
@@ -143,6 +147,10 @@ class TreeConstruction():
             self.extendTrees(self.mental_path, self.mental_path, self.g[state])
         elif reward == 1:
             self.reinforceTrees(self.mental_path, self.mental_path, self.g[state])
+        #TO ADD NOISE TO OTHERS STATE
+        if self.noise:
+            for s in set(self.states)-set([state]):
+                self.addNoise(self.g[s])
 
     def reinforceTrees(self, path, position, ptr_trees):
         if len(position) > 1:
@@ -171,3 +179,11 @@ class TreeConstruction():
         # values are probability
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
         return np.sum(np.array(tmp) < np.random.rand())
+
+    def addNoise(self, ptr_tree):
+        if 0 in ptr_tree.keys():
+            tmp = np.abs(np.random.normal(ptr_tree[0], np.ones(len(ptr_tree[0]))*self.noise, len(ptr_tree[0])))
+            ptr_tree[0] = tmp/np.sum(tmp)
+            for k in ptr_tree.iterkeys():
+                if type(ptr_tree[k]) == dict and len(ptr_tree[k].values()) > 0:
+                    self.addNoise(ptr_tree[k])

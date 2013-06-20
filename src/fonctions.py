@@ -22,12 +22,12 @@ def displayQValues(states, actions, values, ind = 0):
         foo.add_row(line)
     foo.printt()
 
-def print_dict(self, dictionary, ident = '', braces=1):
+def print_dict(dictionary, ident = '', braces=1):
     """ Recursively prints nested dictionaries."""
     for key, value in dictionary.iteritems():
         if isinstance(value, dict):
             print '%s%s%s%s' %(ident,braces*'[',key,braces*']') 
-            self.print_dict(value, ident+'  ', braces+1)
+            print_dict(value, ident+'  ', braces+1)
         else:
             print ident+'%s = %s' %(key, value)
 

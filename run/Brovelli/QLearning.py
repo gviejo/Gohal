@@ -34,10 +34,6 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------    
-def convertStimulus(state):
-    return (state == 's1')*1+(state == 's2')*2 + (state == 's3')*3
-def convertAction(action):
-    return (action=='thumb')*1+(action=='fore')*2+(action=='midd')*3+(action=='ring')*4+(action=='little')*5
 
 def iterationStep(iteration, values, display = True):
     
@@ -62,6 +58,7 @@ def iterationStep(iteration, values, display = True):
         print cats.correct
         displayQValues(cats.states, cats.actions, values)
         print '\n'
+        #sys.stdin.read(1)
 
         
 
@@ -70,14 +67,13 @@ def iterationStep(iteration, values, display = True):
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-gamma = 1 #discount facto
+gamma = 0.1 #discount facto
 alpha = 0.1
 beta = 1
 
 nb_trials = 42
 
 cats = CATS()
-values = createQValuesDict(cats.states, cats.actions)
 Qdata = []
 stimulus = []
 action_list = []
@@ -89,8 +85,9 @@ for i in xrange(72):
     action_list.append([])
     stimulus.append([])
     cats.reinitialize()
+    values = createQValuesDict(cats.states, cats.actions)
     for j in xrange(nb_trials):
-        iterationStep(j, values, False)
+        iterationStep(j, values, True)
     Qdata.append(list(answer))
 # -----------------------------------
 
