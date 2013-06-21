@@ -44,7 +44,7 @@ def iterationStep(iteration, values, display = True):
     #choose best action 
     action = getBestActionSoftMax(state, values, beta)
     action_list[-1].append(action)
-
+    reaction[-1].append(computeEntropy(values[0][values[state]], beta))
     # set response + get outcome
     reward = cats.getOutcome(state, action)
     answer.append((reward==1)*1)
@@ -77,12 +77,14 @@ cats = CATS()
 Qdata = []
 stimulus = []
 action_list = []
+reaction = []
 # -----------------------------------
 # Learning session
 # -----------------------------------
 for i in xrange(72):
     answer = []
     action_list.append([])
+    reaction.append([])
     stimulus.append([])
     cats.reinitialize()
     values = createQValuesDict(cats.states, cats.actions)

@@ -65,7 +65,7 @@ def iterationStep(iteration, models, display = True):
 # -----------------------------------
 #gamma = 0.9 #discount factor
 #alpha = 0.9
-beta = 1
+beta = 2
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
 gamma = 0.9     # discount factor
@@ -111,131 +111,79 @@ human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI'
 data = dict()
 data['pcr'] = dict()
 for i in human.directory.keys():
-    data['pcr'][i] = extractStimulusPresentation(human.stimulus[i], human.action[i], human.responses[i])
+    data['pcr'][i] = extractStimulusPresentation(human.responses[i], human.stimulus[i], human.action[i], human.responses[i])
 for m in models.itervalues():
     m.state = convertStimulus(np.array(m.state))
     m.action = convertAction(np.array(m.action))
     m.responses = np.array(m.responses)
-    data['pcr'][m.name] = extractStimulusPresentation(m.state, m.action, m.responses)
+    data['pcr'][m.name] = extractStimulusPresentation(m.responses, m.state, m.action, m.responses)
 
 data['rt'] = dict()
 for i in human.directory.keys():
     data['rt'][i] = dict()
     step, indice = getRepresentativeSteps(human.reaction[i], human.stimulus[i], human.action[i], human.responses[i])
     data['rt'][i]['mean'], data['rt'][i]['sem'] = computeMeanRepresentativeSteps(step) 
-for i in ['tree', 'treenoise']:
+for i in models.iterkeys():
     data['rt'][i] = dict()
     step, indice = getRepresentativeSteps(np.array(models[i].reaction), models[i].state, models[i].action, models[i].responses)
     data['rt'][i]['mean'], data['rt'][i]['sem'] = computeMeanRepresentativeSteps(step) 
  
+data['rt2'] = dict()
+for i in human.directory.keys():
+    data['rt2'][i] = extractStimulusPresentation(human.reaction[i], human.stimulus[i], human.action[i], human.responses[i])
+for m in models.itervalues():
+    m.reaction = np.array(m.responses)
+    data['rt2'][m.name] = extractStimulusPresentation(m.reaction, m.state, m.action, m.responses)
+    
+    
+
 # -----------------------------------
 
 
 # -----------------------------------
 # Plot
 # -----------------------------------
-figure()
-subplot(421)
-for mean, sem in zip(data['pcr']['fmri']['mean'], data['pcr']['fmri']['sem']):
-    #ax1.plot(range(len(mean)), mean, linewidth = 2)
-    errorbar(range(len(mean)), mean, sem, linewidth = 2)
-legend()
-grid()
-ylim(0,1)
-title('fMRI')
-subplot(422)
-for mean, sem in zip(data['pcr']['meg']['mean'], data['pcr']['meg']['sem']):
-    #ax2.plot(range(len(mean)), mean, linewidth = 2)
-    errorbar(range(len(mean)), mean, sem, linewidth = 2)
-legend()
-grid()
-ylim(0,1)
-title('MEG')
-
-subplot(423)
-for mean, sem in zip(data['pcr']['tree']['mean'], data['pcr']['tree']['sem']):
-    #ax1.plot(range(len(mean)), mean, linewidth = 2)
-    errorbar(range(len(mean)), mean, sem, linewidth = 2)
-legend()
-grid()
-ylim(0,1)
-title('Tree-Learning')
-subplot(424)
-for mean, sem in zip(data['pcr']['treenoise']['mean'], data['pcr']['treenoise']['sem']):
-    #ax1.plot(range(len(mean)), mean, linewidth = 2)
-    errorbar(range(len(mean)), mean, sem, linewidth = 2)
-legend()
-grid()
-ylim(0,1)
-title('Noisy Tree-Learning')
-
-
-
-subplot(425)
-for mean, sem in zip(data['pcr']['qslow']['mean'], data['pcr']['qslow']['sem']):
-    #ax1.plot(range(len(mean)), mean, linewidth = 2)
-    errorbar(range(len(mean)), mean, sem, linewidth = 2)
-legend()
-grid()
-ylim(0,1)
-title('Slow Q-learning')
-
-subplot(426)
-for mean, sem in zip(data['pcr']['qfast']['mean'], data['pcr']['qfast']['sem']):
-    #ax1.plot(range(len(mean)), mean, linewidth = 2)
-    errorbar(range(len(mean)), mean, sem, linewidth = 2)
-legend()
-grid()
-ylim(0,1)
-title('Fast Q-learning')
-
-
-subplot(427)
-for mean, sem in zip(data['pcr']['kslow']['mean'], data['pcr']['kslow']['sem']):
-    #ax1.plot(range(len(mean)), mean, linewidth = 2)
-    errorbar(range(len(mean)), mean, sem, linewidth = 2)
-legend()
-grid()
-ylim(0,1)
-title('Slow Kalman-Qlearning')
-
-subplot(428)
-for mean, sem in zip(data['pcr']['kfast']['mean'], data['pcr']['kfast']['sem']):
-    #ax1.plot(range(len(mean)), mean, linewidth = 2)
-    errorbar(range(len(mean)), mean, sem, linewidth = 2)
-legend()
-grid()
-ylim(0,1)
-title('Fast Kalman-Qlearning')
-
+plot_order = ['fmri','meg','tree','treenoise','qslow','qfast','kslow','kfast']
+plot_name = ['fMRI', 'MEG', 'Tree-Learning', 'Noisy Tree-Learning', 'SLow Q-Learning', 'Fast Q-Learning', 'Slow Kalman Q-Learning', 'Fast Kalman Q-Learning']
 
 
 figure()
-subplot(421)
-errorbar(range(1,16), data['rt']['fmri']['mean'], data['rt']['fmri']['sem'], linewidth = 2)
-grid()
-title('fMRI')
-subplot(422)
-errorbar(range(1,16), data['rt']['meg']['mean'], data['rt']['meg']['sem'], linewidth = 2)
-grid()
-title('MEG')
+count = 1
+for i,j in zip(plot_order, plot_name):
+    subplot(4,2,count)
+    for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
+        #ax1.plot(range(len(mean)), mean, linewidth = 2)
+        errorbar(range(len(mean)), mean, sem, linewidth = 2)
+    legend()
+    grid()
+    ylim(0,1)
+    title(j)
+    count += 1
 
-subplot(423)
-errorbar(range(1,16), data['rt']['tree']['mean'], data['rt']['tree']['sem'], linewidth = 2)
-grid()
-title('Tree Learning')
-subplot(424)
-errorbar(range(1,16), data['rt']['treenoise']['mean'], data['rt']['treenoise']['sem'], linewidth = 2)
-grid()
-title('Noisy Tree Learning')
+    
+figure()
+count = 1
+for i,j in zip(plot_order, plot_name):
+    subplot(4,2,count)
+    errorbar(range(1,16), data['rt'][i]['mean'], data['rt'][i]['sem'], linewidth = 2)
+    grid()
+    title(j)
+    count +=1 
 
-
+figure()
+count = 1
+for i in plot_order:
+    subplot(4,2,count)
+    for mean, sem in zip(data['rt2'][i]['mean'], data['rt2'][i]['sem']):
+        errorbar(range(len(mean)), mean, sem, linewidth = 2)
+    legend()
+    grid()
+    ylim(0,1)
+    title(i)
+    count += 1
+    
 
 show()
-
-
-
-
 
 
 

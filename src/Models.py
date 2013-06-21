@@ -26,16 +26,19 @@ class QLearning():
         self.actions = actions
         self.action = list()
         self.state = list()
+        self.reaction = list()
 
     def initialize(self):
         self.responses.append([])
         self.values = createQValuesDict(self.states, self.actions)
         self.action.append([])
         self.state.append([])
+        self.reaction.append([])
         
     def chooseAction(self, state):
         self.state[-1].append(state)         
         self.action[-1].append(getBestActionSoftMax(state, self.values, self.beta))
+        self.reaction[-1].append(computeEntropy(self.values[0][self.values[state]], self.beta))
         return self.action[-1][-1]
     
     def updateValue(self, reward):
@@ -59,18 +62,21 @@ class KalmanQLearning():
         self.action = list()
         self.state = list()
         self.responses = list()
+        self.reaction = list()
 
     def initialize(self):
         self.responses.append([])
         self.values = createQValuesDict(self.states, self.actions)
         self.action.append([])
         self.state.append([])
+        self.reaction.append([])
 
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.covariance['noise'] = self.covariance['cov']*self.eta
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']
         self.action[-1].append(getBestActionSoftMax(state, self.values, self.beta, 0))
+        self.reaction[-1].append(computeEntropy(self.values[0][self.values[state]], self.beta))
         return self.action[-1][-1]
 
     def updateValue(self, reward):

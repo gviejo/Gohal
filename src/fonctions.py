@@ -76,6 +76,11 @@ def getBestActionSoftMax(state, values, beta, ind = 0):
     tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
     return values[(state, np.sum(np.array(tmp) < np.random.rand())-1)]
 
+def computeEntropy(values, beta):
+    tmp = np.exp(values*float(beta))
+    tmp = tmp/float(np.sum(tmp))
+    return -np.sum(tmp*np.log2(tmp))
+
 def computeVPIValues(mean, variance):
     #WARNING input and output very specific
     # mean = array(current state), variance = array(current state)
@@ -275,10 +280,10 @@ def computeMeanRepresentativeSteps(data):
     return np.array(m), np.array(s)
             
     
-def extractStimulusPresentation(stimulus, action, responses):
+def extractStimulusPresentation(data, stimulus, action, responses):
     tmp = dict({1:[],2:[],3:[]})
     m, n = responses.shape
-    assert(stimulus.shape == responses.shape)
+    assert(stimulus.shape == responses.shape == action.shape == data.shape)
 
     for i in xrange(m):
         incorrect = dict()
@@ -296,9 +301,9 @@ def extractStimulusPresentation(stimulus, action, responses):
             first = incorrect[1]
             second = incorrect[3]
             third = incorrect[4]
-            tmp[1].append(responses[i,stimulus[i] == first][0:10])
-            tmp[2].append(responses[i,stimulus[i] == second][0:10])
-            tmp[3].append(responses[i,stimulus[i] == third][0:10])
+            tmp[1].append(data[i,stimulus[i] == first][0:10])
+            tmp[2].append(data[i,stimulus[i] == second][0:10])
+            tmp[3].append(data[i,stimulus[i] == third][0:10])
 
         else:
             print "Incorrect trials for line ",i
