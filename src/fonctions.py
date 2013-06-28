@@ -195,12 +195,13 @@ def computeMeanReactionTime(data, case = None, ind = 40):
                 
 def getRepresentativeSteps(data, stimulus, action, responses):
     m, n = data.shape
+    bad_trials = 0
+    incorrect_trials = 0
     assert(data.shape == stimulus.shape == responses.shape)
 
     indice = np.zeros((m,n))
 
     for i in xrange(m):
-        print i
         incorrect = dict()
 
         for j in [1,2,3]:
@@ -209,7 +210,7 @@ def getRepresentativeSteps(data, stimulus, action, responses):
                 t = len(np.unique(action[i][np.where((responses[i][0:correct] == 0) & (stimulus[i][0:correct] == j))[0]]))
                 incorrect[t] = j
             else:
-                print "Bad Trials for line", i
+                bad_trials+=1
                 continue
             
         if 1 in incorrect.keys() and 3 in incorrect.keys() and 4 in incorrect.keys():            
@@ -217,7 +218,7 @@ def getRepresentativeSteps(data, stimulus, action, responses):
             second = incorrect[3]
             third = incorrect[4]
         else:
-            print "Incorrect trials for line ",i
+            incorrect_trials+=1
             continue
             
         #extracting first wrongs
@@ -264,7 +265,11 @@ def getRepresentativeSteps(data, stimulus, action, responses):
     steps = dict()
     for i in range(1,16):
         steps[i] = data[indice == i]
-            
+    if incorrect_trials:
+        print "Number of incorrect trials : %.2f" % (incorrect_trials/float(m)) + " %"
+    if bad_trials:
+        print "Number of bad trials : %.2f" % (bad_trials/float(m)) + " %"
+
     return steps, indice
 
  
@@ -274,9 +279,10 @@ def computeMeanRepresentativeSteps(data):
     m = []
     s = []
     for i in data.iterkeys():
-        m.append(np.mean(data[i]))
-        s.append(sem(data[i]))
-        
+        if len(data[i]):
+            m.append(np.mean(data[i]))
+            s.append(sem(data[i]))
+                    
     return np.array(m), np.array(s)
             
     
@@ -284,6 +290,8 @@ def extractStimulusPresentation(data, stimulus, action, responses):
     tmp = dict({1:[],2:[],3:[]})
     m, n = responses.shape
     assert(stimulus.shape == responses.shape == action.shape == data.shape)
+    bad_trials = 0
+    incorrect_trials = 0
 
     for i in xrange(m):
         incorrect = dict()
@@ -294,7 +302,7 @@ def extractStimulusPresentation(data, stimulus, action, responses):
                 t = len(np.unique(action[i][np.where((responses[i][0:correct] == 0) & (stimulus[i][0:correct] == j))[0]]))
                 incorrect[t] = j
             else:
-                print "Bad Trials for line", i
+                bad_trials += 1
                 continue
             
         if 1 in incorrect.keys() and 3 in incorrect.keys() and 4 in incorrect.keys():            
@@ -306,7 +314,7 @@ def extractStimulusPresentation(data, stimulus, action, responses):
             tmp[3].append(data[i,stimulus[i] == third][0:10])
 
         else:
-            print "Incorrect trials for line ",i
+            incorrect_trials += 1
             continue
 
     final = dict({'mean':[],'sem':[]})
@@ -317,6 +325,11 @@ def extractStimulusPresentation(data, stimulus, action, responses):
         final['sem'].append(sem(tmp[i], 0))
     final['mean'] = np.array(final['mean'])
     final['sem'] = np.array(final['sem'])
+
+    if incorrect_trials:
+        print "Number of incorrect trials : %.2f" % (incorrect_trials/float(m))+" %"
+    if bad_trials:
+        print "Number of bad trials : %.2f" % (bad_trials/float(m))+" %"
 
     return final
     

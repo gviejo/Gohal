@@ -63,13 +63,9 @@ def iterationStep(iteration, models, display = True):
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-#gamma = 0.9 #discount factor
-#alpha = 0.9
-beta = 2
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
 gamma = 0.9     # discount factor
-sigma = 0.02    # updating rate of the average reward
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 
@@ -78,10 +74,11 @@ noise_width = 0.008 #model based noise If 0, no noise
 nb_trials = 42
 nb_blocs = 100
 cats = CATS()
-models = dict({'qslow':QLearning('qslow', cats.states, cats.actions, 0.1, 0.1, beta),
-               'qfast':QLearning('qfast', cats.states, cats.actions, 0.9, 0.9, beta),
-               'kslow':KalmanQLearning('kslow', cats.states, cats.actions, 0.1, beta, eta, var_obs, sigma, init_cov, kappa),
-               'kfast':KalmanQLearning('kfast', cats.states, cats.actions, 0.1, beta, eta, var_obs, sigma, init_cov, kappa),
+
+models = dict({'qslow':QLearning('qslow', cats.states, cats.actions, 0.1, 0.1, 3.0), # gamma, alpha, beta
+               'qfast':QLearning('qfast', cats.states, cats.actions, 0.9, 0.9, 3.0),
+               'kslow':KalmanQLearning('kslow', cats.states, cats.actions, 0.99, 1.0, eta, var_obs, init_cov, kappa),#gamma, beta
+               'kfast':KalmanQLearning('kfast', cats.states, cats.actions, 0.5, 3.0, eta, var_obs, init_cov, kappa),
                'tree':TreeConstruction('tree', cats.states, cats.actions),
                'treenoise':TreeConstruction('treenoise', cats.states, cats.actions, noise_width)})
 
@@ -107,36 +104,42 @@ for i in xrange(nb_blocs):
 human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI',39)}))
 # -----------------------------------
 
+# -----------------------------------
 #order data
+# -----------------------------------
 data = dict()
 data['pcr'] = dict()
 for i in human.directory.keys():
+    print i
     data['pcr'][i] = extractStimulusPresentation(human.responses[i], human.stimulus[i], human.action[i], human.responses[i])
 for m in models.itervalues():
+    print m.name
     m.state = convertStimulus(np.array(m.state))
     m.action = convertAction(np.array(m.action))
     m.responses = np.array(m.responses)
     data['pcr'][m.name] = extractStimulusPresentation(m.responses, m.state, m.action, m.responses)
-
+# -----------------------------------
 data['rt'] = dict()
 for i in human.directory.keys():
+    print i
     data['rt'][i] = dict()
     step, indice = getRepresentativeSteps(human.reaction[i], human.stimulus[i], human.action[i], human.responses[i])
     data['rt'][i]['mean'], data['rt'][i]['sem'] = computeMeanRepresentativeSteps(step) 
 for i in models.iterkeys():
+    print i
     data['rt'][i] = dict()
     step, indice = getRepresentativeSteps(np.array(models[i].reaction), models[i].state, models[i].action, models[i].responses)
     data['rt'][i]['mean'], data['rt'][i]['sem'] = computeMeanRepresentativeSteps(step) 
- 
+# -----------------------------------
 data['rt2'] = dict()
 for i in human.directory.keys():
+    print i
     data['rt2'][i] = extractStimulusPresentation(human.reaction[i], human.stimulus[i], human.action[i], human.responses[i])
 for m in models.itervalues():
+    print m.name
     m.reaction = np.array(m.responses)
     data['rt2'][m.name] = extractStimulusPresentation(m.reaction, m.state, m.action, m.responses)
     
-    
-
 # -----------------------------------
 
 
@@ -146,7 +149,7 @@ for m in models.itervalues():
 plot_order = ['fmri','meg','tree','treenoise','qslow','qfast','kslow','kfast']
 plot_name = ['fMRI', 'MEG', 'Tree-Learning', 'Noisy Tree-Learning', 'SLow Q-Learning', 'Fast Q-Learning', 'Slow Kalman Q-Learning', 'Fast Kalman Q-Learning']
 
-
+# Probability of correct responses
 figure()
 count = 1
 for i,j in zip(plot_order, plot_name):
@@ -160,16 +163,17 @@ for i,j in zip(plot_order, plot_name):
     title(j)
     count += 1
 
-    
+# Reaction time with representative steps
 figure()
 count = 1
 for i,j in zip(plot_order, plot_name):
     subplot(4,2,count)
-    errorbar(range(1,16), data['rt'][i]['mean'], data['rt'][i]['sem'], linewidth = 2)
+    errorbar(range(1,len(data['rt'][i]['mean'])+1), data['rt'][i]['mean'], data['rt'][i]['sem'], linewidth = 2)
     grid()
     title(j)
     count +=1 
 
+# Reaction time with stimulus presentation order
 figure()
 count = 1
 for i in plot_order:

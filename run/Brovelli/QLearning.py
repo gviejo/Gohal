@@ -16,7 +16,7 @@ from copy import deepcopy
 from optparse import OptionParser
 import numpy as np
 from fonctions import *
-from pylab import plot, figure, show, subplot, legend, xlim, errorbar, grid
+from pylab import plot, figure, show, subplot, legend, xlim, errorbar, grid, title
 from ColorAssociationTasks import CATS
 
 # -----------------------------------
@@ -60,16 +60,14 @@ def iterationStep(iteration, values, display = True):
         print '\n'
         #sys.stdin.read(1)
 
-        
-
 # -----------------------------------
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-gamma = 0.1 #discount facto
-alpha = 0.1
-beta = 1
+gamma = 0.9 #discount facto
+alpha = 0.9
+beta = 3
 
 nb_trials = 42
 
@@ -96,13 +94,27 @@ for i in xrange(72):
 responses = np.array(Qdata)
 action = convertAction(np.array(action_list))
 stimulus = convertStimulus(np.array(stimulus))
+reaction = np.array(reaction)
 
-data = extractStimulusPresentation(stimulus, action, responses)
+data = extractStimulusPresentation(responses, stimulus, action, responses)
+step, indice = getRepresentativeSteps(reaction, stimulus, action, responses)
 
+
+figure()
+subplot(211)
 for m, s in zip(data['mean'],data['sem']):
     errorbar(range(1, len(m)+1), m, s)
-
 grid()
+xlim(0,16)
+title("Performance")
+
+m, s = computeMeanRepresentativeSteps(step)
+
+subplot(212)
+errorbar(range(1, len(m)+1), m, s)
+grid()
+title("Entropy")
+
 show()
 
 

@@ -52,9 +52,10 @@ class KalmanQLearning():
     Kalman Temporal Differences : The deterministic case, Geist & al, 2009
     """
 
-    def __init__(self, name, states, actions, gamma, beta, eta, var_obs, sigma, init_cov, kappa):
+    def __init__(self, name, states, actions, gamma, beta, eta, var_obs, init_cov, kappa):
         self.name=name
-        self.gamma=gamma;self.beta=beta;self.eta=eta;self.var_obs=var_obs;self.sigma=sigma;self.init_cov=init_cov;self.kappa=kappa
+        self.gamma=gamma;self.beta=beta;self.eta=eta;self.var_obs=var_obs;self.init_cov=init_cov;self.kappa=kappa
+
         self.values = createQValuesDict(states, actions)
         self.covariance = createCovarianceDict(len(states)*len(actions), self.init_cov, self.eta)
         self.states = states
@@ -67,6 +68,7 @@ class KalmanQLearning():
     def initialize(self):
         self.responses.append([])
         self.values = createQValuesDict(self.states, self.actions)
+        self.covariance = createCovarianceDict(len(self.states)*len(self.actions), self.init_cov, self.eta)
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
