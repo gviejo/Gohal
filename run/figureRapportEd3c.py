@@ -3,16 +3,6 @@
 """
 modelsEvaluation.py
 
-evaluation of all models on ColorAssociationTask.py
-       -> Human Behaviour : <MEG>      <fMRI>
-       -> ModelBased :      <No-noise> <Noise>
-       -> KalmanQlearning : <Slow>     <Fast>
-       -> QLearning :       <Slow>     <Fast>
-
-For each model => Time Reaction + Accuracy
-see 'Differential roles of caudate nucleus and putamen during instrumental learning.
-     Brovelli & al, 2011'
-
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
@@ -75,10 +65,8 @@ nb_trials = 42
 nb_blocs = 100
 cats = CATS()
 
-models = dict({'qslow':QLearning('qslow', cats.states, cats.actions, 0.1, 0.1, 3.0), # gamma, alpha, beta
-               'qfast':QLearning('qfast', cats.states, cats.actions, 0.8, 0.8, 2.0),
-               'kslow':KalmanQLearning('kslow', cats.states, cats.actions, 0.99, 1.0, eta, var_obs, init_cov, kappa),#gamma, beta
-               'kfast':KalmanQLearning('kfast', cats.states, cats.actions, 0.9, 2.0, eta, var_obs, init_cov, kappa),
+models = dict({'qslow':QLearning('qslow', cats.states, cats.actions, 0.3, 0.3, 3.0), # gamma, alpha, beta
+               'kslow':KalmanQLearning('kslow', cats.states, cats.actions, 0.99, 2.0, eta, var_obs, init_cov, kappa),#gamma, beta
                'tree':TreeConstruction('tree', cats.states, cats.actions),
                'treenoise':TreeConstruction('treenoise', cats.states, cats.actions, noise_width)})
 
@@ -146,94 +134,40 @@ for m in models.itervalues():
 # -----------------------------------
 # Plot
 # -----------------------------------
-plot_order = ['fmri','meg','tree','treenoise','qslow','qfast','kslow','kfast']
-plot_name = ['fMRI', 'MEG', 'Tree-Learning', 'Noisy Tree-Learning', 'SLow Q-Learning', 'Fast Q-Learning', 'Slow Kalman Q-Learning', 'Fast Kalman Q-Learning']
+plot_order = ['fmri','meg','tree','treenoise','qslow','kslow']
+plot_name = ['fMRI', 'MEG', 'Tree-Learning', 'Noisy Tree-Learning', 'Q-Learning', 'Kalman Q-Learning']
 
-# Probability of correct responses
-figure()
-count = 1
-for i,j in zip(plot_order, plot_name):
-    subplot(4,2,count)
-    for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
-        #ax1.plot(range(len(mean)), mean, linewidth = 2)
-        errorbar(range(len(mean)), mean, sem, linewidth = 2)
-    legend()
-    grid()
-    ylim(0,1)
-    title(j)
-    count += 1
-
-# Reaction time with representative steps
-figure()
-count = 1
-for i,j in zip(plot_order, plot_name):
-    subplot(4,2,count)
-    errorbar(range(1,len(data['rt'][i]['mean'])+1), data['rt'][i]['mean'], data['rt'][i]['sem'], linewidth = 2)
-    grid()
-    title(j)
-    count +=1 
-
-# Reaction time with stimulus presentation order
-figure()
-count = 1
-for i in plot_order:
-    subplot(4,2,count)
-    for mean, sem in zip(data['rt2'][i]['mean'], data['rt2'][i]['sem']):
-        errorbar(range(len(mean)), mean, sem, linewidth = 2)
-    legend()
-    grid()
-    ylim(0,1)
-    title(i)
-    count += 1
- 
-plot_order = ['fmri', 'meg', 'treenoise', 'qfast', 'kfast']
-plot_name = ['IRMf', 'MEG', 'Noisy Tree-Learning', 'Q-Learning', 'Kalman Q-Learning']
 
 ticks_size = 15
 legend_size = 15
 title_size = 20
-label_size = 19
+label_size = 15
 
-figure()
+fig = figure()
 rc('legend',**{'fontsize':legend_size})
-tick_params(labelsize = ticks_size)
 
+# Probability of correct responses
 count = 1
-for i,j in zip(['fmri', 'meg'], ['IRMf', 'MEG']):
-    subplot(3,2,count)
+for i,j in zip(plot_order, plot_name):
+    ax = fig.add_subplot(3,2,count)
     for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
-        errorbar(range(len(mean)), mean, sem, linewidth = 2)
-    legend()
-    grid()
-    ylim(0,1)
-    title(j, fontsize=title_size)
-    count += 1
-
-subplot(3,2,3)
-i = 'treenoise'
-j = 'Noisy Tree-Learning'
-for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
-    errorbar(range(len(mean)), mean, sem, linewidth = 2)
-legend()
-grid()
-ylim(0,1)
-title(j, fontsize = title_size)
-count += 1
-
-count = 5
-for i,j in zip(['qfast', 'kfast'],['Q-Learning','Kalman Q-Learning']):
-    subplot(3,2,count)
-    for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
-        errorbar(range(len(mean)), mean, sem, linewidth = 2)
+        #ax1.plot(range(len(mean)), mean, linewidth = 2)
+        ax.errorbar(range(len(mean)), mean, sem, linewidth = 2)
     legend()
     grid()
     ylim(0,1)
     title(j, fontsize = title_size)
-    count += 1
-
+    tick_params(labelsize = label_size)
+    ylabel('Performance %', fontsize = label_size)
+    if count == 5 or count == 6:
+        xlabel('Trial', fontsize = label_size)
+    ax.set_yticklabels( () )
+    if count in [1,2,3,4]:
+        ax.set_xticklabels( () )
+    count +=1
+    
 
 show()
-
 
 
 
