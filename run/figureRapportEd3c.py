@@ -165,7 +165,67 @@ for i,j in zip(plot_order, plot_name):
     if count in [1,2,3,4]:
         ax.set_xticklabels( () )
     count +=1
+
+rcParams['figure.figsize'] = 26, 4
     
+fig = figure()
+rc('legend',**{'fontsize':legend_size})
+count = 1
+# Probability of correct responses
+for i,j in zip(['fmri','meg'],['fMRI', 'MEG']):
+    ax = fig.add_subplot(1,2,count)
+    for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
+        #ax1.plot(range(len(mean)), mean, linewidth = 2)
+        ax.errorbar(range(len(mean)), mean, sem, linewidth = 2)
+    legend()
+    grid()
+    ylim(0,1)
+    title(j, fontsize = title_size)
+    tick_params(labelsize = label_size)
+    ylabel('Performance %', fontsize = label_size)
+    xlabel('Trial', fontsize = label_size)
+    ax.set_yticklabels( [0,20,40,60,80,100] )
+    ax.set_xticklabels( () )
+    count +=1
+
+
+fig = figure()
+rc('legend',**{'fontsize':legend_size})
+count = 1
+for i,j in zip(['tree','treenoise'],['Tree-Learning', 'Noisy Tree-Learning']):
+    ax = fig.add_subplot(1,2,count)
+    for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
+        #ax1.plot(range(len(mean)), mean, linewidth = 2)
+        ax.errorbar(range(len(mean)), mean, sem, linewidth = 2)
+    legend()
+    grid()
+    ylim(0,1)
+    title(j, fontsize = title_size)
+    tick_params(labelsize = label_size)
+    ylabel('Performance %', fontsize = label_size)
+    xlabel('Trial', fontsize = label_size)
+    ax.set_yticklabels( () )
+    ax.set_xticklabels( () )
+    count +=1
+
+fig = figure()
+rc('legend',**{'fontsize':legend_size})
+count = 1
+for i,j in zip(['qslow','kslow'],['Q-Learning', 'Kalman Q-Learning']):
+    ax = fig.add_subplot(1,2,count)
+    for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
+        #ax1.plot(range(len(mean)), mean, linewidth = 2)
+        ax.errorbar(range(len(mean)), mean, sem, linewidth = 2)
+    legend()
+    grid()
+    ylim(0,1)
+    title(j, fontsize = title_size)
+    tick_params(labelsize = label_size)
+    ylabel('Performance %', fontsize = label_size)
+    xlabel('Trial', fontsize = label_size)
+    ax.set_yticklabels( () )
+    ax.set_xticklabels( () )
+    count +=1
 
 show()
 
