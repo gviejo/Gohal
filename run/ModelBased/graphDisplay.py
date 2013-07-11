@@ -19,7 +19,7 @@ from fonctions import *
 from ColorAssociationTasks import CATS
 from Plot import PlotTree
 from GraphConstruction import ModelBased
-
+from Models import TreeConstruction
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
@@ -40,7 +40,7 @@ def iterationStep(iteration, mods, display = True):
     state = cats.getStimulus(iteration)
 
     #choose best action from model based
-    action = mods.chooseAction(mods.g[state])
+    action = mods.chooseAction(state)
 
     # set response + get outcome
     reward = cats.getOutcome(state, action)
@@ -48,6 +48,7 @@ def iterationStep(iteration, mods, display = True):
 
     # update Model Based
     mods.updateTrees(state, reward)
+
     if display == True:
         print (state, action, reward)
         print_dict(mods.g[state])
@@ -63,21 +64,23 @@ def iterationStep(iteration, mods, display = True):
 gamma = 0.1 #discount factor
 alpha = 1
 beta = 3
-noise_width = 0
+noise_width = 0.1
 
 nb_trials = 20
 nb_blocs = 1
 cats = CATS()
 
-mods = ModelBased(cats.states, cats.actions, noise_width)
+#mods = ModelBased(cats.states, cats.actions, noise_width)
+mods = TreeConstruction('tree', cats.states, cats.actions, noise_width)
 
-plottree = PlotTree(mods.g, mods.action, time_sleep = 1)
+plottree = PlotTree(mods.g, mods.dict_action, time_sleep = 0.01)
 # -----------------------------------
 # Learning session
 # -----------------------------------
 for i in xrange(nb_blocs):
     cats.reinitialize()
-    mods.reinitialize(cats.states, cats.actions)
+    #mods.reinitialize(cats.states, cats.actions)
+    mods.initialize()
     answer = []
     for j in xrange(nb_trials):
         state, action = iterationStep(j, mods, False)

@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
+Test for Klearning :
+Plot probability of correct responses and reaction time
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """

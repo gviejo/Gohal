@@ -149,8 +149,16 @@ for m in models.itervalues():
 plot_order = ['fmri','meg','tree','treenoise','qslow','qfast','kslow','kfast']
 plot_name = ['fMRI', 'MEG', 'Tree-Learning', 'Noisy Tree-Learning', 'SLow Q-Learning', 'Fast Q-Learning', 'Slow Kalman Q-Learning', 'Fast Kalman Q-Learning']
 
+ticks_size = 15
+legend_size = 15
+title_size = 20
+label_size = 19
+
 # Probability of correct responses
 figure()
+rc('legend',**{'fontsize':legend_size})
+tick_params(labelsize = ticks_size)
+
 count = 1
 for i,j in zip(plot_order, plot_name):
     subplot(4,2,count)
@@ -165,6 +173,9 @@ for i,j in zip(plot_order, plot_name):
 
 # Reaction time with representative steps
 figure()
+rc('legend',**{'fontsize':legend_size})
+tick_params(labelsize = ticks_size)
+
 count = 1
 for i,j in zip(plot_order, plot_name):
     subplot(4,2,count)
@@ -175,6 +186,9 @@ for i,j in zip(plot_order, plot_name):
 
 # Reaction time with stimulus presentation order
 figure()
+rc('legend',**{'fontsize':legend_size})
+tick_params(labelsize = ticks_size)
+
 count = 1
 for i in plot_order:
     subplot(4,2,count)
@@ -186,55 +200,8 @@ for i in plot_order:
     title(i)
     count += 1
  
-plot_order = ['fmri', 'meg', 'treenoise', 'qfast', 'kfast']
-plot_name = ['IRMf', 'MEG', 'Noisy Tree-Learning', 'Q-Learning', 'Kalman Q-Learning']
-
-ticks_size = 15
-legend_size = 15
-title_size = 20
-label_size = 19
-
-figure()
-rc('legend',**{'fontsize':legend_size})
-tick_params(labelsize = ticks_size)
-
-count = 1
-for i,j in zip(['fmri', 'meg'], ['IRMf', 'MEG']):
-    subplot(3,2,count)
-    for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
-        errorbar(range(len(mean)), mean, sem, linewidth = 2)
-    legend()
-    grid()
-    ylim(0,1)
-    title(j, fontsize=title_size)
-    count += 1
-
-subplot(3,2,3)
-i = 'treenoise'
-j = 'Noisy Tree-Learning'
-for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
-    errorbar(range(len(mean)), mean, sem, linewidth = 2)
-legend()
-grid()
-ylim(0,1)
-title(j, fontsize = title_size)
-count += 1
-
-count = 5
-for i,j in zip(['qfast', 'kfast'],['Q-Learning','Kalman Q-Learning']):
-    subplot(3,2,count)
-    for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
-        errorbar(range(len(mean)), mean, sem, linewidth = 2)
-    legend()
-    grid()
-    ylim(0,1)
-    title(j, fontsize = title_size)
-    count += 1
-
 
 show()
-
-
 
 
 
