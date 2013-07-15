@@ -4,6 +4,7 @@
 sweepNTL.py
 
 Sweep through parameters to evaluate similarity with human performances on MEG
+Model : Noisy-tree Learning
 Statistical test : p-value
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
@@ -13,7 +14,6 @@ import sys
 import os
 from optparse import OptionParser
 import numpy as np
-#from pylab import *
 sys.path.append("../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
@@ -39,16 +39,12 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def iterationStep(iteration, models, display = True):
+def iterationStep(iteration, m, display = True):
     state = cats.getStimulus(iteration)
-
-    for m in models.itervalues():
-        action = m.chooseAction(state)
-        reward = cats.getOutcome(state, action, m.name)
-        if m.__class__.__name__ == 'TreeConstruction':
-            m.updateTrees(state, reward)
-        else:
-            m.updateValue(reward)
+    
+    action = m.chooseAction(state)
+    reward = cats.getOutcome(state, action, m.name)
+    m.updateTrees(state, reward)
 
 
 # -----------------------------------
@@ -68,15 +64,7 @@ nb_trials = 42
 nb_blocs = 100
 cats = CATS()
 
-models = dict({'qslow':QLearning('qslow', cats.states, cats.actions, 0.1, 0.1, 3.0), # gamma, alpha, beta
-               'qfast':QLearning('qfast', cats.states, cats.actions, 0.8, 0.8, 2.0),
-               'kslow':KalmanQLearning('kslow', cats.states, cats.actions, 0.99, 1.0, eta, var_obs, init_cov, kappa),#gamma, beta
-               'kfast':KalmanQLearning('kfast', cats.states, cats.actions, 0.9, 2.0, eta, var_obs, init_cov, kappa),
-               'tree':TreeConstruction('tree', cats.states, cats.actions),
-               'treenoise':TreeConstruction('treenoise', cats.states, cats.actions, noise_width)})
-
-cats = CATS_MODELS(nb_trials, models.keys())
-
+model = TreeConstruction('treenoise', cats.states, cats.actions, noise_width)
 # -----------------------------------
 
 # -----------------------------------
@@ -85,9 +73,9 @@ cats = CATS_MODELS(nb_trials, models.keys())
 for i in xrange(nb_blocs):
     sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                        
     cats.reinitialize()
-    [m.initialize() for m in models.itervalues()]
+    model.initialize()
     for j in xrange(nb_trials):
-        iterationStep(j, models, False)
+        iterationStep(j, model, False)
 # -----------------------------------
 
 
@@ -139,64 +127,3 @@ for m in models.itervalues():
 # -----------------------------------
 # Plot
 # -----------------------------------
-plot_order = ['fmri','meg','tree','treenoise','qslow','qfast','kslow','kfast']
-plot_name = ['fMRI', 'MEG', 'Tree-Learning', 'Noisy Tree-Learning', 'SLow Q-Learning', 'Fast Q-Learning', 'Slow Kalman Q-Learning', 'Fast Kalman Q-Learning']
-
-ticks_size = 15
-legend_size = 15
-title_size = 20
-label_size = 19
-
-# Probability of correct responses
-figure()
-rc('legend',**{'fontsize':legend_size})
-tick_params(labelsize = ticks_size)
-
-count = 1
-for i,j in zip(plot_order, plot_name):
-    subplot(4,2,count)
-    for mean, sem in zip(data['pcr'][i]['mean'], data['pcr'][i]['sem']):
-        #ax1.plot(range(len(mean)), mean, linewidth = 2)
-        errorbar(range(len(mean)), mean, sem, linewidth = 2)
-    legend()
-    grid()
-    ylim(0,1)
-    title(j)
-    count += 1
-
-# Reaction time with representative steps
-figure()
-rc('legend',**{'fontsize':legend_size})
-tick_params(labelsize = ticks_size)
-
-count = 1
-for i,j in zip(plot_order, plot_name):
-    subplot(4,2,count)
-    errorbar(range(1,len(data['rt'][i]['mean'])+1), data['rt'][i]['mean'], data['rt'][i]['sem'], linewidth = 2)
-    grid()
-    title(j)
-    count +=1 
-
-# Reaction time with stimulus presentation order
-figure()
-rc('legend',**{'fontsize':legend_size})
-tick_params(labelsize = ticks_size)
-
-count = 1
-for i in plot_order:
-    subplot(4,2,count)
-    for mean, sem in zip(data['rt2'][i]['mean'], data['rt2'][i]['sem']):
-        errorbar(range(len(mean)), mean, sem, linewidth = 2)
-    legend()
-    grid()
-    ylim(0,1)
-    title(i)
-    count += 1
- 
-
-show()
-
-
-
-
-
