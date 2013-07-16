@@ -59,14 +59,14 @@ gamma = 0.9     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 
-noise_width = 0.008
+noise_width = 0.0
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
 
 cats = CATS(nb_trials)
 
-models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, 0.99, 2.0, eta, var_obs, init_cov, kappa),#gamma, beta
+models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, 0.99, 2.0, eta, var_obs, init_cov, kappa),
                'tree':TreeConstruction('tree', cats.states, cats.actions, noise_width)})
 # -----------------------------------
 
@@ -84,7 +84,7 @@ data = dict()
 nb_p = 0
 for m in parameters.iterkeys():
     data[m] = dict()
-    for p in parameters[m].iterkeys():
+    for p in parameters[m].iterkeys():        
         data[m][p] = sweep.exploreParameters(models[m], p, parameters[m][p])
         nb_p+=1
 # -----------------------------------

@@ -13,7 +13,7 @@ import os
 import numpy as np
 from fonctions import *
 from scipy.stats import chi2_contingency
-
+from scipy.stats.contingency import expected_freq
 
 
 
@@ -46,7 +46,7 @@ class Sweep_performances():
                     self.iterationStep(j, ptr_model, False)
 
             #p-value
-            w = self.computeSimilarity(np.array(ptr_model.responses))
+            w = self.computeCorrelation(np.array(ptr_model.responses))
             tmp[v] = w
             ptr_model.setParameter(param, true_value)
         return tmp
@@ -60,7 +60,8 @@ class Sweep_performances():
         else:
             model.updateValue(reward)
 
-    def computeSimilarity(self, model):
+    '''    
+    def computeCorrelation(self, model):
         assert self.human.shape == model.shape
         m,n = self.human.shape
         tmp = []
@@ -75,3 +76,19 @@ class Sweep_performances():
                 chi, p, ddl, the = chi2_contingency(obs, correction=False)
                 tmp.append(p)
         return np.log2(np.array(tmp))
+    '''
+    def computeCorrelation(self, model):
+        assert self.human.shape == model.shape
+        m,n = self.human.shape
+        tmp = []
+        for i in xrange(n):
+            a = np.sum(self.human[:,i] == 1)
+            b = np.sum(model[:,i] == 1)
+            obs = np.array([[a, m-a], [b,m-b]])
+            #if a == 0 or b == 0:
+            if a == b:
+                tmp.append(1)
+            else:
+                chi, p, ddl, the = chi2_contingency(obs, correction=False)
+                tmp.append(np.sqrt(chi/(2*m)))
+        return np.array(tmp)
