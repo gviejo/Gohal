@@ -64,6 +64,28 @@ class KalmanQLearning():
         self.state = list()
         self.responses = list()
         self.reaction = list()
+        
+    def getParameter(self, name):
+        if name == 'gamma':
+            return self.gamma
+        elif name == 'beta':
+            return self.beta
+        elif name == 'eta':
+            return self.eta
+        else:
+            print "Parameters not found"
+            sys.exit(0)     
+
+    def setParameter(self, name, value):
+        if name == 'gamma':
+            self.gamma = value
+        elif name == 'beta':
+            self.beta = value
+        elif name == 'eta':
+            self.eta = value
+        else:
+            print "Parameters not found"
+            sys.exit(0)
 
     def initialize(self):
         self.responses.append([])
@@ -72,6 +94,14 @@ class KalmanQLearning():
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
+
+    def initializeList(self):
+        self.values = createQValuesDict(self.states, self.actions)
+        self.covariance = createCovarianceDict(len(self.states)*len(self.actions), self.init_cov, self.eta)
+        self.action = list()
+        self.state = list()
+        self.responses = list()
+        self.reaction = list()
 
     def chooseAction(self, state):
         self.state[-1].append(state)
@@ -92,6 +122,7 @@ class KalmanQLearning():
         kalman_gain = cov_values_rewards/cov_rewards
         self.values[0] = self.values[0] + kalman_gain*(reward-reward_predicted)
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] - (kalman_gain.reshape(len(kalman_gain), 1)*cov_rewards)*kalman_gain
+        
 
 class TreeConstruction():
     """Class that implement a trees construction based on 
@@ -131,7 +162,32 @@ class TreeConstruction():
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
+
+    def initializeList(self):
+        self.initializeTree(self.states, self.actions)
+        self.mental_path = []
+        self.state=list()
+        self.answer=list()
+        self.responses=list()
+        self.mental_path=list()
+        self.action=list()
+        self.reaction=list()
+        self.time_step=0.08
+
+    def getParameter(self, name):
+        if name == 'noise':
+            return self.noise
+        else:
+            print("Parameters not found")
+            sys.exit(0)
     
+    def setParameter(self, name, value):
+        if name == 'noise':
+            self.noise = value
+        else:
+            print("Parameters not found")
+            sys.exit(0)
+
     def chooseAction(self, state):
         self.state[-1].append(state)        
         self.action[-1].append(self.branching(self.g[state], 0))
