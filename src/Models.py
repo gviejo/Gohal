@@ -27,7 +27,32 @@ class QLearning():
         self.action = list()
         self.state = list()
         self.reaction = list()
+    
+    def initializeList(self):
+        self.responses = list()
+        self.values = createQValuesDict(self.states, self.actions)
+        self.action = list()
+        self.state = list()
+        self.reaction = list()
 
+    def getParameter(self, name):
+        if name == 'alpha':
+            return self.alpha
+        elif name == 'gamma':
+            return self.gamma
+        else:
+            print "Unknow parameter"
+            sys.exit(0)
+
+    def setParameter(self, name, value):
+        if name == 'alpha':
+            self.alpha = value
+        elif name == 'gamma':
+            self.gamma = value
+        else:
+            print "Unknow parameter"
+            sys.exit(0)
+    
     def initialize(self):
         self.responses.append([])
         self.values = createQValuesDict(self.states, self.actions)

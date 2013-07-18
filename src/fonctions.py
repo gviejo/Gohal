@@ -332,6 +332,37 @@ def extractStimulusPresentation(data, stimulus, action, responses):
         print "Number of bad trials : %.2f" % (bad_trials/float(m))+" %"
 
     return final
+
+def extractStimulusPresentation2(data, stimulus, action, responses):
+    tmp = dict({1:[],2:[],3:[]})
+    m, n = responses.shape
+    assert(stimulus.shape == responses.shape == action.shape == data.shape)
+    bad_trials = 0
+    incorrect_trials = 0
+    for i in xrange(m):
+        incorrect = dict()
+        for j in [1,2,3]:
+            if len(np.where((responses[i] == 1) & (stimulus[i] == j))[0]):
+                correct = np.where((responses[i] == 1) & (stimulus[i] == j))[0][0]
+                t = len(np.unique(action[i][np.where((responses[i][0:correct] == 0) & (stimulus[i][0:correct] == j))[0]]))
+                incorrect[t] = j
+            else:
+                bad_trials += 1
+                continue            
+        if 1 in incorrect.keys() and 3 in incorrect.keys() and 4 in incorrect.keys():            
+            first = incorrect[1]
+            second = incorrect[3]
+            third = incorrect[4]
+            tmp[1].append(data[i,stimulus[i] == first][0:10])
+            tmp[2].append(data[i,stimulus[i] == second][0:10])
+            tmp[3].append(data[i,stimulus[i] == third][0:10])
+        else:
+            incorrect_trials += 1
+            continue
+    for i in tmp.keys():
+        tmp[i] = np.array(tmp[i])
+    return tmp
+
     
 def convertStimulus(state):
     return (state == 's1')*1+(state == 's2')*2 + (state == 's3')*3

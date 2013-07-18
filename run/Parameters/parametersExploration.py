@@ -15,7 +15,7 @@ import sys
 import os
 from optparse import OptionParser
 import numpy as np
-sys.path.append("../src")
+sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
 from ColorAssociationTasks import CATS_MODELS
@@ -46,7 +46,7 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI',39)}))
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 
 
@@ -67,7 +67,8 @@ nb_blocs = human.responses['meg'].shape[0]
 cats = CATS(nb_trials)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, 0.99, 2.0, eta, var_obs, init_cov, kappa),
-               'tree':TreeConstruction('tree', cats.states, cats.actions, noise_width)})
+               'tree':TreeConstruction('tree', cats.states, cats.actions, noise_width),
+               'q':QLearning('q', cats.states, cats.actions, 0.3, 0.3, 3.0)})
 # -----------------------------------
 
 
@@ -78,7 +79,9 @@ sweep = Sweep_performances(human.responses['meg'], cats, nb_trials, nb_blocs)
 
 parameters = dict({'tree':dict({'noise':[0.0, 0.001, 0.11]}),
                    'kalman':dict({'gamma':[0.01, 0.1, 0.5, 0.75, 0.99],
-                                  'beta':[1.0, 2.0, 3.0]})})
+                                  'beta':[1.0, 2.0, 3.0]}),
+                   'q':dict({'alpha':[0.01, 0.1, 0.5, 0.9],
+                             'gamma':[0.01, 0.1, 0.5, 0.9]})})
 
 data = dict()
 nb_p = 0
