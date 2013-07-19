@@ -287,6 +287,8 @@ def computeMeanRepresentativeSteps(data):
             
     
 def extractStimulusPresentation(data, stimulus, action, responses):
+    """ Return mean and sem of probabilty of correct responses
+    """
     tmp = dict({1:[],2:[],3:[]})
     m, n = responses.shape
     assert(stimulus.shape == responses.shape == action.shape == data.shape)
@@ -334,6 +336,11 @@ def extractStimulusPresentation(data, stimulus, action, responses):
     return final
 
 def extractStimulusPresentation2(data, stimulus, action, responses):
+    """ Return dict
+    dict[1] = 0/1 for one-error stimulus
+    dict[2] = 0/1 for three-error stimulus
+    dict[3] = 0/1 for four-error stimulus
+    """
     tmp = dict({1:[],2:[],3:[]})
     m, n = responses.shape
     assert(stimulus.shape == responses.shape == action.shape == data.shape)

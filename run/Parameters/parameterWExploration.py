@@ -99,7 +99,7 @@ for i in xrange(nb_blocs):
 # Comparison with Human Learnign
 # -----------------------------------
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
-sweep = Sweep_performances(human.responses['meg'], cats, nb_trials, nb_blocs)
+sweep = Sweep_performances(human, cats, nb_trials, nb_blocs)
 
 data = dict()
 data['human'] = extractStimulusPresentation2(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
@@ -108,14 +108,14 @@ for m in models.itervalues():
     m.action = convertAction(np.array(m.action))
     m.responses = np.array(m.responses)
     data[m.name] = extractStimulusPresentation2(m.responses, m.state, m.action, m.responses)
-
+    
 for m in models.iterkeys():
-    data[m]['phi'] = dict()
+    data[m]['jsd'] = dict()
     for i in [1,2,3]:
-        data[m]['phi'][i] = []
+        data[m]['jsd'][i] = []
         for j in xrange(data[m][i].shape[1]):            
-            data[m]['phi'][i].append(sweep.computeSingleCorrelation(data['human'][i][:,j], data[m][i][:,j]))
-        data[m]['phi'][i] = np.array(data[m]['phi'][i])
+            data[m]['jsd'][i].append(sweep.computeSingleCorrelation(data['human'][i][:,j], data[m][i][:,j]))
+        data[m]['jsd'][i] = np.array(data[m]['jsd'][i])
 # -----------------------------------
 
 # -----------------------------------
@@ -123,7 +123,7 @@ for m in models.iterkeys():
 # -----------------------------------
 w = dict()
 for i in [1,2,3]:
-    w[i] = data['tree']['phi'][i]/(data['tree']['phi'][i]+data['kalman']['phi'][i])
+    w[i] = data['tree']['jsd'][i]/(data['tree']['jsd'][i]+data['kalman']['jsd'][i])
 
 # -----------------------------------
 
@@ -146,37 +146,31 @@ for i in [1,2,3]:
     grid()
     legend()
     count+=1
-"""
-fig = figure()
-rc('legend',**{'fontsize':legend_size})
-count = 1
-for m in models.iterkeys():
-    subplot(3,1,count)
-    for i in [1,2,3]:
-        plot(data[m]['phi'][i], 'o-',label = str(i))
-    count+=1
-    legend()
-    grid()
-    title(m)
-"""
+
 fig = figure()
 rc('legend',**{'fontsize':legend_size})
 count = 1
 for i in [1,2,3]:
     subplot(3,1,count)
-    plot(w[i], 'o-', label = str(i))
+    plot(w[i], 'o-', color= 'red')
+    axhline(0.5,0,10, '--', color= 'black', linewidth = 4, alpha = 0.4)
+    fill_between(range(len(w[i])), np.zeros((len(w[i]))), w[i], alpha = 0.06, color= 'blue')
+    fill_between(range(len(w[i])), w[i], np.ones((len(w[i]))), alpha = 0.06, color = 'green')
+    annotate('Tree Learning', (0, 0.1), color = 'blue')
+    annotate('Kalman Q-Learning', (0, 0.8), color = 'green')
     ylim(0,1)
     grid()
     legend()
     count+=1
+    
     
 fig = figure()
 rc('legend',**{'fontsize':legend_size})
 count = 1
 for i in [1,2,3]:
     subplot(3,1,count)
-    plot(data['tree']['phi'][i], 'o-', label = 'tree')
-    plot(data['kalman']['phi'][i], 'o-', label = 'kalman')
+    plot(data['tree']['jsd'][i], 'o-', label = 'tree')
+    plot(data['kalman']['jsd'][i], 'o-', label = 'kalman')
     grid()
     legend()
     count+=1

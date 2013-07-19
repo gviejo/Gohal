@@ -49,7 +49,6 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 
-
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
@@ -58,61 +57,58 @@ var_obs = 0.05   # variance of observation noise n
 gamma = 0.9     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
+beta = 2.0
+gamma = 0.99
 
-noise_width = 0.0
+noise_width = 0.008
 
 nb_trials = human.responses['meg'].shape[1]
-nb_blocs = human.responses['meg'].shape[0]
+#nb_blocs = human.responses['meg'].shape[0]
+nb_blocs = 100
 
 cats = CATS(nb_trials)
 
-models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, 0.99, 2.0, eta, var_obs, init_cov, kappa),
-               'tree':TreeConstruction('tree', cats.states, cats.actions, noise_width),
-               'q':QLearning('q', cats.states, cats.actions, 0.3, 0.3, 3.0)})
+models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
+               'tree':TreeConstruction('tree', cats.states, cats.actions, noise_width)})
 # -----------------------------------
-
-
-# -----------------------------------
-# PARAMETERS Exploration
-# -----------------------------------
-sweep = Sweep_performances(human.responses['meg'], cats, nb_trials, nb_blocs)
-
-parameters = dict({'tree':dict({'noise':[0.0, 0.001, 0.11]}),
-                   'kalman':dict({'gamma':[0.01, 0.1, 0.5, 0.75, 0.99],
-                                  'beta':[1.0, 2.0, 3.0]}),
-                   'q':dict({'alpha':[0.01, 0.1, 0.5, 0.9],
-                             'gamma':[0.01, 0.1, 0.5, 0.9]})})
-
-data = dict()
-nb_p = 0
-for m in parameters.iterkeys():
-    data[m] = dict()
-    for p in parameters[m].iterkeys():        
-        data[m][p] = sweep.exploreParameters(models[m], p, parameters[m][p])
-        nb_p+=1
-# -----------------------------------
-
-
-# -----------------------------------
-# Plot
-# -----------------------------------
-
 ticks_size = 15
 legend_size = 15
 title_size = 20
 label_size = 15
-
-#tree learning
 fig = figure()
 rc('legend',**{'fontsize':legend_size})
-tmp = 1
-for m in data.iterkeys():
-    for p in data[m].iterkeys():
-        subplot(nb_p,1,tmp)
-        for v in data[m][p].iterkeys():
-            plot(data[m][p][v], 'o-', linewidth = 1.4, label = str(v))
-        legend()
-        grid()
-        title(m+" / "+p, fontsize = title_size)
-        tmp+=1
+nb_row = 1
+nb_col = 3
+bad = dict({1:0,
+            2:nb_col,
+            3:2*nb_col,
+            0:1})
+# -----------------------------------
+# PARAMETERS Exploration
+# -----------------------------------
+sweep = Sweep_performances(human, cats, nb_trials, nb_blocs)
+
+parameters = dict({'tree':dict({'noise':[0.0, 0.001, 0.1]}),
+                   'kalman':dict({'gamma':[0.01, 0.5, 0.99],
+                                  'beta':[1.0, 3.0, 5.0]})})
+
+for m in parameters.iterkeys():
+    for p in parameters[m].iterkeys():        
+        jsd = sweep.exploreParameters(models[m], p, parameters[m][p])
+        for i in [1, 2, 3]:
+            for v in parameters[m][p]:
+                subplot(nb_row*3, nb_col, bad[0]+bad[i])
+                plot(jsd[v][i], 'o-', linewidth = 1.5, label = str(v))                    
+            ylim(0,1)
+            grid()
+            legend()
+        subplot(nb_row*3, nb_col, bad[0])
+        title(m+" "+p)
+        bad[0]+=1
+# -----------------------------------
+
 show()
+
+# -----------------------------------
+# Plot
+# -----------------------------------
