@@ -66,15 +66,16 @@ var_obs = 0.05   # variance of observation noise n
 gamma = 0.9     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
-
-noise_width = 0.008
+beta = 2.0
+noise_width = 0.001
+correlation = "Z"
 
 nb_trials = 42
 nb_blocs = 100
 
 cats = CATS(nb_trials)
 
-models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, 0.99, 2.0, eta, var_obs, init_cov, kappa),
+models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'tree':TreeConstruction('tree', cats.states, cats.actions, noise_width)})
 
 cats = CATS_MODELS(nb_trials, models.keys())
@@ -114,7 +115,7 @@ for m in models.iterkeys():
     for i in [1,2,3]:
         data[m]['jsd'][i] = []
         for j in xrange(data[m][i].shape[1]):            
-            data[m]['jsd'][i].append(sweep.computeSingleCorrelation(data['human'][i][:,j], data[m][i][:,j]))
+            data[m]['jsd'][i].append(sweep.computeSingleCorrelation(data['human'][i][:,j], data[m][i][:,j], correlation))
         data[m]['jsd'][i] = np.array(data[m]['jsd'][i])
 # -----------------------------------
 

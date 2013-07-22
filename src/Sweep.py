@@ -35,7 +35,7 @@ class Sweep_performances():
         self.nb_trials = nb_trials
         self.nb_blocs = nb_blocs
 
-    def exploreParameters(self, ptr_model, param, values):
+    def exploreParameters(self, ptr_model, param, values, correlation = 'Z'):
         tmp = dict()
         true_value = ptr_model.getParameter(param)
         for v in values:
@@ -48,7 +48,7 @@ class Sweep_performances():
             ptr_model.action = convertAction(np.array(ptr_model.action))
             ptr_model.responses = np.array(ptr_model.responses)
             data = extractStimulusPresentation2(ptr_model.responses, ptr_model.state, ptr_model.action, ptr_model.responses)
-            tmp[v] = self.computeCorrelation(data)
+            tmp[v] = self.computeCorrelation(data, correlation)
             ptr_model.setParameter(param, true_value)
         return tmp
 
@@ -69,19 +69,19 @@ class Sweep_performances():
         else:
             model.updateValue(reward)
 
-    def computeCorrelation(self, model):
+    def computeCorrelation(self, model, correlation = 'Z'):
         """ Input should be dict(1:[], 2:[], 3:[])
-        Return 1 - (divergence of Jensen-Shannon)
+        Return similarity estimate.
         """
         tmp = dict()
         for i in [1,2,3]:
             assert self.data_human[i].shape[1] == model[i].shape[1]
             m,n = self.data_human[i].shape
-            tmp[i] = np.array([self.computeSingleCorrelation(self.data_human[i][:,j], model[i][:,j]) for j in xrange(n)])
+            tmp[i] = np.array([self.computeSingleCorrelation(self.data_human[i][:,j], model[i][:,j], correlation) for j in xrange(n)])
         return tmp
     
     def computeCorrelation2(self, model):
-        """ Return p value using chi-2 test
+        """ input should be np.array
         """
         assert self.human.shape == model.shape
         m,n = self.human.shape
@@ -100,74 +100,55 @@ class Sweep_performances():
         return np.log2(np.array(tmp))
     
 
-    def computeSingleCorrelation4(self, human, model):
+    def computeSingleCorrelation(self, human, model, case = 'JSD'):
         """Entry should be single-trial vector 
         of performance for each model
-        uSING Jensen Shannon divergence
-        """
-        h = len(human)
-        m = len(model)
-        h1 = np.sum(human == 1)/float(h)
-        m1 = np.sum(model == 1)/float(m)
-        h0 = 1-h1
-        m0 = 1-m1
-        M1 = np.mean([h1, m1])
-        M0 = np.mean([h0, m0])
-        dm = self.computeSpecialKullbackLeibler(np.array([m0, m1]), np.array([M0, M1]))
-        dh = self.computeSpecialKullbackLeibler(np.array([h0, h1]), np.array([M0, M1]))
-        return 1-np.mean([dm, dh])
-
-
-    def computeSingleCorrelation3(self, human, model):
-        """Entry should be single-trial vector 
-        of performance for each model
-        Use contingency coefficient of Pearson C"""
-        m = len(human)
-        n = len(model)
-        a = np.sum(human == 1)
-        b = np.sum(model == 1)
-        obs = np.array([[a, m-a], [b,n-b]])
-        if a == b or (m-a) == (n-b):
-            return 1
-        else:
-            chi, p, ddl, the = chi2_contingency(obs, correction=False)
-            return (chi/(chi+(n+m)))**(0.5)
-            #return np.sqrt(chi)
-                                                
-
-    def computeSingleCorrelation2(self, human, model):
-        """Entry should be single-trial vector 
-        of performance for each model
-        Use phi coefficient """
-        m = len(human)
-        n = len(model)
-        a = np.sum(human == 1)
-        b = np.sum(model == 1)
-        obs = np.array([[a, m-a], [b,n-b]])
-        if a == b:
-            return 1
-        else:
-            chi, p, ddl, the = chi2_contingency(obs, correction=False)
-            return np.sqrt(chi)
-            
-    def computeSingleCorrelation(self, human, model):
-        """Entry should be single-trial vector 
-        of performance for each model
-        Compute the difference between the two frequency 
-        using normal distribution 
+        case can be :
+        - "JSD" : Jensen-Shannon Divergence
+        - "C" : contingency coefficient of Pearson
+        - "phi"  phi coefficient
+        - "Z" : test Z 
         """
         h = len(human)
         m = len(model)
         a = float(np.sum(human == 1))
         b = float(np.sum(model == 1))
-        ph1 = float(a)/h
-        pm1 = float(b)/m
-        p = np.mean([ph1, pm1])
-        if ph1 == pm1:
-            return 0.5
-        else:
-            e = (np.abs(ph1-pm1))/(np.sqrt(p*(1-p)*((1/a)+(1/b))))
-            return 1-norm.cdf(e, 0, 1)
+        obs = np.array([[a, h-a], [b,m-b]])
+        h1 = float(a)/float(h)
+        m1 = float(b)/float(m)
+        h0 = 1-h1
+        m0 = 1-m1
+        if case == "JSD":
+            M1 = np.mean([h1, m1])
+            M0 = np.mean([h0, m0])
+            dm = self.computeSpecialKullbackLeibler(np.array([m0, m1]), np.array([M0, M1]))
+            dh = self.computeSpecialKullbackLeibler(np.array([h0, h1]), np.array([M0, M1]))
+            return 1-np.mean([dm, dh])
+
+        elif case == "C":
+            if h1 == m1:
+                return 1
+            else:
+                chi, p, ddl, the = chi2_contingency(obs, correction=False)
+                return (chi/(chi+(h+m)))**(0.5)
+                #return np.sqrt(chi)
+        
+        elif case == "phi":
+            if h1 == m1:
+                return 1
+            else:
+                chi, p, ddl, the = chi2_contingency(obs, correction=False)
+                return np.sqrt(chi)
+
+        elif case == "Z":
+            ph1 = float(a)/h
+            pm1 = float(b)/m
+            p = np.mean([ph1, pm1])
+            if ph1 == pm1:
+                return 1.0
+            else:
+                z = (np.abs(h1-m1))/(np.sqrt(p*(1-p)*((1/a)+(1/b))))
+                return 1-(norm.cdf(z, 0, 1)-norm.cdf(-z, 0, 1))
     
     def computeSpecialKullbackLeibler(self, p, q):
         # Don;t use for compute Divergence Kullback-Leibler

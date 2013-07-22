@@ -58,9 +58,9 @@ gamma = 0.9     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 beta = 2.0
-gamma = 0.99
-
 noise_width = 0.008
+correlation = "Z"
+
 
 nb_trials = human.responses['meg'].shape[1]
 #nb_blocs = human.responses['meg'].shape[0]
@@ -70,6 +70,7 @@ cats = CATS(nb_trials)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'tree':TreeConstruction('tree', cats.states, cats.actions, noise_width)})
+
 # -----------------------------------
 ticks_size = 15
 legend_size = 15
@@ -89,16 +90,16 @@ bad = dict({1:0,
 sweep = Sweep_performances(human, cats, nb_trials, nb_blocs)
 
 parameters = dict({'tree':dict({'noise':[0.0, 0.001, 0.1]}),
-                   'kalman':dict({'gamma':[0.01, 0.5, 0.99],
+                   'kalman':dict({'gamma':[0.001, 0.1, 0.9],
                                   'beta':[1.0, 3.0, 5.0]})})
 
 for m in parameters.iterkeys():
     for p in parameters[m].iterkeys():        
-        jsd = sweep.exploreParameters(models[m], p, parameters[m][p])
+        value = sweep.exploreParameters(models[m], p, parameters[m][p], correlation)
         for i in [1, 2, 3]:
             for v in parameters[m][p]:
                 subplot(nb_row*3, nb_col, bad[0]+bad[i])
-                plot(jsd[v][i], 'o-', linewidth = 1.5, label = str(v))                    
+                plot(value[v][i], 'o-', linewidth = 1.5, label = str(v))                    
             ylim(0,1)
             grid()
             legend()
