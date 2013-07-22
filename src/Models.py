@@ -276,3 +276,44 @@ class TreeConstruction():
             for k in ptr_tree.iterkeys():
                 if type(ptr_tree[k]) == dict and len(ptr_tree[k].values()) > 0:
                     self.addNoise(ptr_tree[k])
+
+
+class BayesianMemory():
+    """Class that implement a bayesian memory based on 
+    Color Association Experiments from Brovelli & al 2011
+    choose Action based on p(a/s)
+    """
+
+    def __init__(self, name, states, actions, lenght_memory = 7):
+        self.name = name
+        self.lenght_memory = lenght_memory
+        self.states=states
+        self.actions=actions
+        self.n_action=len(actions)
+        self.state=list()
+        self.answer=list()
+        self.responses=list()
+        self.action=list()
+        self.reaction=list()
+        self.initializeBMemory(states, actions)
+
+    def initializeBMemory(self, state, action):
+        self.p_a = list()
+        self.p_s = list()
+        
+        
+    def initialize(self):
+        self.initializeBMemory(self.states, self.actions)
+        self.responses.append([])
+        self.action.append([])
+        self.state.append([])
+        self.reaction.append([])
+
+    def initializeList(self):
+        self.initializeBMemory(self.states, self.actions)
+        self.state=list()
+        self.answer=list()
+        self.responses=list()
+        self.action=list()
+        self.reaction=list()
+
