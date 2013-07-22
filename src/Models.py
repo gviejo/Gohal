@@ -278,10 +278,10 @@ class TreeConstruction():
                     self.addNoise(ptr_tree[k])
 
 
-class BayesianMemory():
-    """Class that implement a bayesian memory based on 
+class BayesianWorkingMemory():
+    """Class that implement a bayesian working memory based on 
     Color Association Experiments from Brovelli & al 2011
-    choose Action based on p(a/s)
+    choose Action based on p(A = i, R = 1/S = j)
     """
 
     def __init__(self, name, states, actions, lenght_memory = 7):
@@ -289,18 +289,18 @@ class BayesianMemory():
         self.lenght_memory = lenght_memory
         self.states=states
         self.actions=actions
-        self.n_action=len(actions)
+        self.n_action=float(len(actions))
+        self.n_state=float(len(states))
         self.state=list()
         self.answer=list()
         self.responses=list()
         self.action=list()
-        self.reaction=list()
         self.initializeBMemory(states, actions)
 
     def initializeBMemory(self, state, action):
-        self.p_a = list()
-        self.p_s = list()
-        
+        self.p_s = np.ones((self.lenght_memory, self.n_state))*(1/self.n_state)
+        self.p_a_s = np.ones((self.lenght_memory, self.n_state, self.n_action))*(1/self.n_action)
+        self.p_r_as = np.ones((self.lenght_memory, self.n_state, self.n_action, 2))*0.5
         
     def initialize(self):
         self.initializeBMemory(self.states, self.actions)
@@ -317,3 +317,20 @@ class BayesianMemory():
         self.action=list()
         self.reaction=list()
 
+    def chooseAction(self, state):
+        p_as = self.p_a_s * np.reshape(np.repeat(self.p_s, self.n_action, axis = 1), self.p_a_s.shape)
+        p_ras = self.p_r_sa * np.reshape(np.repeat(p_as, 2, axis = 2), self.p_r_sa.shape)
+        tmp = np.reshape(np.repeat(self.p_s, self.n_action, axis = 1), self.p_as.shape)
+        p_r_as = p_ras / np.reshape(np.repeat(tmp, 2, axis = 2), self.p_r_sa.shape)
+        return self.action
+
+    def updateValues(self, reward):
+
+    def sample(self, values):
+        #WARNING return 1 not 0 for indicing
+        # values are probability
+        tmp = [np.sum(values[0:i]) for i in range(len(values))]
+        return np.sum(np.array(tmp) < np.random.rand())
+
+
+        
