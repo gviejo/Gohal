@@ -319,12 +319,19 @@ class BayesianWorkingMemory():
 
     def chooseAction(self, state):
         p_as = self.p_a_s * np.reshape(np.repeat(self.p_s, self.n_action, axis = 1), self.p_a_s.shape)
-        p_ras = self.p_r_sa * np.reshape(np.repeat(p_as, 2, axis = 2), self.p_r_sa.shape)
+        p_ras = self.p_r_as * np.reshape(np.repeat(p_as, 2, axis = 2), self.p_r_as.shape)
         tmp = np.reshape(np.repeat(self.p_s, self.n_action, axis = 1), self.p_as.shape)
-        p_r_as = p_ras / np.reshape(np.repeat(tmp, 2, axis = 2), self.p_r_sa.shape)
+        p_ra_s = p_ras / np.reshape(np.repeat(tmp, 2, axis = 2), self.p_r_as.shape)
+        p = np.sum(p_ra_s, axis = 0)
+        tmp = np.vstack(np.sum(np.sum(p, axis=1), axis=1))
+        p = p/np.reshape(np.repeat(np.repeat(tmp, 2, axis=1), 5, axis = 0), p.shape)
+       
+        state = convertStimulus(state)
+        action = sample(p[state,:,1])
         return self.action
 
     def updateValues(self, reward):
+        return None
 
     def sample(self, values):
         #WARNING return 1 not 0 for indicing
