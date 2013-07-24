@@ -301,7 +301,6 @@ class BayesianWorkingMemory():
         self.current_state = None
 
     def initializeBMemory(self, state, action):
-        self.p_s = np.ones((self.lenght_memory, self.n_state))*(1/self.n_state)
         self.p_a_s = np.ones((self.lenght_memory, self.n_state, self.n_action))*(1/self.n_action)
         self.p_r_as = np.ones((self.lenght_memory, self.n_state, self.n_action, 2))*0.5
         
@@ -325,37 +324,39 @@ class BayesianWorkingMemory():
         """
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
+        
         #Bayesian inference
-        p_as = self.p_a_s * np.reshape(np.repeat(self.p_s, self.n_action, axis = 1), self.p_a_s.shape)
-        p_ras = self.p_r_as * np.reshape(np.repeat(p_as, 2, axis = 2), self.p_r_as.shape)
-        tmp = np.reshape(np.repeat(self.p_s, self.n_action, axis = 1), self.p_a_s.shape)
-        p_ra_s = p_ras / np.reshape(np.repeat(tmp, 2, axis = 2), self.p_r_as.shape)
+        p_ra_s = self.p_r_as * np.reshape(np.repeat(self.p_a_s, 2, axis = 2), self.p_r_as.shape)
+
         p = np.sum(p_ra_s, axis = 0)
-        tmp = np.vstack(np.sum(np.sum(p, axis=1), axis=1))
-        p = p/np.reshape(np.repeat(np.repeat(tmp, 2, axis=1), 5, axis = 0), p.shape)       
+        tmp = np.vstack(np.sum(np.sum(p, axis = 1), axis = 1))
+        tmp = np.reshape(np.repeat(np.reshape(np.repeat(tmp, self.n_action), (self.n_state, self.n_action)), 2), p.shape)
+        p = p/tmp
+        p = p[:,:,1]+(1-p[:,:,0])
+        p = p/np.vstack(np.sum(p, axis = 1))
         #Sample according to p(A,R/S)
-        self.current_action = self.sample(p[self.current_state,:,1])
+        self.current_action = self.sample(p[self.current_state])
         self.action[-1].append(self.actions[self.current_action])
         return self.action[-1][-1]
 
     def updateValue(self, reward):
         r = (reward==1)*1
         self.responses[-1].append(r)
-        for p in [self.p_s, self.p_a_s, self.p_r_as]:
-            #Shifting memory            
-            p[1:] = p[:-1]
-            #Adding noise
-            p = np.abs(np.random.normal(p, np.ones(p.shape)*self.noise,p.shape))
-            p[0] = 0.0
-
-        self.normalize()
-        #Adding last choice        
-        self.p_s[0,self.current_state] = 1.0
+        #Shifting memory            
+        self.p_a_s[1:] = self.p_a_s[:-1]
+        self.p_r_as[1:] = self.p_r_as[:-1]
+        #Adding noise
+        if self.noise:
+            self.p_a_s[1:] = np.abs(np.random.normal(self.p_a_s[1:], np.ones(self.p_a_s[1:].shape)*self.noise,self.p_a_s[1:].shape))
+            self.p_r_as[1:] = np.abs(np.random.normal(self.p_r_as[1:], np.ones(self.p_r_as[1:].shape)*self.noise,self.p_r_as[1:].shape))
+            self.normalize()        
+        #Adding last choice
+        self.p_a_s[0] = 0.0
         self.p_a_s[0, self.current_state, self.current_action] = 1.0
+        self.p_r_as[0] = 0.0
         self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0
         
     def normalize(self):
-        self.p_s = self.p_s/np.reshape(np.repeat(np.vstack(np.sum(self.p_s, axis = -1)), 3), self.p_s.shape)
         self.p_a_s = self.p_a_s/np.reshape(np.repeat(np.sum(self.p_a_s, axis=-1), 5), self.p_a_s.shape)
         self.p_r_as = self.p_r_as/np.reshape(np.repeat(np.sum(self.p_r_as, axis=-1),2), self.p_r_as.shape)
 

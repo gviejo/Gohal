@@ -96,6 +96,7 @@ parameters = dict({'tree':dict({'noise':[0.0, 0.001, 0.1]}),
 for m in parameters.iterkeys():
     for p in parameters[m].iterkeys():        
         value = sweep.exploreParameters(models[m], p, parameters[m][p], correlation)
+        print m+" "+p
         for i in [1, 2, 3]:
             for v in parameters[m][p]:
                 subplot(nb_row*3, nb_col, bad[0]+bad[i])

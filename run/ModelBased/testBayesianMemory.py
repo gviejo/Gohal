@@ -34,9 +34,9 @@ def iterationStep(iteration, m, display = True):
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
 beta = 5.0
-noise = 0.00000001
-length_memory = 20
-2
+noise = 0.0
+length_memory = 7
+
 nb_trials = 42
 nb_blocs = 100
 cats = CATS()
@@ -47,6 +47,10 @@ responses = []
 stimulus = []
 action_list = []
 reaction = []
+
+#bmw.initialize()
+#cats.reinitialize()
+#state = 's1'
 
 # -----------------------------------
 
@@ -65,6 +69,7 @@ for i in xrange(nb_blocs):
 # -----------------------------------
 #order data
 # -----------------------------------
+"""
 data = dict()
 bmw.state = convertStimulus(np.array(bmw.state))
 bmw.action = convertAction(np.array(bmw.action))
@@ -86,5 +91,7 @@ legend()
 grid()
 ylim(0,1)
 title('pcr')
-
+"""
+plot(np.mean(bmw.responses, axis = 0))
 show()
+
