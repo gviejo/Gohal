@@ -35,7 +35,7 @@ def iterationStep(iteration, m, display = True):
 # -----------------------------------
 beta = 5.0
 noise = 0.0
-length_memory = 7
+length_memory = 100
 
 nb_trials = 42
 nb_blocs = 100
@@ -58,12 +58,15 @@ reaction = []
 # SESSION MODELS
 # -----------------------------------
 for i in xrange(nb_blocs):
-    sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                        
+    #sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                        
     cats.reinitialize()
     bmw.initialize()
     for j in xrange(nb_trials):
         iterationStep(j, bmw, True)
+        print "\n"
+        #sys.stdin.read(1)
 # -----------------------------------
+bmw.responses = np.array(bmw.responses)
 
 
 # -----------------------------------
