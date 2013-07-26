@@ -61,18 +61,19 @@ for i in xrange(nb_blocs):
     #sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                        
     cats.reinitialize()
     bmw.initialize()
+    print cats.order
     for j in xrange(nb_trials):
         iterationStep(j, bmw, True)
         print "\n"
-        #sys.stdin.read(1)
+        sys.stdin.read(1)
 # -----------------------------------
-bmw.responses = np.array(bmw.responses)
+#bmw.responses = np.array(bmw.responses)
 
 
 # -----------------------------------
 #order data
 # -----------------------------------
-"""
+
 data = dict()
 bmw.state = convertStimulus(np.array(bmw.state))
 bmw.action = convertAction(np.array(bmw.action))
@@ -94,7 +95,5 @@ legend()
 grid()
 ylim(0,1)
 title('pcr')
-"""
-plot(np.mean(bmw.responses, axis = 0))
-show()
 
+show()

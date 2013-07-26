@@ -337,24 +337,23 @@ class BayesianWorkingMemory():
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
-        print "State :", state, self.current_state
+        print "State :", state
         #Bayesian Inference
         p = np.zeros((self.n_state,self.n_action,2))
         for i in xrange(len(self.p_a_s)):
             p += self.computeBayesianInference(i)
-        #tmp = np.vstack(np.sum(np.sum(p, axis = 1), axis = 1))
-        #tmp = np.reshape(np.repeat(np.reshape(np.repeat(tmp, self.n_action), (self.n_state, self.n_action)), 2), p.shape)
-        print p
-        p = p/np.sum(p)
-        print "P(s)", self.p_s[0][0]
-        print "P(a/s)", self.p_a_s[0][0]
-        print "P(r/a,s)", self.p_r_as[0][0]
-        print "P(A,R,S)", p[0]
-        p = p[:,:,1]+(1-p[:,:,0])
-        p = p/np.vstack(np.sum(p, axis = 1))
-        print p[0]
+        #p = p/np.sum(p)
+        print "P : ", p
+        #Current state
+        p_r = np.sum(p[self.current_state], axis = 0)
+        p_r = p_r/np.sum(p_r)
+        print "P(R/S) :", p_r
+        value = p_r[1]*p[self.current_state,:,1]+(1-p_r[1])*(1-p[self.current_state,:,0])
+        print "Value :", value
+        value = value/np.sum(value)
+        print value
         #Sample according to p(A,R/S)
-        self.current_action = self.sample(p[self.current_state])
+        self.current_action = self.sample(value)
         self.action[-1].append(self.actions[self.current_action])
         print "Action : ", self.action[-1][-1], self.current_action
         return self.action[-1][-1]
