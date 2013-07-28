@@ -58,14 +58,14 @@ reaction = []
 # SESSION MODELS
 # -----------------------------------
 for i in xrange(nb_blocs):
-    #sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                        
+    #sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                       
     cats.reinitialize()
     bmw.initialize()
     print cats.order
     for j in xrange(nb_trials):
         iterationStep(j, bmw, True)
         print "\n"
-        sys.stdin.read(1)
+        #sys.stdin.read(1)
 # -----------------------------------
 #bmw.responses = np.array(bmw.responses)
 

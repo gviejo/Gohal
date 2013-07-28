@@ -346,12 +346,12 @@ class BayesianWorkingMemory():
         print "P : ", p
         #Current state
         p_r = np.sum(p[self.current_state], axis = 0)
-        p_r = p_r/np.sum(p_r)
+        #p_r = p_r/np.sum(p_r)
         print "P(R/S) :", p_r
         value = p_r[1]*p[self.current_state,:,1]+(1-p_r[1])*(1-p[self.current_state,:,0])
         print "Value :", value
-        value = value/np.sum(value)
-        print value
+        #value = value/np.sum(value)
+        #print value
         #Sample according to p(A,R/S)
         self.current_action = self.sample(value)
         self.action[-1].append(self.actions[self.current_action])
