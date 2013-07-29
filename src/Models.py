@@ -303,9 +303,14 @@ class BayesianWorkingMemory():
     def initializeBMemory(self, state, action):        
         #self.p_a_s = np.ones((self.lenght_memory, self.n_state, self.n_action))*(1/self.n_action)
         #self.p_r_as = np.ones((self.lenght_memory, self.n_state, self.n_action, 2))*0.5
-        self.p_s = [np.zeros((self.n_state))*(1/self.n_state)]
-        self.p_a_s = [np.zeros((self.n_state, self.n_action))*(1/self.n_action)]
-        self.p_r_as = [np.zeros((self.n_state, self.n_action, 2))*0.5]
+        #self.p_s = [np.zeros((self.n_state))*(1/self.n_state)]
+        #self.p_a_s = [np.zeros((self.n_state, self.n_action))]
+        #self.p_r_as = [np.zeros((self.n_state, self.n_action, 2))]
+        self.p_s = [np.ones((self.n_state))*(1/self.n_state)*(1/self.n_state)]
+        self.p_a_s = [np.ones((self.n_state, self.n_action))*(1/self.n_action)]
+        self.p_r_as = [np.ones((self.n_state, self.n_action, 2))*0.5]
+
+
 
     def initialize(self):
         self.initializeBMemory(self.states, self.actions)
@@ -342,15 +347,26 @@ class BayesianWorkingMemory():
         p = np.zeros((self.n_state,self.n_action,2))
         for i in xrange(len(self.p_a_s)):
             p += self.computeBayesianInference(i)
-        #p = p/np.sum(p)
+        p = p/np.sum(p)
         print "P : ", p
+        p_ra_s = p[self.current_state]*self.n_state
+        p_ra_s = p_ra_s/np.sum(p_ra_s)
+        print "P(r,a/s) : ", p_ra_s
         #Current state
-        p_r = np.sum(p[self.current_state], axis = 0)
+        #p_r = np.sum(p[self.current_state], axis = 0)
         #p_r = p_r/np.sum(p_r)
-        print "P(R/S) :", p_r
-        value = p_r[1]*p[self.current_state,:,1]+(1-p_r[1])*(1-p[self.current_state,:,0])
+        p_r_s = np.sum(p_ra_s, axis = 0)
+        
+        print "P(R/S) :", p_r_s
+        p_a_rs = p_ra_s/p_r_s
+        print "P(A/R,S) : ", p_a_rs
+
+        #value = p_r_s[1]*p_ra_s[:,1]+p_r_s[0]*(1-p_r_s[1])*(1-p_ra_s[:,0])
+        #value = p_r_s[1]*p_a_rs[:,1]+(1-p_r_s[1])*(1-p_a_rs[:,0])
+        #value = p_a_rs[:,1]+(1-p_a_rs[:,0])
+        value = p_a_rs[:,1]/p_a_rs[:,0]
+        value = value/np.sum(value)
         print "Value :", value
-        #value = value/np.sum(value)
         #print value
         #Sample according to p(A,R/S)
         self.current_action = self.sample(value)
@@ -366,7 +382,7 @@ class BayesianWorkingMemory():
         self.p_s.insert(0, np.zeros((self.n_state)))
         self.p_a_s.insert(0, np.ones((self.n_state, self.n_action))*(1/self.n_action))
         self.p_r_as.insert(0, np.ones((self.n_state, self.n_action, 2))*0.5)        
-        #Adding last choice        
+        #Adding last choice         
         self.p_s[0][self.current_state] = 1.0
         self.p_a_s[0][self.current_state] = 0.0        
         self.p_a_s[0][self.current_state, self.current_action] = 1.0
