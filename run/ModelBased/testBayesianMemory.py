@@ -33,15 +33,15 @@ def iterationStep(iteration, m, display = True):
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-beta = 5.0
-noise = 0.0
-length_memory = 100
+beta = 1.0
+noise = 0.001
+length_memory = 15
 
 nb_trials = 42
 nb_blocs = 100
 cats = CATS()
 
-bmw = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise)
+bmw = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, beta)
 
 responses = []
 stimulus = []
@@ -63,9 +63,14 @@ for i in xrange(nb_blocs):
     bmw.initialize()
     print cats.order
     for j in xrange(nb_trials):
+        print j
         iterationStep(j, bmw, True)
+        print len(bmw.p_a_s)
+                        
         print "\n"
-        #sys.stdin.read(1)
+        
+        sys.stdin.read(1)
+
 # -----------------------------------
 #bmw.responses = np.array(bmw.responses)
 

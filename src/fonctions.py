@@ -76,6 +76,12 @@ def getBestActionSoftMax(state, values, beta, ind = 0):
     tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
     return values[(state, np.sum(np.array(tmp) < np.random.rand())-1)]
 
+def SoftMax(values, beta):
+    tmp = np.exp(values*float(beta))
+    tmp = tmp/float(np.sum(tmp))
+    tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
+    return np.sum(np.array(tmp) < np.random.rand())-1
+
 def computeEntropy(values, beta):
     tmp = np.exp(values*float(beta))
     tmp = tmp/float(np.sum(tmp))
