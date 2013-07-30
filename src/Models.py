@@ -281,7 +281,7 @@ class TreeConstruction():
 class BayesianWorkingMemory():
     """Class that implement a bayesian working memory based on 
     Color Association Experiments from Brovelli & al 2011
-    choose Action based on p(A = i, R = 1/S = j)
+    choose Action based on p(A = i/ R = 1,S = j)
     """
 
     def __init__(self, name, states, actions, lenght_memory = 7, noise = 0.0, beta = 1.0):
@@ -324,8 +324,8 @@ class BayesianWorkingMemory():
     def normalize(self):
         for i in xrange(len(self.p_s)):
             self.p_s[i] = self.p_s[i]/np.sum(self.p_s[i])
-            self.p_a_s[i] = self.p_a_s[i]/np.sum(self.p_a_s[i])
-            self.p_r_as[i] = self.p_r_as[i]/np.sum(self.p_r_as[i])
+            self.p_a_s[i] = self.p_a_s[i]/np.vstack(np.sum(self.p_a_s[i], axis = 1))
+            self.p_r_as[i] = self.p_r_as[i]/np.reshape(np.repeat(np.sum(self.p_r_as[i], axis=2),2),self.p_r_as[i].shape)
             
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -338,37 +338,31 @@ class BayesianWorkingMemory():
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
-        print "State :", state
         #Bayesian Inference
         p = np.zeros((self.n_state,self.n_action,2))
         for i in xrange(len(self.p_a_s)):
             p += self.computeBayesianInference(i)
         p = p/np.sum(p)
-        print "P : ", p
+        #Current state
         p_ra_s = p[self.current_state]*self.n_state
         p_ra_s = p_ra_s/np.sum(p_ra_s)
-        print "P(r,a/s) : ", p_ra_s
-        #Current state
         p_r_s = np.sum(p_ra_s, axis = 0)        
-        print "P(R/S) :", p_r_s
         p_a_rs = p_ra_s/p_r_s
-        print "P(A/R,S) : ", p_a_rs
         value = p_a_rs[:,1]/p_a_rs[:,0]
-        print "Value :", value
-        #Sample according to p(A,R/S)
+        #Sample according to p(A/R,S)
+        #value = value/np.sum(value)
         #self.current_action = self.sample(value)
         self.current_action = SoftMax(value, self.beta)
         self.action[-1].append(self.actions[self.current_action])
-        print "Action : ", self.action[-1][-1], self.current_action
+        self.reaction[-1].append(np.random.rand())
         return self.action[-1][-1]
 
     def updateValue(self, reward):
-        print "Reward : ", reward
         r = (reward==1)*1
         self.responses[-1].append(r)
         #Shifting memory            
         self.p_s.insert(0, np.zeros((self.n_state)))
-        self.p_a_s.insert(0, np.ones((self.n_state, self.n_action))*(1/self.n_action))
+        self.p_a_s.insert(0, np.ones((self.n_state, self.n_action))*(1/float(self.n_action)))
         self.p_r_as.insert(0, np.ones((self.n_state, self.n_action, 2))*0.5)        
         #Adding last choice         
         self.p_s[0][self.current_state] = 1.0

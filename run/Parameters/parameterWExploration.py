@@ -41,14 +41,10 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 def iterationStep(iteration, models, display = True):
     state = cats.getStimulus(iteration)
-
     for m in models.itervalues():
         action = m.chooseAction(state)
         reward = cats.getOutcome(state, action, m.name)
-        if m.__class__.__name__ == 'TreeConstruction':
-            m.updateTrees(state, reward)
-        else:
-            m.updateValue(reward)
+        m.updateValue(reward)
 # -----------------------------------
 
 # -----------------------------------
@@ -67,7 +63,8 @@ gamma = 0.9     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 beta = 2.0
-noise_width = 0.001
+length_memory = 15
+noise_width = 0.01
 correlation = "Z"
 
 nb_trials = 42
@@ -76,7 +73,7 @@ nb_blocs = 100
 cats = CATS(nb_trials)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-               'tree':TreeConstruction('tree', cats.states, cats.actions, noise_width)})
+               'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0)})
 
 cats = CATS_MODELS(nb_trials, models.keys())
 # -----------------------------------
@@ -97,7 +94,7 @@ for i in xrange(nb_blocs):
 
 
 # -----------------------------------
-# Comparison with Human Learnign
+# Comparison with Human Learnig
 # -----------------------------------
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
 sweep = Sweep_performances(human, cats, nb_trials, nb_blocs)
@@ -109,23 +106,25 @@ for m in models.itervalues():
     m.action = convertAction(np.array(m.action))
     m.responses = np.array(m.responses)
     data[m.name] = extractStimulusPresentation2(m.responses, m.state, m.action, m.responses)
-    
-for m in models.iterkeys():
-    data[m]['jsd'] = dict()
-    for i in [1,2,3]:
-        data[m]['jsd'][i] = []
-        for j in xrange(data[m][i].shape[1]):            
-            data[m]['jsd'][i].append(sweep.computeSingleCorrelation(data['human'][i][:,j], data[m][i][:,j], correlation))
-        data[m]['jsd'][i] = np.array(data[m]['jsd'][i])
+
+f = dict()  
+for i in [1,2,3]:
+    tmp = []
+    for j in xrange(len(data.keys())):
+        f[data.keys()[j]] = j
+        tmp.append(np.mean(data[data.keys()[j]][i], axis = 0))
+    f[i] = np.array(tmp)
 # -----------------------------------
 
 # -----------------------------------
 # Computation of weight
 # -----------------------------------
-w = dict()
+w = []
 for i in [1,2,3]:
-    w[i] = data['tree']['jsd'][i]/(data['tree']['jsd'][i]+data['kalman']['jsd'][i])
-
+    w.append([])
+    for j in xrange(f[i].shape[1]):
+        w[-1].append((f[i][2,j]-f[i][1,j])/(f[i][0,j]-f[i][1,j]))
+w = np.array(w)
 # -----------------------------------
 
 
@@ -177,3 +176,4 @@ for i in [1,2,3]:
     count+=1
 
 show()
+
