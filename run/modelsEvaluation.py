@@ -69,7 +69,7 @@ init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 
 noise_width_tree = 0.008 #tree noise If 0, no noise
-noise_width_bayes = 0.01 #bayesian wm noise
+noise_width_bayes = 0.02 #bayesian wm noise
 
 nb_trials = 42
 nb_blocs = 100

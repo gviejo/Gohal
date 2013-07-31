@@ -350,9 +350,9 @@ class BayesianWorkingMemory():
         p_a_rs = p_ra_s/p_r_s
         value = p_a_rs[:,1]/p_a_rs[:,0]
         #Sample according to p(A/R,S)
-        #value = value/np.sum(value)
-        #self.current_action = self.sample(value)
-        self.current_action = SoftMax(value, self.beta)
+        value = value/np.sum(value)
+        self.current_action = self.sample(value)
+        #self.current_action = SoftMax(value, self.beta)
         self.action[-1].append(self.actions[self.current_action])
         self.reaction[-1].append(np.random.rand())
         return self.action[-1][-1]

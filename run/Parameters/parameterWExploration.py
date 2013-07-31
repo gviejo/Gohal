@@ -68,7 +68,7 @@ noise_width = 0.01
 correlation = "Z"
 
 nb_trials = 42
-nb_blocs = 100
+nb_blocs = 42
 
 cats = CATS(nb_trials)
 
@@ -78,54 +78,72 @@ models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gam
 cats = CATS_MODELS(nb_trials, models.keys())
 # -----------------------------------
 
+bigdata = dict({1:[],2:[],3:[]})
 
-# -----------------------------------
-# Learning
-# -----------------------------------
-for i in xrange(nb_blocs):
-    sys.stdout.write("\r Blocs : %i " % i); sys.stdout.flush()                        
-    cats.reinitialize()
-    [m.initialize() for m in models.itervalues()]
-    for j in xrange(nb_trials):
-        iterationStep(j, models, False)
+for l in xrange(100):
+	# -----------------------------------
+	# Learning
+	# -----------------------------------
+        for i in xrange(nb_blocs):
+	    sys.stdout.write("\r Blocs : %i " % i); sys.stdout.flush()                        
+	    cats.reinitialize()
+	    [m.initialize() for m in models.itervalues()]
+	    for j in xrange(nb_trials):
+		iterationStep(j, models, False)
 
-# -----------------------------------
+	# -----------------------------------
 
 
 
-# -----------------------------------
-# Comparison with Human Learnig
-# -----------------------------------
-human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
-sweep = Sweep_performances(human, cats, nb_trials, nb_blocs)
+	# -----------------------------------
+	# Comparison with Human Learnig
+	# -----------------------------------
+	human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
+	sweep = Sweep_performances(human, cats, nb_trials, nb_blocs)
 
-data = dict()
-data['human'] = extractStimulusPresentation2(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
-for m in models.itervalues():
-    m.state = convertStimulus(np.array(m.state))
-    m.action = convertAction(np.array(m.action))
-    m.responses = np.array(m.responses)
-    data[m.name] = extractStimulusPresentation2(m.responses, m.state, m.action, m.responses)
+	data = dict()
+	data['human'] = extractStimulusPresentation2(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+	for m in models.itervalues():
+	    m.state = convertStimulus(np.array(m.state))
+	    m.action = convertAction(np.array(m.action))
+	    m.responses = np.array(m.responses)
+	    data[m.name] = extractStimulusPresentation2(m.responses, m.state, m.action, m.responses)
 
-f = dict()  
-for i in [1,2,3]:
-    tmp = []
-    for j in xrange(len(data.keys())):
-        f[data.keys()[j]] = j
-        tmp.append(np.mean(data[data.keys()[j]][i], axis = 0))
-    f[i] = np.array(tmp)
-# -----------------------------------
+	f = dict()  
+	for i in [1,2,3]:
+	    tmp = []
+	    for j in xrange(len(data.keys())):
+		f[data.keys()[j]] = j
+		tmp.append(np.mean(data[data.keys()[j]][i], axis = 0))
+	    f[i] = np.array(tmp)
+	# -----------------------------------
 
-# -----------------------------------
-# Computation of weight
-# -----------------------------------
-w = []
-for i in [1,2,3]:
-    w.append([])
-    for j in xrange(f[i].shape[1]):
-        w[-1].append((f[i][2,j]-f[i][1,j])/(f[i][0,j]-f[i][1,j]))
-w = np.array(w)
-# -----------------------------------
+
+
+	# -----------------------------------
+	# Computation of weight
+	# -----------------------------------
+	w = []
+	for i in [1,2,3]:
+	    w.append([])
+	    tmp = f[i]
+	    for j in xrange(tmp.shape[1]):
+		if tmp[0,j] == tmp[1,j] == tmp[2,j] == 0.0:
+		    w[-1].append(0.0)
+		else:
+		    v = (tmp[2,j]-tmp[1,j])/(tmp[0,j]-tmp[1,j])
+		    if v < 0.0:
+			w[-1].append(0.0)
+		    elif v > 1.0:
+			w[-1].append(1.0)
+		    else:
+			w[-1].append(v)
+
+	w = np.array(w)
+
+
+        
+	# -----------------------------------
 
 
 # -----------------------------------
@@ -136,6 +154,38 @@ legend_size = 15
 title_size = 20
 label_size = 15
 
+fig = figure()
+rc('legend',**{'fontsize':legend_size})
+for i,t in zip([1,3,5], [1,2,3]):
+    subplot(3,2,i)
+    for j,k in zip([2,1,0], ['human', 'bayes', 'kalman']):
+        if k == "human":
+            plot(f[t][j], '--',label=k, linewidth = 2)
+        else:
+            plot(f[t][j],label=k, linewidth = 2)                 
+    legend(loc="lower right")
+    grid()
+for i,t in zip([2,4,6], [0,1,2]):
+    subplot(3,2,i)
+    plot(w[t])
+    ylim(0,1)
+    grid()
+
+ft = []
+ft.append(w[0]*f[1][0]+(1-w[0])*f[1][1])
+ft.append(w[1]*f[2][0]+(1-w[1])*f[2][1])
+ft.append(w[2]*f[3][0]+(1-w[2])*f[3][1])
+ft = np.array(ft)
+subplot(3,2,1)
+plot(ft[0], '-', linewidth = 2, alpha = 0.5)
+subplot(3,2,3)
+plot(ft[1], '-', linewidth = 2, alpha = 0.5)
+subplot(3,2,5)
+plot(ft[2], '-', linewidth = 2, alpha = 0.5)
+ion()
+show()
+
+'''
 fig = figure()
 rc('legend',**{'fontsize':legend_size})
 count = 1
@@ -174,6 +224,6 @@ for i in [1,2,3]:
     grid()
     legend()
     count+=1
-
+'''
 show()
 
