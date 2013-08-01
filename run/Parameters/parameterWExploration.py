@@ -65,7 +65,7 @@ kappa = 0.1      # unscentered transform parameters
 beta = 2.0
 length_memory = 15
 noise_width = 0.01
-correlation = "Z"
+correlation = "JSD"
 
 nb_trials = 42
 nb_blocs = 42
@@ -76,16 +76,38 @@ models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gam
                'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0)})
 
 cats = CATS_MODELS(nb_trials, models.keys())
+
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
+sweep = Sweep_performances(human, cats, nb_trials, nb_blocs)
+data = dict()
+data['human'] = extractStimulusPresentation2(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+
+
 # -----------------------------------
 
-bigdata = dict({1:[],2:[],3:[]})
+w = dict({1:[],2:[],3:[]})
+fall = dict({'kalman':dict({1:[],
+                            2:[],
+                            3:[]}),
+             'bmw':dict({1:[],
+                         2:[],
+                         3:[]})})
+sim = dict({'kalman':dict({1:[],
+                            2:[],
+                            3:[]}),
+             'bmw':dict({1:[],
+                         2:[],
+                         3:[]})})
+
 
 for l in xrange(100):
+        print l
+        [m.initializeList() for m in models.itervalues()]
 	# -----------------------------------
 	# Learning
 	# -----------------------------------
         for i in xrange(nb_blocs):
-	    sys.stdout.write("\r Blocs : %i " % i); sys.stdout.flush()                        
+	    #sys.stdout.write("\r Blocs : %i " % i); sys.stdout.flush()                        
 	    cats.reinitialize()
 	    [m.initialize() for m in models.itervalues()]
 	    for j in xrange(nb_trials):
@@ -98,16 +120,16 @@ for l in xrange(100):
 	# -----------------------------------
 	# Comparison with Human Learnig
 	# -----------------------------------
-	human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
-	sweep = Sweep_performances(human, cats, nb_trials, nb_blocs)
-
-	data = dict()
-	data['human'] = extractStimulusPresentation2(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 	for m in models.itervalues():
 	    m.state = convertStimulus(np.array(m.state))
 	    m.action = convertAction(np.array(m.action))
 	    m.responses = np.array(m.responses)
 	    data[m.name] = extractStimulusPresentation2(m.responses, m.state, m.action, m.responses)
+
+        for m in ['kalman', 'bmw']:
+            for i in [1,2,3]:
+                tmp = np.mean(data[m][i], axis = 0)
+                fall[m][i].append(tmp)
 
 	f = dict()  
 	for i in [1,2,3]:
@@ -118,33 +140,50 @@ for l in xrange(100):
 	    f[i] = np.array(tmp)
 	# -----------------------------------
 
+	# -----------------------------------
+        # Computation of similiraty
+	# -----------------------------------
+        for m in ['kalman', 'bmw']:
+            tmp = sweep.computeCorrelation(data[m], correlation)
+            for i in [1, 2, 3]:
+                sim[m][i].append(tmp[i])
+            
 
+	# -----------------------------------
 
 	# -----------------------------------
 	# Computation of weight
 	# -----------------------------------
-	w = []
 	for i in [1,2,3]:
-	    w.append([])
 	    tmp = f[i]
+            w[i].append([])
 	    for j in xrange(tmp.shape[1]):
 		if tmp[0,j] == tmp[1,j] == tmp[2,j] == 0.0:
-		    w[-1].append(0.0)
+		    w[i][-1].append(0.0)
 		else:
 		    v = (tmp[2,j]-tmp[1,j])/(tmp[0,j]-tmp[1,j])
 		    if v < 0.0:
-			w[-1].append(0.0)
+			w[i][-1].append(0.0)
 		    elif v > 1.0:
-			w[-1].append(1.0)
+			w[i][-1].append(1.0)
 		    else:
-			w[-1].append(v)
-
-	w = np.array(w)
-
+			w[i][-1].append(v)
+        
 
         
 	# -----------------------------------
+mw = np.array([np.mean(w[i], 0) for i in [1,2,3]])
+sw = np.array([np.var(w[i], 0) for i in [1,2,3]])
 
+mk = np.array([np.mean(fall['kalman'][i], 0) for i in [1,2,3]])
+sk = np.array([np.var(fall['kalman'][i], 0) for i in [1,2,3]])
+mb = np.array([np.mean(fall['bmw'][i], 0) for i in [1,2,3]])
+sb = np.array([np.var(fall['bmw'][i], 0) for i in [1,2,3]])
+mh = np.array([np.mean(data['human'][i], 0) for i in [1,2,3]])
+msk = np.array([np.mean(sim['kalman'][i], 0) for i in [1, 2, 3]])
+ssk = np.array([np.var(sim['kalman'][i], 0) for i in [1, 2, 3]])
+msb = np.array([np.mean(sim['bmw'][i], 0) for i in [1, 2,3]])
+ssb = np.array([np.var(sim['bmw'][i], 0) for i in [1,2,3]])
 
 # -----------------------------------
 # Plot
@@ -156,38 +195,43 @@ label_size = 15
 
 fig = figure()
 rc('legend',**{'fontsize':legend_size})
-for i,t in zip([1,3,5], [1,2,3]):
-    subplot(3,2,i)
-    for j,k in zip([2,1,0], ['human', 'bayes', 'kalman']):
-        if k == "human":
-            plot(f[t][j], '--',label=k, linewidth = 2)
-        else:
-            plot(f[t][j],label=k, linewidth = 2)                 
-    legend(loc="lower right")
-    grid()
-for i,t in zip([2,4,6], [0,1,2]):
-    subplot(3,2,i)
-    plot(w[t])
+for i, j in zip(range(3),[1,4,7]):
+    subplot(3,3,j)
+    plot(mw[i], linewidth = 1.5)
+    fill_between(range(len(mw[i])), mw[i]-sw[i], mw[i]+sw[i], alpha = 0.2, color= 'blue')
     ylim(0,1)
     grid()
 
-ft = []
-ft.append(w[0]*f[1][0]+(1-w[0])*f[1][1])
-ft.append(w[1]*f[2][0]+(1-w[1])*f[2][1])
-ft.append(w[2]*f[3][0]+(1-w[2])*f[3][1])
-ft = np.array(ft)
-subplot(3,2,1)
-plot(ft[0], '-', linewidth = 2, alpha = 0.5)
-subplot(3,2,3)
-plot(ft[1], '-', linewidth = 2, alpha = 0.5)
-subplot(3,2,5)
-plot(ft[2], '-', linewidth = 2, alpha = 0.5)
-ion()
+for i,j in zip(range(3), [2,5,8]):
+    subplot(3,3,j)
+    plot(msk[i], linewidth = 1.5, label = 'Kalman', color = 'blue')
+    plot(msb[i], linewidth = 1.5, label = 'Bayes', color = 'green')
+    fill_between(range(len(msk[i])), msk[i]-ssk[i], msk[i]+ssk[i], alpha = 0.2, color= 'blue')
+    fill_between(range(len(msb[i])), msb[i]-ssb[i], msb[i]+ssb[i], alpha = 0.2, color= 'green')
+    ylim(0,1)
+    grid()
+    legend()
+
+subplot(3,3,2)
+title('Similarity (JSD)')
+subplot(3,3,1)
+title('W*Kalman + (1-W)*Bayes')
+for i,j in zip(xrange(3), [3,6,9]):
+    subplot(3,3,j)
+    plot(mk[i], label = 'Kalman', linewidth = 2)
+    fill_between(range(len(mk[i])), mk[i]-sk[i], mk[i]+sk[i], alpha = 0.2, color= 'blue')
+    plot(mb[i], label = 'Bayes', linewidth = 2)
+    fill_between(range(len(mb[i])), mb[i]-sb[i], mb[i]+sb[i], alpha = 0.2, color= 'blue')
+    plot(mh[i], '--', label = 'Human', linewidth = 2)
+    ylim(0,1)
+    grid()
+
+subplot(3,3,3)
+title("Performance")
 show()
 
+
 '''
-fig = figure()
-rc('legend',**{'fontsize':legend_size})
 count = 1
 for i in [1,2,3]:
     subplot(3,1,count)
