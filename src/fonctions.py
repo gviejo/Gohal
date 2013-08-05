@@ -381,3 +381,67 @@ def convertStimulus(state):
     return (state == 's1')*1+(state == 's2')*2 + (state == 's3')*3
 def convertAction(action):
     return (action=='thumb')*1+(action=='fore')*2+(action=='midd')*3+(action=='ring')*4+(action=='little')*5
+
+
+def computeSingleCorrelation(human, model, case = 'JSD'):
+	"""Entry should be single-trial vector 
+	of performance for each model
+	case can be :
+	- "JSD" : Jensen-Shannon Divergence
+	- "C" : contingency coefficient of Pearson
+	- "phi"  phi coefficient
+	- "Z" : test Z 
+	"""
+	h = len(human)
+	m = len(model)
+	a = float(np.sum(human == 1))
+	b = float(np.sum(model == 1))
+	obs = np.array([[a, h-a], [b,m-b]])
+	h1 = float(a)/float(h)
+	m1 = float(b)/float(m)
+	h0 = 1-h1
+	m0 = 1-m1
+	if case == "JSD":
+	    M1 = np.mean([h1, m1])
+	    M0 = np.mean([h0, m0])
+	    dm = computeSpecialKullbackLeibler(np.array([m0, m1]), np.array([M0, M1]))
+	    dh = computeSpecialKullbackLeibler(np.array([h0, h1]), np.array([M0, M1]))
+	    return 1-np.mean([dm, dh])
+
+	elif case == "C":
+	    if h1 == m1:
+		return 1
+	    else:
+		chi, p, ddl, the = chi2_contingency(obs, correction=False)
+		return (chi/(chi+(h+m)))**(0.5)
+		#return np.sqrt(chi)
+
+	elif case == "phi":
+	    if h1 == m1:
+		return 1
+	    else:
+		chi, p, ddl, the = chi2_contingency(obs, correction=False)
+		return np.sqrt(chi)
+
+	elif case == "Z":
+	    ph1 = float(a)/h
+	    pm1 = float(b)/m
+	    p = np.mean([ph1, pm1])
+	    if ph1 == pm1:
+		return 1.0
+            elif pm1 == 0.0:
+		z = (np.abs(h1-m1))/(np.sqrt(p*(1-p)*((1/a))))
+		return 1-(norm.cdf(z, 0, 1)-norm.cdf(-z, 0, 1))                
+	    else:
+		z = (np.abs(h1-m1))/(np.sqrt(p*(1-p)*((1/a)+(1/b))))
+		return 1-(norm.cdf(z, 0, 1)-norm.cdf(-z, 0, 1))
+
+def computeSpecialKullbackLeibler(p, q):
+	# Don;t use for compute Divergence Kullback-Leibler
+	assert len(p) == len(q)
+	tmp = 0
+	for i in xrange(len(p)):
+	    if q[i] <> 0.0 and p[i] <> 0.0:
+		tmp+=p[i]*np.log2(p[i]/q[i])
+
+

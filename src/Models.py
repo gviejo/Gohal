@@ -80,7 +80,6 @@ class KalmanQLearning():
     def __init__(self, name, states, actions, gamma, beta, eta, var_obs, init_cov, kappa):
         self.name=name
         self.gamma=gamma;self.beta=beta;self.eta=eta;self.var_obs=var_obs;self.init_cov=init_cov;self.kappa=kappa
-
         self.values = createQValuesDict(states, actions)
         self.covariance = createCovarianceDict(len(states)*len(actions), self.init_cov, self.eta)
         self.states = states
@@ -88,8 +87,19 @@ class KalmanQLearning():
         self.action = list()
         self.state = list()
         self.responses = list()
-        self.reaction = list()
-        
+        self.reaction = list()        
+
+    def getAllParameters(self):        
+        return dict({'gamma':[0,self.gamma,1],
+                     'beta':[0,self.beta,10]})
+                     #'eta':[1.0e-10,self.eta,0.001],
+                     #'var_obs':[1.0e-5,self.var_obs,0.09],
+                     #'init_cov':[1,self.init_cov,20]})
+
+    def setAllParameters(self, dict_p):
+        for i in dict_p.iterkeys():
+            self.setParameter(i,dict_p[i][1])
+
     def getParameter(self, name):
         if name == 'gamma':
             return self.gamma
@@ -108,6 +118,10 @@ class KalmanQLearning():
             self.beta = value
         elif name == 'eta':
             self.eta = value
+        elif name == 'var_obs':
+            self.var_obs = value
+        elif name == 'init_cov':
+            self.init_cov = value
         else:
             print "Parameters not found"
             sys.exit(0)
@@ -300,6 +314,26 @@ class BayesianWorkingMemory():
         self.reaction=list()
         self.initializeBMemory(states, actions)
         self.current_state = None
+
+    def getAllParameters(self):        
+        return dict({'lenght':[5, self.lenght_memory,25],
+                     'noise':[1.0e-5,self.noise,0.1],
+                     'beta':[1.0,self.beta,5.0]})
+
+    def setAllParameters(self, dict_p):
+        for i in dict_p.iterkeys():
+            self.setParameter(i,dict_p[i][1])
+
+    def setParameter(self, name, value):
+        if name == 'lenght':
+            self.lenght_memory = value
+        elif name == 'noise':
+            self.noise = value
+        elif name == 'beta':
+            self.beta = value
+        else:
+            print("Parameters not found")
+            sys.exit(0)
 
     def initializeBMemory(self, state, action):        
         self.p_s = [np.ones((self.n_state))*(1/self.n_state)]

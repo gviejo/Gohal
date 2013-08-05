@@ -159,3 +159,89 @@ class Sweep_performances():
                 tmp+=p[i]*np.log2(p[i]/q[i])
         return tmp
 
+
+class Optimization():
+    """
+    class to optimize parameters for differents models
+    try to minimize the difference between human and models data
+    """
+
+    def __init__(self, human, ptr_cats, nb_trials, nb_blocs):
+        self.ptr_h = human
+        self.human = human.responses['meg']
+        self.data_human = extractStimulusPresentation2(self.ptr_h.responses['meg'], self.ptr_h.stimulus['meg'], self.ptr_h.action['meg'], self.ptr_h.responses['meg'])
+        self.cats = ptr_cats
+        self.nb_trials = nb_trials
+        self.nb_blocs = nb_blocs
+        self.correlation = "Z"
+        
+    def simulatedAnnealing(self, model, measure="Z"):
+        self.correlation = measure
+        p = model.getAllParameters()
+        p_opt = p
+        f_opt = self.evaluate(model, p_opt)
+        T_finale = 1
+        T = 80
+        R = 100
+        alpha = 0.93
+        while T > T_finale:
+            for i in xrange(R):
+                new_p = self.generateSolution(p)
+                print T, i, f_opt
+                f_new = self.evaluate(model, new_p)
+                f_old = self.evaluate(model, p)
+                delta = f_new - f_old
+                if delta < 0:
+                    p = new_p
+                    if f_new < f_opt:
+                        p_opt = p
+                        f_opt = f_new
+                elif np.random.rand() <= np.exp(-(delta/T)):
+                    p = new_p                    
+            T *= 0.93
+            
+        return p_opt
+
+    def generateSolution(self, p, width = 0.01):
+        tmp = dict()
+        for i in p.iterkeys():
+            tmp[i] = p[i]
+            tmp[i][1] = np.random.normal(p[i][1], width)
+            tmp[i][1] = tmp[i][2] if tmp[i][1] > tmp[i][2] else tmp[i][1]
+            tmp[i][1] = tmp[i][0] if tmp[i][1] < tmp[i][0] else tmp[i][1]                      
+        return tmp
+
+    def evaluate(self, model, p):
+        model.setAllParameters(p)
+        self.testModel(model)
+        model.state = convertStimulus(np.array(model.state))
+        model.action = convertAction(np.array(model.action))
+        model.responses = np.array(model.responses)
+        data = extractStimulusPresentation2(model.responses, model.state, model.action, model.responses)
+        return self.computeCorrelation(data)
+        
+    def testModel(self, ptr_model):
+        ptr_model.initializeList()
+        for i in xrange(self.nb_blocs):
+            self.cats.reinitialize()
+            ptr_model.initialize()
+            for j in xrange(self.nb_trials):
+                self.iterationStep(j, ptr_model, False)
+        
+    def iterationStep(self, iteration, model, display = True):
+        state = self.cats.getStimulus(iteration)
+        action = model.chooseAction(state)
+        reward = self.cats.getOutcome(state, action)
+        model.updateValue(reward)
+
+    def computeCorrelation(self, model):
+        """ Input should be dict(1:[], 2:[], 3:[])
+        Return similarity estimate.
+        """
+        tmp = 0.0
+        for i in [1,2,3]:
+            m,n = self.data_human[i].shape
+            for j in xrange(n):
+                tmp += 1-computeSingleCorrelation(self.data_human[i][:,j], model[i][:,j], self.correlation)
+        return tmp
+
