@@ -91,7 +91,7 @@ class KalmanQLearning():
 
     def getAllParameters(self):        
         return dict({'gamma':[0,self.gamma,1],
-                     'beta':[0,self.beta,10]})
+                     'beta':[0,self.beta,5]})
                      #'eta':[1.0e-10,self.eta,0.001],
                      #'var_obs':[1.0e-5,self.var_obs,0.09],
                      #'init_cov':[1,self.init_cov,20]})
@@ -316,9 +316,9 @@ class BayesianWorkingMemory():
         self.current_state = None
 
     def getAllParameters(self):        
-        return dict({'lenght':[5, self.lenght_memory,25],
-                     'noise':[1.0e-5,self.noise,0.1],
-                     'beta':[1.0,self.beta,5.0]})
+        return dict({'lenght':[10, self.lenght_memory,25],
+                     'noise':[1.0e-5,self.noise,0.05]})
+                     #'beta':[1.0,self.beta,5.0]})
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -326,7 +326,7 @@ class BayesianWorkingMemory():
 
     def setParameter(self, name, value):
         if name == 'lenght':
-            self.lenght_memory = value
+            self.lenght_memory = int(value)
         elif name == 'noise':
             self.noise = value
         elif name == 'beta':
@@ -383,12 +383,12 @@ class BayesianWorkingMemory():
         p_r_s = np.sum(p_ra_s, axis = 0)        
         p_a_rs = p_ra_s/p_r_s
         value = p_a_rs[:,1]/p_a_rs[:,0]
+        self.reaction[-1].append(computeEntropy(value, 1.0))
         #Sample according to p(A/R,S)
         value = value/np.sum(value)
         self.current_action = self.sample(value)
         #self.current_action = SoftMax(value, self.beta)
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(np.random.rand())
         return self.action[-1][-1]
 
     def updateValue(self, reward):

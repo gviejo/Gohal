@@ -8,6 +8,8 @@ import scipy.io
 from scipy import misc
 from scipy import stats
 from scipy.stats import binom, sem
+from scipy.stats import chi2_contingency
+
 
 def displayQValues(states, actions, values, ind = 0):
     foo = PrettyTable()
@@ -288,6 +290,7 @@ def computeMeanRepresentativeSteps(data):
         if len(data[i]):
             m.append(np.mean(data[i]))
             s.append(sem(data[i]))
+            #s.append(np.var(data[i]))
                     
     return np.array(m), np.array(s)
             
@@ -402,11 +405,11 @@ def computeSingleCorrelation(human, model, case = 'JSD'):
 	h0 = 1-h1
 	m0 = 1-m1
 	if case == "JSD":
-	    M1 = np.mean([h1, m1])
-	    M0 = np.mean([h0, m0])
-	    dm = computeSpecialKullbackLeibler(np.array([m0, m1]), np.array([M0, M1]))
-	    dh = computeSpecialKullbackLeibler(np.array([h0, h1]), np.array([M0, M1]))
-	    return 1-np.mean([dm, dh])
+                M1 = np.mean([h1, m1])
+                M0 = np.mean([h0, m0])
+                dm = computeSpecialKullbackLeibler(np.array([m0, m1]), np.array([M0, M1]))
+                dh = computeSpecialKullbackLeibler(np.array([h0, h1]), np.array([M0, M1]))
+                return 1-np.mean([dm, dh])
 
 	elif case == "C":
 	    if h1 == m1:
@@ -443,5 +446,5 @@ def computeSpecialKullbackLeibler(p, q):
 	for i in xrange(len(p)):
 	    if q[i] <> 0.0 and p[i] <> 0.0:
 		tmp+=p[i]*np.log2(p[i]/q[i])
-
+        return tmp
 

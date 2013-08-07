@@ -80,25 +80,6 @@ class Sweep_performances():
             tmp[i] = np.array([self.computeSingleCorrelation(self.data_human[i][:,j], model[i][:,j], correlation) for j in xrange(n)])
         return tmp
     
-    def computeCorrelation2(self, model):
-        """ input should be np.array
-        """
-        assert self.human.shape == model.shape
-        m,n = self.human.shape
-        tmp = []
-        for i in xrange(n):
-            a = np.sum(self.human[:,i] == 1)
-            b = np.sum(model[:,i] == 1)
-            obs = np.array([[a, m-a], [b,m-b]])
-            #if a == 0 or b == 0:
-            if a == b:
-                tmp.append(1)
-            else:
-                chi, p, ddl, the = chi2_contingency(obs, correction=False)
-                tmp.append(p)
-                #tmp.append(np.sqrt(chi/(2*m)))
-        return np.log2(np.array(tmp))
-    
 
     def computeSingleCorrelation(self, human, model, case = 'JSD'):
         """Entry should be single-trial vector 
@@ -119,11 +100,14 @@ class Sweep_performances():
         h0 = 1-h1
         m0 = 1-m1
         if case == "JSD":
-            M1 = np.mean([h1, m1])
-            M0 = np.mean([h0, m0])
-            dm = self.computeSpecialKullbackLeibler(np.array([m0, m1]), np.array([M0, M1]))
-            dh = self.computeSpecialKullbackLeibler(np.array([h0, h1]), np.array([M0, M1]))
-            return 1-np.mean([dm, dh])
+            if h1 == m1:
+                return 1
+            else:
+                M1 = np.mean([h1, m1])
+                M0 = np.mean([h0, m0])
+                dm = self.computeSpecialKullbackLeibler(np.array([m0, m1]), np.array([M0, M1]))
+                dh = self.computeSpecialKullbackLeibler(np.array([h0, h1]), np.array([M0, M1]))
+                return 1-np.mean([dm, dh])
 
         elif case == "C":
             if h1 == m1:
@@ -181,9 +165,9 @@ class Optimization():
         p_opt = p
         f_opt = self.evaluate(model, p_opt)
         T_finale = 1
-        T = 80
+        T = 100
         R = 100
-        alpha = 0.93
+        alpha = 0.95
         while T > T_finale:
             for i in xrange(R):
                 new_p = self.generateSolution(p)
@@ -198,11 +182,31 @@ class Optimization():
                         f_opt = f_new
                 elif np.random.rand() <= np.exp(-(delta/T)):
                     p = new_p                    
-            T *= 0.93
+            T *= alpha
             
         return p_opt
 
-    def generateSolution(self, p, width = 0.01):
+    def stochasticOptimization(self, model, measure ="Z", nb_iter=100):
+        self.correlation = measure
+        p = model.getAllParameters()
+        f = self.evaluate(model, p)
+        for i in xrange(nb_iter):
+            new_p = self.generateRandomSolution(p)
+            new_f = self.evaluate(model, new_p)
+            print i, new_f, f
+            if new_f < f:
+                p = new_p
+                f = new_f
+        return p
+
+    def generateRandomSolution(self, p):
+        tmp = dict()
+        for i in p.iterkeys():
+            tmp[i] = p[i]
+            tmp[i][1] = np.random.uniform(p[i][0],p[i][2])
+        return tmp
+
+    def generateSolution(self, p, width = 1):
         tmp = dict()
         for i in p.iterkeys():
             tmp[i] = p[i]
@@ -218,7 +222,8 @@ class Optimization():
         model.action = convertAction(np.array(model.action))
         model.responses = np.array(model.responses)
         data = extractStimulusPresentation2(model.responses, model.state, model.action, model.responses)
-        return self.computeCorrelation(data)
+        #return self.computeCorrelation(data)
+        return self.computeAbsoluteDifference(data)
         
     def testModel(self, ptr_model):
         ptr_model.initializeList()
@@ -245,3 +250,8 @@ class Optimization():
                 tmp += 1-computeSingleCorrelation(self.data_human[i][:,j], model[i][:,j], self.correlation)
         return tmp
 
+    def computeAbsoluteDifference(self, model):
+        tmp = 0.0
+        for i in [1,2,3]:
+            tmp += np.sum((np.mean(self.data_human[i], 0)-np.mean(model[i], 0))**2)
+        return tmp
