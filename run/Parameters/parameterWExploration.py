@@ -59,13 +59,13 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
-gamma = 0.9     # discount factor
+gamma = 0.63     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
-beta = 2.0
-length_memory = 15
-noise_width = 0.01
-correlation = "JSD"
+beta = 1.7
+length_memory = 11
+noise_width = 0.0106
+correlation = "Z"
 
 nb_trials = 42
 nb_blocs = 42

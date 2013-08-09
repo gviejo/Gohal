@@ -69,7 +69,7 @@ init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 
 noise_width_tree = 0.008 #tree noise If 0, no noise
-noise_width_bayes = 0.02 #bayesian wm noise
+noise_width_bayes = 0.0106 #bayesian wm noise
 
 nb_trials = 42
 nb_blocs = 100
@@ -78,11 +78,11 @@ cats = CATS()
 models = dict({'qslow':QLearning('qslow', cats.states, cats.actions, 0.1, 0.1, 3.0), # gamma, alpha, beta
                'qfast':QLearning('qfast', cats.states, cats.actions, 0.8, 0.8, 2.0),
                'kslow':KalmanQLearning('kslow', cats.states, cats.actions, 0.99, 1.0, eta, var_obs, init_cov, kappa),#gamma, beta
-               'kfast':KalmanQLearning('kfast', cats.states, cats.actions, 0.9, 2.0, eta, var_obs, init_cov, kappa),
+               'kfast':KalmanQLearning('kfast', cats.states, cats.actions, 0.63, 1.7, eta, var_obs, init_cov, kappa),
                'tree':TreeConstruction('tree', cats.states, cats.actions),
                'treenoise':TreeConstruction('treenoise', cats.states, cats.actions, noise_width_tree),
                'bwm':BayesianWorkingMemory('bwm', cats.states, cats.actions, 100, 0.0, 1.0),
-               'bwmnoise':BayesianWorkingMemory('bwmnoise', cats.states, cats.actions, 15, noise_width_bayes, 1.0)})
+               'bwmnoise':BayesianWorkingMemory('bwmnoise', cats.states, cats.actions, 10, noise_width_bayes, 1.0)})
 
 cats = CATS_MODELS(nb_trials, models.keys())
 

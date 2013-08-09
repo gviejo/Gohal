@@ -34,8 +34,8 @@ def iterationStep(iteration, m, display = True):
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.01
-length_memory = 15
+noise = 0.0106
+length_memory = 11
 
 nb_trials = 42
 nb_blocs = 46

@@ -90,11 +90,11 @@ class KalmanQLearning():
         self.reaction = list()        
 
     def getAllParameters(self):        
-        return dict({'gamma':[0,self.gamma,1],
+        return dict({'gamma':[0.2,self.gamma,0.8],
                      'beta':[0,self.beta,5]})
-                     #'eta':[1.0e-10,self.eta,0.001],
-                     #'var_obs':[1.0e-5,self.var_obs,0.09],
-                     #'init_cov':[1,self.init_cov,20]})
+                     #'eta':[1.0e-6,self.eta,0.001],
+                     #'var_obs':[0.01,self.var_obs,0.07]})
+                     #'init_cov':[5,self.init_cov,15]})
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -317,7 +317,7 @@ class BayesianWorkingMemory():
 
     def getAllParameters(self):        
         return dict({'lenght':[10, self.lenght_memory,25],
-                     'noise':[1.0e-5,self.noise,0.05]})
+                     'noise':[1.0e-6,self.noise,0.05]})
                      #'beta':[1.0,self.beta,5.0]})
 
     def setAllParameters(self, dict_p):
@@ -405,7 +405,7 @@ class BayesianWorkingMemory():
         self.p_r_as[0][self.current_state, self.current_action] = 0.0
         self.p_r_as[0][self.current_state, self.current_action, int(r)] = 1.0
         #Length of memory allowed
-        while len(self.p_a_s) >= self.lenght_memory:
+        while len(self.p_a_s) > self.lenght_memory:
             self.p_s.pop(-1)
             self.p_a_s.pop(-1)
             self.p_r_as.pop(-1)

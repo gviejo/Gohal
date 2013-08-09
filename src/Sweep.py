@@ -222,8 +222,8 @@ class Optimization():
         model.action = convertAction(np.array(model.action))
         model.responses = np.array(model.responses)
         data = extractStimulusPresentation2(model.responses, model.state, model.action, model.responses)
-        #return self.computeCorrelation(data)
-        return self.computeAbsoluteDifference(data)
+        return self.computeCorrelation(data)
+        #return self.computeAbsoluteDifference(data)
         
     def testModel(self, ptr_model):
         ptr_model.initializeList()
