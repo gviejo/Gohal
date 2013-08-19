@@ -1,11 +1,8 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
-parametersWexploration.py
-
-computation of a w variable
-part of each model
-w*V1 + (1-w)*V2
+scripts to plot figure pour le rapport IAD
+figure3 : evolution de w / correlation /performances
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -100,7 +97,7 @@ sim = dict({'kalman':dict({1:[],
                          3:[]})})
 
 
-for l in xrange(10):
+for l in xrange(2):
         print l
         [m.initializeList() for m in models.itervalues()]
 	# -----------------------------------
@@ -188,86 +185,61 @@ ssb = np.array([np.var(sim['bmw'][i], 0) for i in [1,2,3]])
 # -----------------------------------
 # Plot
 # -----------------------------------
-ticks_size = 15
-legend_size = 15
-title_size = 20
-label_size = 15
+params = {'backend':'pdf',
+          'axes.labelsize':10,
+          'text.fontsize':10,
+          'legend.fontsize':10,
+          'xtick.labelsize':8,
+          'ytick.labelsize':8,
+          'text.usetex':False}
+#rcParams.update(params)
+dashes = ['-', '-', ':']
 
-fig = figure()
-rc('legend',**{'fontsize':legend_size})
-for i, j in zip(range(3),[1,4,7]):
-    subplot(3,3,j)
-    plot(mw[i], linewidth = 1.5)
-    fill_between(range(len(mw[i])), mw[i]-sw[i], mw[i]+sw[i], alpha = 0.2, color= 'blue')
-    ylim(0,1)
+fig = figure(figsize=(11,8))
+
+for i,j in zip(xrange(3), [1,3,5]):
+    subplot(3,2,j)
+    plot(range(1, len(mb[i])+1), mb[i], linestyle = dashes[0], linewidth = 2, color = 'grey', label = 'B-WM')
+    errorbar(range(1, len(mb[i])+1), mb[i], sb[i], linestyle = dashes[0], linewidth = 2, color = 'grey')
+    plot(range(1, len(mk[i])+1), mk[i], linestyle = dashes[1], linewidth = 2, color = 'black', label = 'K-QL')
+    errorbar(range(1, len(mk[i])+1), mk[i], sk[i], linestyle = dashes[1], linewidth = 2, color = 'black')
+    plot(range(1, len(mh[i])+1), mh[i], linestyle = dashes[2], color='black', linewidth = 2, alpha = 0.8, label = 'MEG')    
+    ylim(0.0,1.05)     
+    ylabel("Probability Correct Responses", fontsize = 5)
+    xlabel('Trial')
+    yticks(np.arange(0, 1.2, 0.2))
+    xticks(range(2,11,2))
+    xlim(0.8, 10.2)
+    
     grid()
 
-for i,j in zip(range(3), [2,5,8]):
-    subplot(3,3,j)
-    plot(msk[i], linewidth = 1.5, label = 'Kalman', color = 'blue')
-    plot(msb[i], linewidth = 1.5, label = 'Bayes', color = 'green')
-    fill_between(range(len(msk[i])), msk[i]-ssk[i], msk[i]+ssk[i], alpha = 0.2, color= 'blue')
-    fill_between(range(len(msb[i])), msb[i]-ssb[i], msb[i]+ssb[i], alpha = 0.2, color= 'green')
-    ylim(0,1)
-    grid()
-    legend()
+for i,j in zip(range(3), [2,4,6]):
+    wth = 0.3
+    subplot(3,2,j)
+    bar(np.arange(1, len(msb[i])+1)-wth, msb[i], width = wth, yerr = ssb[i], label = 'B-WM', color = 'grey', ecolor = 'black')
+    bar(np.arange(1, len(msk[i])+1), msk[i], width = wth, yerr = ssk[i], label = 'K-QL', color = 'black', ecolor = 'black')
+    ylabel('JSD')
+    xlabel('Trial')
+    ylim(0.0,1.05)
+    yticks(np.arange(0, 1.2, 0.2))
+    xticks(range(2,11,2))
+    xlim(0.8, 10.2)
 
-subplot(3,3,2)
-title('Similarity (JSD)')
-subplot(3,3,1)
-title('W*Kalman + (1-W)*Bayes')
-for i,j in zip(xrange(3), [3,6,9]):
-    subplot(3,3,j)
-    plot(mk[i], label = 'Kalman', linewidth = 2)
-    fill_between(range(len(mk[i])), mk[i]-sk[i], mk[i]+sk[i], alpha = 0.2, color= 'blue')
-    plot(mb[i], label = 'Bayes', linewidth = 2)
-    fill_between(range(len(mb[i])), mb[i]-sb[i], mb[i]+sb[i], alpha = 0.2, color= 'blue')
-    plot(mh[i], '--', label = 'Human', linewidth = 2)
-    ylim(0,1)
     grid()
 
-subplot(3,3,3)
+
+subplot(3,2,2)
+title('Similarity')
+legend(loc = 'lower right')
+subplot(3,2,1)
 title("Performance")
+legend(loc = 'lower right')
+figtext(0.01, 0.8, 'Stimulus 1', rotation = 'vertical', fontsize = 15)
+
+subplots_adjust(left = 0.1, wspace = 0.3, right = 0.86, hspace = 0.3)
+#fig.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig3.pdf', bbox_inches='tight')
 show()
 
 
-'''
-count = 1
-for i in [1,2,3]:
-    subplot(3,1,count)
-    for m in ['tree', 'kalman', 'human']:
-        plot(np.mean(data[m][i], 0), 'o-', linewidth = 1.5, label = m)
-    grid()
-    legend()
-    count+=1
 
-fig = figure()
-rc('legend',**{'fontsize':legend_size})
-count = 1
-for i in [1,2,3]:
-    subplot(3,1,count)
-    plot(w[i], 'o-', color= 'red')
-    axhline(0.5,0,10, '--', color= 'black', linewidth = 4, alpha = 0.4)
-    fill_between(range(len(w[i])), np.zeros((len(w[i]))), w[i], alpha = 0.2, color= 'blue')
-    fill_between(range(len(w[i])), w[i], np.ones((len(w[i]))), alpha = 0.2, color = 'green')
-    annotate('Tree Learning', (0, 0.1), color = 'blue')
-    annotate('Kalman Q-Learning', (0, 0.8), color = 'green')
-    ylim(0,1)
-    grid()
-    legend()
-    count+=1
-    
-    
-fig = figure()
-rc('legend',**{'fontsize':legend_size})
-count = 1
-for i in [1,2,3]:
-    subplot(3,1,count)
-    plot(data['tree']['jsd'][i], 'o-', label = 'tree')
-    plot(data['kalman']['jsd'][i], 'o-', label = 'kalman')
-    grid()
-    legend()
-    count+=1
-'''
-show()
 
