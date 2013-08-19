@@ -228,6 +228,7 @@ class Optimization():
     def testModel(self, ptr_model):
         ptr_model.initializeList()
         for i in xrange(self.nb_blocs):
+            sys.stdout.write("\r Testing model | Blocs : %i" % i); sys.stdout.flush()                        
             self.cats.reinitialize()
             ptr_model.initialize()
             for j in xrange(self.nb_trials):
