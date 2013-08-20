@@ -228,7 +228,7 @@ class Optimization():
     def testModel(self, ptr_model):
         ptr_model.initializeList()
         for i in xrange(self.nb_blocs):
-            sys.stdout.write("\r Testing model | Blocs : %i" % i); sys.stdout.flush()                        
+            #sys.stdout.write("\r Testing model | Blocs : %i" % i); sys.stdout.flush()                        
             self.cats.reinitialize()
             ptr_model.initialize()
             for j in xrange(self.nb_trials):
@@ -248,7 +248,7 @@ class Optimization():
         for i in [1,2,3]:
             m,n = self.data_human[i].shape
             for j in xrange(n):
-                tmp += 1-computeSingleCorrelation(self.data_human[i][:,j], model[i][:,j], self.correlation)
+                tmp += computeSingleCorrelation(self.data_human[i][:,j], model[i][:,j], self.correlation)
         return tmp
 
     def computeAbsoluteDifference(self, model):

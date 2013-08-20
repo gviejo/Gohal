@@ -25,7 +25,7 @@ from matplotlib import *
 from pylab import *
 from Sweep import Optimization
 from mpl_toolkits.mplot3d import Axes3D
-
+import datetime
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
@@ -78,7 +78,7 @@ cats = CATS()
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, 15, 0.01, 1.0)})
 
-inter = 100
+inter = 50
 # -----------------------------------
 
 data = {}
@@ -106,10 +106,14 @@ for m in models.iterkeys():
             print i, j, "|", x, y
             tmp[tmp.keys()[1]][1] = j
             data[m][x,y] = opt.evaluate(models[m], tmp)
-            
-    
-
-
+        
+data['xs'] = xs
+data['ys'] = ys
+data['label'] = label
+data['correlation'] = correlation
+output = open("datagrid"+str(datetime.datetime.now()), 'wb')
+pickle.dump(data, output)
+output.close()
 
 # -----------------------------------
 # Plot
@@ -119,6 +123,15 @@ legend_size = 15
 title_size = 20
 label_size = 19
 
+fig1 = figure()
+for m, i in zip(models.iterkeys(), [1,2]):
+    ax = fig1.add_subplot(1,2,i)
+    ax.imshow(data[m])
+    xlabel(label[m][0])
+    ylabel(label[m][1])    
+    title(m)
+
+'''
 fig = figure(figsize=plt.figaspect(0.5))
 
 rc('legend',**{'fontsize':legend_size})
@@ -132,6 +145,6 @@ for m, i in zip(models.iterkeys(), [1,2]):
     ylabel(label[m][1])    
     title(m)
     fig.colorbar(surf, shrink=0.5, aspect=10)
-
+'''
 
 show()

@@ -62,7 +62,7 @@ kappa = 0.1      # unscentered transform parameters
 beta = 1.7
 length_memory = 11
 noise_width = 0.0106
-correlation = "Z"
+correlation = "JSD"
 
 nb_trials = 42
 nb_blocs = 42
@@ -97,7 +97,7 @@ sim = dict({'kalman':dict({1:[],
                          3:[]})})
 
 
-for l in xrange(2):
+for l in xrange(10):
         print l
         [m.initializeList() for m in models.itervalues()]
 	# -----------------------------------
