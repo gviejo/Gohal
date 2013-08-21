@@ -1,21 +1,22 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
-fig5_keramati.py
+exp1.py
 
-Plot the exp 1 from Keramati & al, 2011
-Take as input a folder containing the data
-Each run is in the form of exp1run_.pickle
+scripts to Keramati first figure pour IAD report
+figure 5 : moderate training | extensive training
+
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
+sys.path.append("../../src")
 import os
 from optparse import OptionParser
 import numpy as np
-sys.path.append("../../src")
 from fonctions import *
-import subprocess
+from Selection import Keramati
+from Models import KalmanQLearning
 from matplotlib import *
 from pylab import *
 
@@ -27,13 +28,24 @@ from pylab import *
 #    sys.stdout.write("More help avalaible with -h or --help option")
 #    sys.exit(0)
 parser = OptionParser()
-parser.add_option("-i", "--input", action="store", help="The name of the input folder to load the data", default=False)
-#parser.add_option("-o", "--output", action="store", help="The name of the output file to store the data", default=False)
+parser.add_option("-o", "--output", action="store", help="The name of the output file to store the data", default=False)
 (options, args) = parser.parse_args() 
 # -----------------------------------
 
 # -----------------------------------
-# PARAMETERS
+# FONCTIONS
+# -----------------------------------
+def transitionRules(state, action):
+    if state == 's0' and action == 'pl':
+        return 's1'
+    else:
+        return 's0'
+
+    
+# -----------------------------------
+
+# -----------------------------------
+# PARAMETERS + INITIALIZATION
 # -----------------------------------
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
@@ -43,139 +55,162 @@ sigma = 0.02     # updating rate of the average reward
 rau = 0.1        # update rate of the reward function
 tau = 0.08       # time step for graph exploration
 
-phi = 0.1        # update rate of the transition function
+phi = 0.5        # update rate of the transition function
 depth = 3        # depth of search when computing the goal value
-init_cov = 1.1     # initialisation of covariance matrice
+init_cov = 1.0   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 
 nb_iter_test = 500
 
 nb_iter_mod = 100
 deval_mod_time = 40
-nb_iter_ext = 350
+nb_iter_ext = 300
 deval_ext_time = 240
+
+nb_blocs = 10
 
 states = ['s0', 's1']
 actions = ['pl', 'em']
+rewards = createQValuesDict(states, actions)
+kalman = KalmanQLearning("", states, actions, gamma, beta, eta, var_obs, init_cov, kappa)
+selection = Keramati(kalman, depth, phi, rau, sigma, tau)
 
-values = createQValuesDict(states, actions)
-# -----------------------------------
-# Loading data
-# -----------------------------------
+meandata = dict({'mod':dict({'vpi':list(),
+                             'r':list(),
+                             'p':list(),
+                             'q':list()}),
+                 'ext':dict({'vpi':list(),
+                             'r':list(),
+                             'p':list(),
+                             'q':list()})})
 
-data = dict({'data':dict({'values':dict({'mean':[],
-                                         'var':[]}),
-                          'h':dict({'mean':[],
-                                    'var':[]}),
-                          'r':dict({'mean':[],
-                                    'var':[]}),
-                          'vpi':dict({'mean':[],
-                                      'var':[]}),
-                          'p':dict({'mean':[],
-                                    'var':[]})}),
-             'data2':dict({'values':dict({'mean':[],
-                            'var':[]}),
-                          'h':dict({'mean':[],
-                                    'var':[]}),
-                          'r':dict({'mean':[],
-                                    'var':[]}),
-                          'vpi':dict({'mean':[],
-                                      'var':[]}),
-                          'p':dict({'mean':[],
-                                    'var':[]})})})
+for i in xrange(nb_blocs):
+        data = dict({'mod':dict({'vpi':list(),
+                                 'r':list(),
+                                 'p':list(),
+                                 'q':list()}),
+                     'ext':dict({'vpi':list(),
+                                 'r':list(),
+                                 'p':list(),
+                                 'q':list()})})
 
-tmp = dict({'data': dict({'values':dict({0:[],1:[],2:[],3:[]}), 
-                          'h':dict({0:[],1:[],2:[],3:[]}), 
-                          'vpi':dict({0:[], 1:[]}), 
-                          'r':[],
-                          'p':dict({0:[],1:[],2:[],3:[]})}),
-            'data2': dict({'values':dict({0:[],1:[],2:[],3:[]}), 
-                           'h':dict({0:[],1:[],2:[],3:[]}), 
-                           'vpi':dict({0:[], 1:[]}), 
-                           'r':[],
-                           'p':dict({0:[],1:[],2:[],3:[]})})})
+	# -----------------------------------
+	# Training + devaluation
+	# -----------------------------------
 
-process = subprocess.Popen("ls "+options.input+" | grep exp1", shell = True, stdout=subprocess.PIPE)
-list_data = process.communicate()[0].split("\n")
+	for exp, nb_trials, deval_time in zip(['mod','ext'], [nb_iter_mod, nb_iter_ext], [deval_mod_time, deval_ext_time]):
+	    kalman.initialize()
+	    selection.initialize()
+	    state = 's0'
+	    rewards[0][rewards[('s1','em')]] = 1.0
+	    print exp, nb_trials, deval_time
+	    for i in xrange(nb_trials):
+		#Setting Reward
+		if i == deval_time:
+		    rewards[0][rewards[('s1','em')]] = -1.0
+		elif i == deval_time+2:
+		    rewards[0][rewards[('s1','em')]] = 0.0
+		#Learning
+		while True:
+		    action = selection.chooseAction(state)        
+		    next_state = transitionRules(state, action)
+		    selection.updateValues(rewards[0][rewards[(state, action)]], next_state)
+		    #sys.stdin.read(1)
+		    if state == 's1' and action == 'em':
+		        #Retrieving data
+		        data[exp]['vpi'].append(computeVPIValues(kalman.values[0][kalman.values['s0']],kalman.covariance['cov'].diagonal()[kalman.values['s0']]))
+		        data[exp]['r'].append(selection.rrate[-1])                                                       
+		        data[exp]['p'].append(testQValues(states, selection.values, kalman.beta, 0, nb_iter_test))
+		        data[exp]['q'].append(kalman.values[0][kalman.values[('s0','pl')]]-kalman.values[0][kalman.values[('s0','em')]])                
+		        state = next_state
+		        break
+		    else:
+		        state = next_state
+		
+	    data[exp]['vpi'] = np.array(data[exp]['vpi'])
+	    data[exp]['r'] = np.array(data[exp]['r'])*selection.tau
+	    data[exp]['p'] = np.array(data[exp]['p'])
+	    data[exp]['q'] = np.array(data[exp]['q'])
 
-for i in list_data[0:-1]:
-    d = loadData(options.input+"/"+i)
-    for j in d.iterkeys():
-        for k in d[j].iterkeys():
-            if len(d[j][k].shape) == 2:
-                for c in range(d[j][k].shape[1]):
-                    tmp[j][k][c].append(d[j][k][:,c].copy())
-            else :
-                tmp[j][k].append(d[j][k].copy())
+            for s in ['vpi', 'r', 'p']:                 
+                meandata[exp][s].append(data[exp][s])
 
-for i in tmp.iterkeys():
-    for j in tmp[i].iterkeys():
-        if type(tmp[i][j]) == list:
-            data[i][j]['mean'] = np.mean(tmp[i][j], 0)
-            data[i][j]['var'] = np.var(tmp[i][j], 0)
-        else:
-            for k in tmp[i][j]:
-                data[i][j]['mean'].append(np.mean(tmp[i][j][k], 0))
-                data[i][j]['var'].append(np.var(tmp[i][j][k], 0))
-            data[i][j]['mean'] = np.array(data[i][j]['mean'])
-            data[i][j]['var'] = np.array(data[i][j]['var'])
+for i in ['mod', 'ext']:
+    meandata[i]['vpi'] = np.mean(meandata[i]['vpi'], 0)
+    meandata[i]['r'] = np.mean(meandata[i]['r'], 0)
+    meandata[i]['p'] = np.mean(meandata[i]['p'], 0)
 
-delib = dict({'data':dict({'mean':[],
-                           'var':[]}),
-              'data2':dict({'mean':[],
-                            'var':[]})})
-                         
-n = len(tmp['data']['vpi'][0])
-for i in delib.iterkeys():
-    diff = []
-    for k in range(n):
-        a = np.mean([tmp[i]['vpi'][0][k], tmp[i]['vpi'][1][k]], 0)
-        diff.append(a-tmp[i]['r'][k])
-    delib[i]['mean'] = np.mean(diff, 0)
-    delib[i]['var'] = np.var(diff, 0)
-        
 # -----------------------------------
 # Plot
 # -----------------------------------\
+fig1 = figure(figsize = (15,9))
+params = {'backend':'pdf',
+          'axes.labelsize':10,
+          'text.fontsize':10,
+          'legend.fontsize':10,
+          'xtick.labelsize':8,
+          'ytick.labelsize':8,
+          'text.usetex':False}
 
-colors = {('s0','pl'):'green',('s0','em'):'red',('s1','pl'):'cyan',('s1','em'):'purple'}
-fig = figure()
+dashes = ['--', '-.', '-']
+colors = ['black', 'grey']
+#rcParams.update(params)
+
 subplot(221)
-#for s in states:
 for s in ['s0']:
-    for a in actions:
-        plot(data['data']['vpi']['mean'][values[(s,a)]], 'o-', color = colors[(s,a)], label = "VPI("+s+","+a+")")
-plot(data['data']['r']['mean'], 'o-', color = 'blue', label = "R*tau")
-axvline(deval_mod_time-1, color='black')
+    for a,i in zip(actions, range(len(actions))):
+        plot(meandata['mod']['vpi'][:,selection.values[(s,a)]], linestyle = '-', color = colors[i], label = "VPI("+s+","+a+")", linewidth = 2)
+plot(meandata['mod']['r'], color = 'black', label = "R*tau", linestyle = '--', linewidth = 2)
+axvline(deval_mod_time, color='black', linewidth = 2)
 legend()
+grid()
 ylim(0,0.1)
-subplot(222)
-#for s in states:
-for s in ['s0']:
-    for a in actions:
-        plot(data['data2']['vpi']['mean'][values[(s,a)]], 'o-', color = colors[(s,a)], label = "VPI("+s+","+a+")")
-plot(data['data2']['r']['mean'], 'o-', color = 'blue', label = "R*tau")
-axvline(deval_ext_time-1, color='black')
-legend()
-ylim(0,0.1)
+xlabel("Trial")
+
 subplot(223)
 for s in ['s0']:
-    for a in actions:
-        plot(data['data']['p']['mean'][values[(s,a)]], 'o-', color = colors[(s,a)], label = "p("+s+","+a)
-axvline(deval_mod_time-1, color='black')
+    for a,i in zip(actions, range(len(actions))):
+        plot(meandata['mod']['p'][:,selection.values[(s,a)]], linestyle = '-', color = colors[i], label = "P("+s+","+a+")", linewidth = 1.5)
+axvline(deval_mod_time, color='black', linewidth = 2)
 ylim(0.3,0.7)
+xlabel("Trial")
+ylabel("P(s,a)")
+yticks(np.arange(0.3, 0.8, 0.1))
+grid()
 legend()
+
+subplot(222)
+for s in ['s0']:
+    for a,i in zip(actions, range(len(actions))):
+        plot(meandata['ext']['vpi'][:,selection.values[(s,a)]], linestyle = '-', color = colors[i], label = "VPI("+s+","+a+")", linewidth = 2)
+plot(meandata['ext']['r'], linestyle = '--', color = 'black', label = "R*tau", linewidth = 2)
+axvline(deval_ext_time, color='black', linewidth = 2)
+legend()
+xlabel("Trial")
+grid()
+ylim(0,0.1)
+
+
 subplot(224)
 for s in ['s0']:
-    for a in actions:
-        plot(data['data2']['p']['mean'][values[(s,a)]], 'o-', color = colors[(s,a)], label = "p("+s+","+a)
-axvline(deval_ext_time-1, color='black')
+    for a,i in zip(actions, range(len(actions))):
+        plot(meandata['ext']['p'][:,selection.values[(s,a)]], linestyle = '-', color = colors[i], label = "P("+s+","+a+")", linewidth = 1.5)
+axvline(deval_ext_time, color='black', linewidth = 2)
 ylim(0.3,0.7)
+grid()
+xlabel("Trial")
+ylabel("P(s,a)")
+yticks(np.arange(0.3, 0.8, 0.1))
 legend()
 
+subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86, hspace = 0.35)
+figtext(0.12, 0.93, "Moderate pre-devaluation training", fontsize = 18)
+figtext(0.55, 0.93, "Extensive pre-devaluation training", fontsize = 18)
+fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig5.pdf', bbox_inches='tight')
+#show()
 
-#------
 show()
+# -----------------------------------
 
 
 

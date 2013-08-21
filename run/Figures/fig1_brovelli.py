@@ -138,5 +138,5 @@ ylabel("Reaction time (s)")
 title('B')
 
 subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86)
-fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig1.pdf', bbox_inches='tight')
-#show()
+#fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig1.pdf', bbox_inches='tight')
+show()

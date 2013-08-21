@@ -57,11 +57,11 @@ depth = 3        # depth of search when computing the goal value
 init_cov = 1.0   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 
-nb_iter_test = 100
+nb_iter_test = 500
 
 nb_iter_mod = 100
 deval_mod_time = 40
-nb_iter_ext = 310
+nb_iter_ext = 300
 deval_ext_time = 240
 
 states = ['s0', 's1']
