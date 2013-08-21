@@ -6,3 +6,4 @@ fMRI/
 *.pyc
 *.py~
 *.pdf
+*.pickle

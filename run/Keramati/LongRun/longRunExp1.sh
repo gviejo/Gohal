@@ -1,6 +1,6 @@
 #!/bin/bash
 
-niterations=100
+niterations=10
 
 for i in $(seq $niterations)
 do

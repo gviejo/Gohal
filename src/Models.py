@@ -161,6 +161,17 @@ class KalmanQLearning():
         kalman_gain = cov_values_rewards/cov_rewards
         self.values[0] = self.values[0] + kalman_gain*(reward-reward_predicted)
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] - (kalman_gain.reshape(len(kalman_gain), 1)*cov_rewards)*kalman_gain
+
+    def updatePartialValue(self, s, a, reward):
+        self.responses[-1].append((reward==1)*1)
+        sigma_points, weights = computeSigmaPoints(self.values[0], self.covariance['cov'], self.kappa)
+        rewards_predicted = (sigma_points[:,self.values[(s,a)]]-self.gamma*np.max(sigma_points[:,self.values[s]], 1)).reshape(len(sigma_points), 1)
+        reward_predicted = np.dot(rewards_predicted.flatten(), weights.flatten())
+        cov_values_rewards = np.sum(weights*(sigma_points-self.values[0])*(rewards_predicted-reward_predicted), 0)
+        cov_rewards = np.sum(weights*(rewards_predicted-reward_predicted)**2) + self.var_obs
+        kalman_gain = cov_values_rewards/cov_rewards
+        self.values[0] = self.values[0] + kalman_gain*(reward-reward_predicted)
+        self.covariance['cov'][:,:] = self.covariance['cov'][:,:] - (kalman_gain.reshape(len(kalman_gain), 1)*cov_rewards)*kalman_gain
         
 
 class TreeConstruction():

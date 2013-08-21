@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
-plot_exp1.py
+fig5_keramati.py
 
 Plot the exp 1 from Keramati & al, 2011
 Take as input a folder containing the data
@@ -16,7 +16,9 @@ import numpy as np
 sys.path.append("../../src")
 from fonctions import *
 import subprocess
-from pylab import plot, figure, show, subplot, legend, ylim, axvline
+from matplotlib import *
+from pylab import *
+
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
@@ -137,8 +139,8 @@ for i in delib.iterkeys():
 # -----------------------------------\
 
 colors = {('s0','pl'):'green',('s0','em'):'red',('s1','pl'):'cyan',('s1','em'):'purple'}
-figure()
-subplot(521)
+fig = figure()
+subplot(221)
 #for s in states:
 for s in ['s0']:
     for a in actions:
@@ -147,7 +149,7 @@ plot(data['data']['r']['mean'], 'o-', color = 'blue', label = "R*tau")
 axvline(deval_mod_time-1, color='black')
 legend()
 ylim(0,0.1)
-subplot(522)
+subplot(222)
 #for s in states:
 for s in ['s0']:
     for a in actions:
@@ -156,44 +158,24 @@ plot(data['data2']['r']['mean'], 'o-', color = 'blue', label = "R*tau")
 axvline(deval_ext_time-1, color='black')
 legend()
 ylim(0,0.1)
-subplot(523)
+subplot(223)
 for s in ['s0']:
     for a in actions:
         plot(data['data']['p']['mean'][values[(s,a)]], 'o-', color = colors[(s,a)], label = "p("+s+","+a)
 axvline(deval_mod_time-1, color='black')
 ylim(0.3,0.7)
 legend()
-subplot(524)
+subplot(224)
 for s in ['s0']:
     for a in actions:
         plot(data['data2']['p']['mean'][values[(s,a)]], 'o-', color = colors[(s,a)], label = "p("+s+","+a)
 axvline(deval_ext_time-1, color='black')
 ylim(0.3,0.7)
 legend()
-subplot(525)
-plot(delib['data']['mean']>0, color = 'blue', label = 'deliberation time')
-axvline(deval_mod_time-1, color='black')
-ylim(0, 1.5)
-legend()
-subplot(526)
-plot(delib['data2']['mean']>0, color = 'blue', label = 'deliberation time')
-axvline(deval_ext_time-1, color='black')
-ylim(0, 1.5)
-legend()
-subplot(527)
-plot(data['data']['h']['mean'][0]-data['data']['h']['mean'][1], label = "Qh(s0, pl)-Qh(s0, em)")
-axvline(deval_mod_time-1, color='black')
-legend()
-ylim(0,0.5)
-subplot(528)
-plot(data['data2']['h']['mean'][0]-data['data2']['h']['mean'][1], label = "Qh(s0, pl)-Qh(s0, em)")
-axvline(deval_ext_time-1, color='black')
-ylim(0,0.5)
-legend()
 
+
+#------
 show()
-# -----------------------------------
-
 
 
 

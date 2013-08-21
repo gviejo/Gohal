@@ -218,15 +218,14 @@ for i in range(deval_ext_time, nb_iter_ext):
 for i in data.iterkeys():
     data[i] = np.array(data[i])
     data2[i] = np.array(data2[i])
-'''
+"""
 d = dict({'data':data,'data2':data2})
 saveData(options.output, d)
 
-'''
+"""
 # -----------------------------------
 # Plot
 # -----------------------------------\
-
 colors = {('s0','pl'):'green',('s0','em'):'red',('s1','pl'):'cyan',('s1','em'):'purple'}
 figure()
 subplot(521)
