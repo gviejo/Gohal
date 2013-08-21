@@ -3,7 +3,7 @@
 """
 KelmanQLearning.py
 
-Implementent Kelman Temporal Difference version Q-learning from 
+Implementent Kalman Temporal Difference version Q-learning from 
 Kalman Temporal Difference: the deterministic case
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """

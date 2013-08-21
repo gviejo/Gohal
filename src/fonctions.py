@@ -100,6 +100,9 @@ def computeVPIValues(mean, variance):
         vpi[ind[i]] = (mean[ind[i]]-mean[ind[-1]])*(1-norm.cdf(mean[ind[-1]], mean[ind[i]], np.sqrt(variance[ind[i]]))) + (np.sqrt(variance[ind[i]])/np.sqrt(2*np.pi))*np.exp(-(mean[ind[-1]]-mean[ind[i]])**2/(2*variance[ind[i]]))        
     return vpi
        
+def updateRewardRate(reward_rate, sigma, delay = 0.0):
+    return ((1-sigma)**(1+delay))*reward_rate['rate']+sigma*reward_rate['reward']
+
 def updateQValuesHabitual(values, delta, alpha):
     return values+delta*alpha
 

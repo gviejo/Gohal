@@ -162,10 +162,18 @@ class KalmanQLearning():
         self.values[0] = self.values[0] + kalman_gain*(reward-reward_predicted)
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] - (kalman_gain.reshape(len(kalman_gain), 1)*cov_rewards)*kalman_gain
 
-    def updatePartialValue(self, s, a, reward):
+    def predictionStep(self):
+        self.covariance['noise'] = self.covariance['cov']*self.eta
+        self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']
+
+    def updatePartialValue(self, s, a, n_s, reward):
+        #FOr keramati model, action selection is made outside the class
+        self.state[-1].append(s)
+        self.action[-1].append(a)
+        self.reaction[-1].append(computeEntropy(self.values[0][self.values[s]], self.beta))
         self.responses[-1].append((reward==1)*1)
         sigma_points, weights = computeSigmaPoints(self.values[0], self.covariance['cov'], self.kappa)
-        rewards_predicted = (sigma_points[:,self.values[(s,a)]]-self.gamma*np.max(sigma_points[:,self.values[s]], 1)).reshape(len(sigma_points), 1)
+        rewards_predicted = (sigma_points[:,self.values[(s,a)]]-self.gamma*np.max(sigma_points[:,self.values[n_s]], 1)).reshape(len(sigma_points), 1)
         reward_predicted = np.dot(rewards_predicted.flatten(), weights.flatten())
         cov_values_rewards = np.sum(weights*(sigma_points-self.values[0])*(rewards_predicted-reward_predicted), 0)
         cov_rewards = np.sum(weights*(rewards_predicted-reward_predicted)**2) + self.var_obs

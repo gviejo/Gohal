@@ -37,6 +37,7 @@ def transitionRules(state, action):
         return 's1'
     else:
         return 's0'
+
     
 # -----------------------------------
 
@@ -60,108 +61,114 @@ nb_iter_test = 100
 
 nb_iter_mod = 100
 deval_mod_time = 40
-nb_iter_ext = 350
+nb_iter_ext = 310
 deval_ext_time = 240
 
 states = ['s0', 's1']
 actions = ['pl', 'em']
 rewards = createQValuesDict(states, actions)
-
+data = dict({'mod':dict({'vpi':list(),
+                         'r':list(),
+                         'p':list(),
+                         'q':list()}),
+             'ext':dict({'vpi':list(),
+                         'r':list(),
+                         'p':list(),
+                         'q':list()})})
 # -----------------------------------
-# Moderate Training + devaluation
+# Training + devaluation
 # -----------------------------------
-kalman = KalmanQLearning("moderate", states, actions, gamma, beta, eta, var_obs, init_cov, kappa)
+kalman = KalmanQLearning("", states, actions, gamma, beta, eta, var_obs, init_cov, kappa)
 selection = Keramati(kalman, depth, phi, rau, sigma, tau)
-kalman.initialize()
-state = 's0'
 
-#Predevaluation training
-rewards[0][rewards[('s1','em')]] = 1.0
-for i in range(deval_mod_time-1):
-    action = selection.chooseAction(state)
-    selection.updateValues(rewards[0][rewards[(state, action)]])
-    state = transitionRules(state, action)
-#Devaluation
-rewards[0][rewards[('s1','em')]] = -1.0
-for i in range(2):
-    action = selection.chooseAction(state)
-    selection.updateValues(rewards[0][rewards[(state, action)]])
-    state = transitionRules(state, action)
-#Test in extinction
-rewards[0][rewards[('s1','em')]] = 0.0
-for i in range(deval_mod_time+1, nb_iter_mod):
-    action = selection.chooseAction(state)
-    selection.updateValues(rewards[0][rewards[(state, action)]])
-    state = transitionRules(state, action)
-
-"""
-# -----------------------------------
-# Saving
-# -----------------------------------\
-
-for i in data.iterkeys():
-    data[i] = np.array(data[i])
-    data2[i] = np.array(data2[i])
-
-d = dict({'data':data,'data2':data2})
-saveData(options.output, d)
-
-"""
+for exp, nb_trials, deval_time in zip(['mod','ext'], [nb_iter_mod, nb_iter_ext], [deval_mod_time, deval_ext_time]):
+    kalman.initialize()
+    selection.initialize()
+    state = 's0'
+    rewards[0][rewards[('s1','em')]] = 1.0
+    print exp, nb_trials, deval_time
+    for i in xrange(nb_trials):
+        #Setting Reward
+        if i == deval_time:
+            rewards[0][rewards[('s1','em')]] = -1.0
+        elif i == deval_time+2:
+            rewards[0][rewards[('s1','em')]] = 0.0
+        #Learning
+        while True:
+            action = selection.chooseAction(state)        
+            next_state = transitionRules(state, action)
+            selection.updateValues(rewards[0][rewards[(state, action)]], next_state)
+            #sys.stdin.read(1)
+            if state == 's1' and action == 'em':
+                #Retrieving data
+                data[exp]['vpi'].append(computeVPIValues(kalman.values[0][kalman.values['s0']],kalman.covariance['cov'].diagonal()[kalman.values['s0']]))
+                data[exp]['r'].append(selection.rrate[-1])                                                       
+                data[exp]['p'].append(testQValues(states, selection.values, kalman.beta, 0, nb_iter_test))
+                data[exp]['q'].append(kalman.values[0][kalman.values[('s0','pl')]]-kalman.values[0][kalman.values[('s0','em')]])                
+                state = next_state
+                break
+            else:
+                state = next_state
+        
+    data[exp]['vpi'] = np.array(data[exp]['vpi'])
+    data[exp]['r'] = np.array(data[exp]['r'])*selection.tau
+    data[exp]['p'] = np.array(data[exp]['p'])
+    data[exp]['q'] = np.array(data[exp]['q'])
 # -----------------------------------
 # Plot
 # -----------------------------------\
 colors = {('s0','pl'):'green',('s0','em'):'red',('s1','pl'):'cyan',('s1','em'):'purple'}
-figure()
-subplot(521)
-#for s in states:
+fig = figure()
+subplot(321)
 for s in ['s0']:
     for a in actions:
-        plot(data['vpi'][:,values_mod[(s,a)]], 'o-', color = colors[(s,a)], label = "VPI("+s+","+a+")")
-plot(data['r'], 'o-', color = 'blue', label = "R*tau")
+        plot(data['mod']['vpi'][:,selection.values[(s,a)]], 'o-', color = colors[(s,a)], label = "VPI("+s+","+a+")")
+plot(data['mod']['r'], 'o-', color = 'blue', label = "R*tau")
 axvline(deval_mod_time-1, color='black')
 legend()
 ylim(0,0.1)
-subplot(522)
-#for s in states:
+
+subplot(323)
 for s in ['s0']:
     for a in actions:
-        plot(data2['vpi'][:,values_ext[(s,a)]], 'o-', color = colors[(s,a)], label = "VPI("+s+","+a+")")
-plot(data2['r'], 'o-', color = 'blue', label = "R*tau")
+        plot(data['mod']['p'][:,selection.values[(s,a)]], 'o-', color = colors[(s,a)], label = "p("+s+","+a)
+axvline(deval_mod_time-1, color='black')
+ylim(0.3,0.7)
+legend()
+
+subplot(325)
+for s in ['s0']:
+    for a in actions:
+        plot(data['mod']['q'], 'o-', color = colors[(s,a)], label = "Q("+s+","+a)
+axvline(deval_mod_time-1, color='black')
+ylim(0,0.5)
+
+subplot(322)
+for s in ['s0']:
+    for a in actions:
+        plot(data['ext']['vpi'][:,selection.values[(s,a)]], 'o-', color = colors[(s,a)], label = "VPI("+s+","+a+")")
+plot(data['ext']['r'], 'o-', color = 'blue', label = "R*tau")
 axvline(deval_ext_time-1, color='black')
 legend()
 ylim(0,0.1)
-subplot(523)
+
+
+subplot(324)
 for s in ['s0']:
     for a in actions:
-        plot(data['p'][:,values_mod[(s,a)]], 'o-', color = colors[(s,a)], label = "p("+s+","+a)
-axvline(deval_mod_time-1, color='black')
-ylim(0.3,0.7)
-legend()
-subplot(524)
-for s in ['s0']:
-    for a in actions:
-        plot(data2['p'][:,values_ext[(s,a)]], 'o-', color = colors[(s,a)], label = "p("+s+","+a)
+        plot(data['ext']['p'][:,selection.values[(s,a)]], 'o-', color = colors[(s,a)], label = "p("+s+","+a)
 axvline(deval_ext_time-1, color='black')
 ylim(0.3,0.7)
 legend()
-subplot(525)
-plot((np.mean(data['vpi'], 1)-data['r'])>0, color = 'blue', label = 'deliberation time')
-axvline(deval_mod_time-1, color='black')
-ylim(0, 1.5)
-legend()
-subplot(526)
-plot((np.mean(data2['vpi'], 1)-data2['r'])>0, color = 'blue', label = 'deliberation time')
-axvline(deval_ext_time-1, color='black')
-ylim(0, 1.5)
-legend()
-subplot(527)
-plot(data['h'][:,0]-data['h'][:,1])
-axvline(deval_mod_time-1, color='black')
-ylim(0,0.5)
-subplot(528)
-plot(data2['h'][:,0]-data2['h'][:,1])
+
+subplot(326)
+for s in ['s0']:
+    for a in actions:
+        plot(data['ext']['q'], 'o-', color = colors[(s,a)], label = "Q("+s+","+a)
 axvline(deval_ext_time-1, color='black')
 ylim(0,0.5)
+legend()
+
 
 show()
 # -----------------------------------
