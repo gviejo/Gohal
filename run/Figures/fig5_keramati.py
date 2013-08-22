@@ -67,7 +67,7 @@ deval_mod_time = 40
 nb_iter_ext = 300
 deval_ext_time = 240
 
-nb_blocs = 10
+nb_blocs = 3
 
 states = ['s0', 's1']
 actions = ['pl', 'em']
@@ -107,9 +107,8 @@ for i in xrange(nb_blocs):
 	    for i in xrange(nb_trials):
 		#Setting Reward
 		if i == deval_time:
-		    rewards[0][rewards[('s1','em')]] = -1.0
-		elif i == deval_time+2:
 		    rewards[0][rewards[('s1','em')]] = 0.0
+                    selection.rfunction[0][selection.rfunction[('s1', 'em')]] = -1.0
 		#Learning
 		while True:
 		    action = selection.chooseAction(state)        
@@ -172,10 +171,10 @@ for s in ['s0']:
     for a,i in zip(actions, range(len(actions))):
         plot(meandata['mod']['p'][:,selection.values[(s,a)]], linestyle = '-', color = colors[i], label = "P("+s+","+a+")", linewidth = 1.5)
 axvline(deval_mod_time, color='black', linewidth = 2)
-ylim(0.3,0.7)
+ylim(0.1,0.9)
 xlabel("Trial")
 ylabel("P(s,a)")
-yticks(np.arange(0.3, 0.8, 0.1))
+yticks(np.arange(0.2, 0.9, 0.1))
 grid()
 legend()
 
@@ -196,11 +195,11 @@ for s in ['s0']:
     for a,i in zip(actions, range(len(actions))):
         plot(meandata['ext']['p'][:,selection.values[(s,a)]], linestyle = '-', color = colors[i], label = "P("+s+","+a+")", linewidth = 1.5)
 axvline(deval_ext_time, color='black', linewidth = 2)
-ylim(0.3,0.7)
+ylim(0.1,0.9)
 grid()
 xlabel("Trial")
 ylabel("P(s,a)")
-yticks(np.arange(0.3, 0.8, 0.1))
+yticks(np.arange(0.2, 0.9, 0.1))
 legend()
 
 subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86, hspace = 0.35)

@@ -88,17 +88,16 @@ for exp, nb_trials, deval_time in zip(['mod','ext'], [nb_iter_mod, nb_iter_ext],
     rewards[0][rewards[('s1','em')]] = 1.0
     print exp, nb_trials, deval_time
     for i in xrange(nb_trials):
+        print "TRIALS :", i
         #Setting Reward
         if i == deval_time:
-            rewards[0][rewards[('s1','em')]] = -1.0
-        elif i == deval_time+2:
             rewards[0][rewards[('s1','em')]] = 0.0
+            selection.rfunction[0][selection.rfunction[('s1', 'em')]] = -1.0
         #Learning
         while True:
             action = selection.chooseAction(state)        
             next_state = transitionRules(state, action)
             selection.updateValues(rewards[0][rewards[(state, action)]], next_state)
-            #sys.stdin.read(1)
             if state == 's1' and action == 'em':
                 #Retrieving data
                 data[exp]['vpi'].append(computeVPIValues(kalman.values[0][kalman.values['s0']],kalman.covariance['cov'].diagonal()[kalman.values['s0']]))
