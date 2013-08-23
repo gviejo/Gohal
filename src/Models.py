@@ -90,8 +90,8 @@ class KalmanQLearning():
         self.reaction = list()        
 
     def getAllParameters(self):        
-        return dict({'gamma':[0.1,self.gamma,0.9],
-                     'beta':[1,self.beta,10]})
+        return dict({'gamma':[0.1,self.gamma,0.3],
+                     'beta':[1,self.beta,30]})
                      #'eta':[1.0e-6,self.eta,0.001],
                      #'var_obs':[0.01,self.var_obs,0.07]})
                      #'init_cov':[5,self.init_cov,15]})
@@ -335,8 +335,8 @@ class BayesianWorkingMemory():
         self.current_state = None
 
     def getAllParameters(self):        
-        return dict({'lenght':[4, self.lenght_memory,30],
-                     'noise':[1.0e-7,self.noise,0.1]})
+        return dict({'lenght':[3, self.lenght_memory,15],
+                     'noise':[1.0e-8,self.noise,0.5]})
                      #'beta':[1.0,self.beta,5.0]})
 
     def setAllParameters(self, dict_p):

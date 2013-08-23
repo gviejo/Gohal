@@ -78,7 +78,7 @@ cats = CATS()
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, 15, 0.01, 1.0)})
 
-inter = 50
+inter = 10
 # -----------------------------------
 
 data = {}
@@ -92,7 +92,7 @@ label = {}
 # -----------------------------------
 
 opt = Optimization(human, cats, nb_trials, nb_blocs)
-
+tm = 0
 for m in models.iterkeys():
     data[m] = np.zeros((inter, inter))
     p = models[m].getAllParameters()
@@ -103,7 +103,8 @@ for m in models.iterkeys():
     for i,x in zip(xs[m], xrange(inter)):
         tmp[tmp.keys()[0]][1] = i
         for j,y in zip(ys[m], xrange(inter)):
-            print i, j, "|", x, y
+            tm+=1
+            print tm," / ", 2*inter*inter
             tmp[tmp.keys()[1]][1] = j
             data[m][x,y] = opt.evaluate(models[m], tmp)
         
@@ -111,10 +112,11 @@ data['xs'] = xs
 data['ys'] = ys
 data['label'] = label
 data['correlation'] = correlation
-output = open("datagrid"+str(datetime.datetime.now()), 'wb')
+output = open("/home/viejo/Dropbox/ISIR/Plot/datagrid_"+correlation+"_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
 pickle.dump(data, output)
 output.close()
 
+"""
 # -----------------------------------
 # Plot
 # -----------------------------------
@@ -131,7 +133,7 @@ for m, i in zip(models.iterkeys(), [1,2]):
     ylabel(label[m][1])    
     title(m)
 
-'''
+
 fig = figure(figsize=plt.figaspect(0.5))
 
 rc('legend',**{'fontsize':legend_size})
@@ -145,6 +147,5 @@ for m, i in zip(models.iterkeys(), [1,2]):
     ylabel(label[m][1])    
     title(m)
     fig.colorbar(surf, shrink=0.5, aspect=10)
-'''
 
-show()
+"""
