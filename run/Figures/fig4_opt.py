@@ -69,26 +69,40 @@ params = {'backend':'pdf',
           'text.usetex':False}
 #rcParams.update(params)
 tit = ['B-WM', 'K-QL']
-fig = figure(figsize=(10,5))
+fig = figure(figsize=(9,6))
 step = 1
+t = "JSD"
 for m,i in zip(['bmw', 'kalman'], [1,2]):
-    subplot(1,2,i)
-    im = imshow(data[m], origin = 'lower', cmap = cm.binary, interpolation = 'nearest')
-    #xticks(range(0,len(xs[m]),2), np.around(xs[m],2), rotation=50)
-    xticks(range(0, len(xs[m]),step), np.around(xs[m],2)[range(0, len(xs[m]), step)], rotation=50)
-    yticks(range(0, len(ys[m]),step), np.around(ys[m],2)[range(0, len(xs[m]), step)])
+    subplot(2,2,i)
+    im = imshow(data[t][m], origin = 'lower', cmap = cm.binary, interpolation = 'nearest')
+    yticks(range(0, len(xs[m]),step), np.around(xs[m],2)[range(0, len(xs[m]), step)], rotation=50)
+    xticks(range(0, len(ys[m]),step), np.around(ys[m],2)[range(0, len(xs[m]), step)])
     title(tit[i-1])
-    xlabel(label[m][0])
-    ylabel(label[m][1])
-
-cbar_ax = fig.add_axes([0.9, 0.2, 0.02, 0.6])
-figtext(0.87,0.5, data['correlation'], fontsize = 10)
+    ylabel(label[m][0])
+    xlabel(label[m][1])
+    
+cbar_ax = fig.add_axes([0.85, 0.6, 0.02, 0.25])
+figtext(0.81,0.73, t, fontsize = 13)
 colorbar(im, cax=cbar_ax)
+
+t = "Z"
+for m,i in zip(['bmw', 'kalman'], [3,4]):
+    subplot(2,2,i)
+    im2 = imshow(data[t][m], origin = 'lower', cmap = cm.binary, interpolation = 'nearest')
+    yticks(range(0, len(xs[m]),step), np.around(xs[m],2)[range(0, len(xs[m]), step)], rotation=50)
+    xticks(range(0, len(ys[m]),step), np.around(ys[m],2)[range(0, len(xs[m]), step)])
+    ylabel(label[m][0])
+    xlabel(label[m][1])
+    
+cbar_ax = fig.add_axes([0.85, 0.14, 0.02, 0.25])
+figtext(0.83,0.25, t, fontsize = 13)
+colorbar(im2, cax=cbar_ax)
+
 
 #colorbar(cax, shrink=0.5, pad=.2, aspect=10)
 #colorbar(cax)
-subplots_adjust(left = 0.1, wspace = 0.3, right = 0.86, hspace = 0.3)
-#fig.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig4.pdf', bbox_inches='tight')
+subplots_adjust(wspace = -0.3, hspace = 0.4)
+fig.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig4.pdf', bbox_inches='tight')
 show()
 
 

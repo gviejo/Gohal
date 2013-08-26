@@ -215,14 +215,14 @@ class Optimization():
             tmp[i][1] = tmp[i][0] if tmp[i][1] < tmp[i][0] else tmp[i][1]                      
         return tmp
 
-    def evaluate(self, model, p):
+    def evaluate(self, model, p, correlation):
         model.setAllParameters(p)
         self.testModel(model)
         model.state = convertStimulus(np.array(model.state))
         model.action = convertAction(np.array(model.action))
         model.responses = np.array(model.responses)
         data = extractStimulusPresentation2(model.responses, model.state, model.action, model.responses)
-        return self.computeCorrelation(data)
+        return self.computeCorrelation(data, correlation)
         #return self.computeAbsoluteDifference(data)
         
     def testModel(self, ptr_model):
@@ -240,7 +240,7 @@ class Optimization():
         reward = self.cats.getOutcome(state, action)
         model.updateValue(reward)
 
-    def computeCorrelation(self, model):
+    def computeCorrelation(self, model, correlation):
         """ Input should be dict(1:[], 2:[], 3:[])
         Return similarity estimate.
         """
@@ -248,7 +248,7 @@ class Optimization():
         for i in [1,2,3]:
             m,n = self.data_human[i].shape
             for j in xrange(n):
-                tmp += computeSingleCorrelation(self.data_human[i][:,j], model[i][:,j], self.correlation)
+                tmp += computeSingleCorrelation(self.data_human[i][:,j], model[i][:,j], correlation)
         return tmp
 
     def computeAbsoluteDifference(self, model):

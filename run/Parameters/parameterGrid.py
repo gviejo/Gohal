@@ -41,12 +41,6 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def iterationStep(iteration, models, display = True):
-    state = cats.getStimulus(iteration)
-    for m in models.itervalues():
-        action = m.chooseAction(state)
-        reward = cats.getOutcome(state, action)
-        m.updateValue(reward)
 
 # -----------------------------------
 
@@ -90,33 +84,36 @@ label = {}
 # -----------------------------------
 # PARAMETERS Testing
 # -----------------------------------
-
 opt = Optimization(human, cats, nb_trials, nb_blocs)
 tm = 0
 for m in models.iterkeys():
-    data[m] = np.zeros((inter, inter))
-    p = models[m].getAllParameters()
-    tmp = p
+    p = models[m].getAllParameters()    
     xs[m] = np.linspace(p.values()[0][0], p.values()[0][2], inter)
     ys[m] = np.linspace(p.values()[1][0], p.values()[1][2], inter)
     label[m] = p.keys()
-    for i,x in zip(xs[m], xrange(inter)):
-        tmp[tmp.keys()[0]][1] = i
-        for j,y in zip(ys[m], xrange(inter)):
-            tm+=1
-            print tm," / ", 2*inter*inter
-            tmp[tmp.keys()[1]][1] = j
-            data[m][x,y] = opt.evaluate(models[m], tmp)
+    
+for t in ['Z', 'JSD']:
+    data[t] = dict()
+    for m in models.iterkeys():
+        data[t][m] = np.zeros((inter, inter))
+        p = models[m].getAllParameters()
+        tmp = p
+        for i,x in zip(xs[m], xrange(inter)):
+            tmp[tmp.keys()[0]][1] = i
+            for j,y in zip(ys[m], xrange(inter)):
+                tm+=1
+                print tm," / ", 4*inter*inter
+                tmp[tmp.keys()[1]][1] = j
+                data[t][m][x,y] = opt.evaluate(models[m], tmp, correlation)
         
 data['xs'] = xs
 data['ys'] = ys
 data['label'] = label
-data['correlation'] = correlation
-output = open("/home/viejo/Dropbox/ISIR/Plot/datagrid_"+correlation+"_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
+output = open("../../../Dropbox/ISIR/Plot/datagrid_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
 pickle.dump(data, output)
 output.close()
 
-"""
+
 # -----------------------------------
 # Plot
 # -----------------------------------
@@ -125,6 +122,7 @@ legend_size = 15
 title_size = 20
 label_size = 19
 
+"""
 fig1 = figure()
 for m, i in zip(models.iterkeys(), [1,2]):
     ax = fig1.add_subplot(1,2,i)
