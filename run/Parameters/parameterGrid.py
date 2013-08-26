@@ -58,7 +58,7 @@ var_obs = 0.05   # variance of observation noise n
 gamma = 0.9     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
-beta = 2.0      
+beta = 1.7      
 noise_width = 0.01
 correlation = "JSD"
 length_memory = 15
@@ -88,17 +88,19 @@ opt = Optimization(human, cats, nb_trials, nb_blocs)
 tm = 0
 for m in models.iterkeys():
     p = models[m].getAllParameters()    
+    #xs[m] = np.arange(p.values()[0][0], p.values()[0][2])
     xs[m] = np.linspace(p.values()[0][0], p.values()[0][2], inter)
     ys[m] = np.linspace(p.values()[1][0], p.values()[1][2], inter)
     label[m] = p.keys()
     
+
 for t in ['Z', 'JSD']:
     data[t] = dict()
     for m in models.iterkeys():
-        data[t][m] = np.zeros((inter, inter))
+        data[t][m] = np.zeros((len(xs[m]), inter))
         p = models[m].getAllParameters()
         tmp = p
-        for i,x in zip(xs[m], xrange(inter)):
+        for i,x in zip(xs[m], xrange(len(xs[m]))):
             tmp[tmp.keys()[0]][1] = i
             for j,y in zip(ys[m], xrange(inter)):
                 tm+=1

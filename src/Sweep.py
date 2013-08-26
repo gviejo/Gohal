@@ -81,7 +81,7 @@ class Sweep_performances():
         return tmp
     
 
-    def computeSingleCorrelation(self, human, model, case = 'JSD'):
+    def computeSingleCorrelation(self, human, model, case = 'Z'):
         """Entry should be single-trial vector 
         of performance for each model
         case can be :

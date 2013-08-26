@@ -70,39 +70,59 @@ params = {'backend':'pdf',
 #rcParams.update(params)
 tit = ['B-WM', 'K-QL']
 fig = figure(figsize=(9,6))
-step = 1
+step = 2
 t = "JSD"
 for m,i in zip(['bmw', 'kalman'], [1,2]):
     subplot(2,2,i)
-    im = imshow(data[t][m], origin = 'lower', cmap = cm.binary, interpolation = 'nearest')
-    yticks(range(0, len(xs[m]),step), np.around(xs[m],2)[range(0, len(xs[m]), step)], rotation=50)
-    xticks(range(0, len(ys[m]),step), np.around(ys[m],2)[range(0, len(xs[m]), step)])
+    im = imshow(data[t][m], origin = 'lower', cmap = cm.binary, interpolation = 'nearest', aspect = 'auto')
+    if m == 'kalman':
+        step = 3
+        yticks(range(0, len(xs[m]), step), np.around(xs[m],2)[range(0, len(xs[m]), step)])
+        step = 4
+        xticks(range(0, len(ys[m]), step), np.around(ys[m],2)[range(0, len(ys[m]), step)])
+    elif m == 'bmw':
+        step = 3
+        yticks(range(0, len(xs[m]), step), np.around(xs[m],2)[range(0, len(xs[m]), step)])
+        step = 4
+        xticks(range(0, len(ys[m]), step), np.around(ys[m],2)[range(0, len(ys[m]), step)])    
     title(tit[i-1])
     ylabel(label[m][0])
     xlabel(label[m][1])
     
-cbar_ax = fig.add_axes([0.85, 0.6, 0.02, 0.25])
-figtext(0.81,0.73, t, fontsize = 13)
+cbar_ax = fig.add_axes([0.83, 0.6, 0.02, 0.25])
+figtext(0.79,0.73, t, fontsize = 13)
 colorbar(im, cax=cbar_ax)
 
 t = "Z"
 for m,i in zip(['bmw', 'kalman'], [3,4]):
     subplot(2,2,i)
-    im2 = imshow(data[t][m], origin = 'lower', cmap = cm.binary, interpolation = 'nearest')
-    yticks(range(0, len(xs[m]),step), np.around(xs[m],2)[range(0, len(xs[m]), step)], rotation=50)
-    xticks(range(0, len(ys[m]),step), np.around(ys[m],2)[range(0, len(xs[m]), step)])
+    im2 = imshow(data[t][m], origin = 'lower', cmap = cm.binary, interpolation = 'nearest', aspect = 'auto')
+    if m == 'kalman':
+        step = 3
+        yticks(range(0, len(xs[m]), step), np.around(xs[m],2)[range(0, len(xs[m]), step)])
+        step = 4
+        xticks(range(0, len(ys[m]), step), np.around(ys[m],2)[range(0, len(ys[m]), step)])
+    elif m == 'bmw':
+        step = 3
+        yticks(range(0, len(xs[m]), step), np.around(xs[m],2)[range(0, len(xs[m]), step)])
+        step = 4
+        xticks(range(0, len(ys[m]), step), np.around(ys[m],2)[range(0, len(ys[m]), step)])    
     ylabel(label[m][0])
     xlabel(label[m][1])
     
-cbar_ax = fig.add_axes([0.85, 0.14, 0.02, 0.25])
-figtext(0.83,0.25, t, fontsize = 13)
+cbar_ax = fig.add_axes([0.83, 0.14, 0.02, 0.25])
+figtext(0.81,0.25, t, fontsize = 13)
 colorbar(im2, cax=cbar_ax)
 
+figtext(0.085, 0.90, "A", fontsize = 18)
+figtext(0.45, 0.90, "B", fontsize = 18)
+figtext(0.085, 0.43, "C", fontsize = 18)
+figtext(0.45, 0.43, "D", fontsize = 18)
 
 #colorbar(cax, shrink=0.5, pad=.2, aspect=10)
 #colorbar(cax)
-subplots_adjust(wspace = -0.3, hspace = 0.4)
-fig.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig4.pdf', bbox_inches='tight')
+subplots_adjust(wspace = 0.45, hspace = 0.4, right = 0.75)
+#fig.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig4.pdf', bbox_inches='tight')
 show()
 
 
