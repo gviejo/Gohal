@@ -56,8 +56,8 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
-gamma = 0.6     # discount factor
-init_cov = 10   # initialisation of covariance matrice
+gamma = 0.6      # discount factor
+init_cov = 10    # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 beta = 1.7
 length_memory = 10
@@ -97,7 +97,7 @@ sim = dict({'kalman':dict({1:[],
                          3:[]})})
 
 
-for l in xrange(100):
+for l in xrange(10):
         print l
         [m.initializeList() for m in models.itervalues()]
 	# -----------------------------------
@@ -193,56 +193,26 @@ params = {'backend':'pdf',
           'ytick.labelsize':8,
           'text.usetex':False}
 #rcParams.update(params)
-dashes = ['-', '-', ':']
+dashes = ['-', '--', ':']
 
-fig = figure(figsize=(15,9))
+fig = figure(figsize=(10,10))
 
-for i,j in zip(xrange(3), [1,2,3]):
-    subplot(2,3,j)
-    plot(range(1, len(mb[i])+1), mb[i], linestyle = dashes[0], linewidth = 2, color = 'grey', label = 'B-WM')
-    errorbar(range(1, len(mb[i])+1), mb[i], sb[i], linestyle = dashes[0], linewidth = 2, color = 'grey')
-    plot(range(1, len(mk[i])+1), mk[i], linestyle = dashes[1], linewidth = 2, color = 'black', label = 'K-QL')
-    errorbar(range(1, len(mk[i])+1), mk[i], sk[i], linestyle = dashes[1], linewidth = 2, color = 'black')
-    plot(range(1, len(mh[i])+1), mh[i], linestyle = dashes[2], color='black', linewidth = 2, alpha = 0.8, label = 'MEG')    
-    ylim(0.0,1.05)     
-    ylabel("Probability Correct Responses", fontsize = 16)
-    xlabel('Trial')
-    yticks(np.arange(0, 1.2, 0.2))
-    xticks(range(2,11,2))
-    xlim(0.8, 10.2)
-    grid()
+subplot(1,1,1)
+for i in range(3):
+    plot(range(1, len(mw[i])+1), mw[i], linestyle = dashes[i], linewidth = 2, color = 'black', label = 'Stim '+str(i))
+    errorbar(range(1, len(mw[i])+1), mw[i], sw[i], linestyle = dashes[i], linewidth = 2, color = 'black')
+ylim(0.0, 1.05)
+ylabel("w", fontsize = 11)
+xlabel("Trial")
+yticks(np.arange(0, 1.2, 0.2))
+xticks(range(2,11,2))
+xlim(0.8, 10.2)
+grid()
 
-for i,j in zip(range(3), [4,5,6]):
-    wth = 0.3
-    subplot(2,3,j)
-    bar(np.arange(1, len(msb[i])+1)-wth, msb[i], width = wth, yerr = ssb[i], label = 'B-WM', color = 'grey', ecolor = 'black')
-    bar(np.arange(1, len(msk[i])+1), msk[i], width = wth, yerr = ssk[i], label = 'K-QL', color = 'black', ecolor = 'black')
-    ylabel(correlation,fontsize=16)
-    xlabel('Trial')
-    ylim(0.0,1.05)
-    yticks(np.arange(0, 1.2, 0.2))
-    xticks(range(2,11,2))
-    xlim(0.8, 10.5)
-    grid()
-
-
-subplot(2,3,1)
-title('Stimulus 1', fontsize = 20)
-subplot(2,3,2)
-title('Stimulus 2', fontsize = 20)
-subplot(2,3,3)
-title('Stimulus 3', fontsize = 20)
-
-subplot(2,3,1)
-legend(loc = 'lower right')
-subplot(2,3,4)
 legend(loc = 'lower right')
 
-figtext(0.06, 0.91, 'A', fontsize = 20)
-figtext(0.06, 0.45, 'B', fontsize = 20)
-
-subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
-fig.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig3.pdf', bbox_inches='tight')
+#subplots_adjust(left = 0.09, wspace = 0.25, hspace = 0.25, right = 0.86)
+#fig.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig6.pdf', bbox_inches='tight')
 show()
 
 
