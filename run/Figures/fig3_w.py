@@ -238,7 +238,7 @@ legend(loc = 'lower right')
 subplot(2,3,4)
 legend(loc = 'lower right')
 
-figtext(0.06, 0.91, 'A', fontsize = 20)
+figtext(0.06, 0.94, 'A', fontsize = 20)
 figtext(0.06, 0.45, 'B', fontsize = 20)
 
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)

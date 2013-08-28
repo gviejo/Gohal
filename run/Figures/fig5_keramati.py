@@ -67,7 +67,7 @@ deval_mod_time = 40
 nb_iter_ext = 300
 deval_ext_time = 240
 
-nb_blocs = 3
+nb_blocs = 100
 
 states = ['s0', 's1']
 actions = ['pl', 'em']
@@ -142,7 +142,6 @@ for i in ['mod', 'ext']:
 # -----------------------------------
 # Plot
 # -----------------------------------\
-fig1 = figure(figsize = (15,9))
 params = {'backend':'pdf',
           'axes.labelsize':10,
           'text.fontsize':10,
@@ -154,6 +153,8 @@ params = {'backend':'pdf',
 dashes = ['--', '-.', '-']
 colors = ['black', 'grey']
 #rcParams.update(params)
+
+fig1 = figure(figsize = (15,9))
 
 subplot(221)
 for s in ['s0']:
@@ -205,8 +206,12 @@ legend()
 subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86, hspace = 0.35)
 figtext(0.12, 0.93, "Moderate pre-devaluation training", fontsize = 18)
 figtext(0.55, 0.93, "Extensive pre-devaluation training", fontsize = 18)
+figtext(0.06, 0.92, 'A', fontsize = 20)
+figtext(0.06, 0.45, 'C', fontsize = 20)
+figtext(0.49, 0.92, 'B', fontsize = 20)
+figtext(0.49, 0.45, 'D', fontsize = 20)
+
 fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig5.pdf', bbox_inches='tight')
-#show()
 
 show()
 # -----------------------------------
