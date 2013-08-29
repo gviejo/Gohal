@@ -1,5 +1,5 @@
 #!/usr/bin/python
-# encoding: utf-8
+#encoding: utf-8
 """
 Models.py
 
@@ -90,10 +90,10 @@ class KalmanQLearning():
         self.reaction = list()        
 
     def getAllParameters(self):        
-        return dict({#'gamma':[0.1,self.gamma,0.9],
-                     #'beta':[1,self.beta,5],
-                     'eta':[1.0e-6,self.eta,0.001],
-                     'var_obs':[0.01,self.var_obs,0.07]})
+        return dict({'gamma':[0.1,self.gamma,0.9],
+                     'beta':[1,self.beta,5]})
+                     #'eta':[1.0e-6,self.eta,0.001],
+                     #'var_obs':[0.01,self.var_obs,0.07]})
                      #'init_cov':[5,self.init_cov,15]})
 
     def setAllParameters(self, dict_p):
@@ -170,7 +170,7 @@ class KalmanQLearning():
         #FOr keramati model, action selection is made outside the class
         self.state[-1].append(s)
         self.action[-1].append(a)
-        self.reaction[-1].append(computeEntropy(self.values[0][self.values[s]], self.beta))
+        #self.reaction[-1].append(computeEntropy(self.values[0][self.values[s]], self.beta))
         self.responses[-1].append((reward==1)*1)
         sigma_points, weights = computeSigmaPoints(self.values[0], self.covariance['cov'], self.kappa)
         rewards_predicted = (sigma_points[:,self.values[(s,a)]]-self.gamma*np.max(sigma_points[:,self.values[n_s]], 1)).reshape(len(sigma_points), 1)
@@ -387,7 +387,26 @@ class BayesianWorkingMemory():
     def computeBayesianInference(self, i):
         tmp = self.p_a_s[i] * np.vstack(self.p_s[i])
         return self.p_r_as[i] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[i].shape)
-        
+
+    def computeValue(self, state):
+        self.state[-1].append(state)
+        self.current_state = convertStimulus(state)-1
+        #Bayesian Inference
+        p = np.zeros((self.n_state,self.n_action,2))
+        for i in xrange(len(self.p_a_s)):
+            p += self.computeBayesianInference(i)
+        p = p/np.sum(p)
+        #Current state
+        p_ra_s = p[self.current_state]*self.n_state
+        p_ra_s = p_ra_s/np.sum(p_ra_s)
+        p_r_s = np.sum(p_ra_s, axis = 0)        
+        p_a_rs = p_ra_s/p_r_s
+        value = p_a_rs[:,1]/p_a_rs[:,0]
+        self.reaction[-1].append(computeEntropy(value, 1.0))
+        #Sample according to p(A/R,S)
+        value = value/np.sum(value)
+        return value
+
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
@@ -436,3 +455,32 @@ class BayesianWorkingMemory():
                 self.p_r_as[i] = np.abs(np.random.normal(self.p_r_as[i], np.ones(self.p_r_as[i].shape)*self.noise,self.p_r_as[i].shape))
             self.normalize()        
 
+    def updatePartialValue(self, state, action, reward):
+        r = (reward==1)*1
+        self.action[-1].append(action)
+        self.state[-1].append(state)
+        self.current_state = convertStimulus(state)-1
+        self.current_action = convertAction(action)-1
+        self.responses[-1].append(r)
+        #Shifting memory            
+        self.p_s.insert(0, np.zeros((self.n_state)))
+        self.p_a_s.insert(0, np.ones((self.n_state, self.n_action))*(1/float(self.n_action)))
+        self.p_r_as.insert(0, np.ones((self.n_state, self.n_action, 2))*0.5)        
+        #Adding last choice         
+        self.p_s[0][self.current_state] = 1.0
+        self.p_a_s[0][self.current_state] = 0.0        
+        self.p_a_s[0][self.current_state, self.current_action] = 1.0
+        self.p_r_as[0][self.current_state, self.current_action] = 0.0
+        self.p_r_as[0][self.current_state, self.current_action, int(r)] = 1.0
+        #Length of memory allowed
+        while len(self.p_a_s) > self.lenght_memory:
+            self.p_s.pop(-1)
+            self.p_a_s.pop(-1)
+            self.p_r_as.pop(-1)
+        #Adding noise
+        if self.noise:
+            for i in xrange(1, len(self.p_s)):
+                self.p_s[i] = np.abs(np.random.normal(self.p_s[i], np.ones(self.p_s[i].shape)*self.noise, self.p_s[i].shape))
+                self.p_a_s[i] = np.abs(np.random.normal(self.p_a_s[i], np.ones(self.p_a_s[i].shape)*self.noise, self.p_a_s[i].shape))
+                self.p_r_as[i] = np.abs(np.random.normal(self.p_r_as[i], np.ones(self.p_r_as[i].shape)*self.noise,self.p_r_as[i].shape))
+            self.normalize()        

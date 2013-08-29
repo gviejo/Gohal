@@ -421,7 +421,7 @@ def computeSingleCorrelation(human, model, case = 'JSD'):
 
 	elif case == "phi":
 	    if h1 == m1:
-		return 1
+                return 1
 	    else:
 		chi, p, ddl, the = chi2_contingency(obs, correction=False)
 		return np.sqrt(chi)

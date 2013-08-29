@@ -3,9 +3,7 @@
 """
 Selection.py
 
-Class of for model selection when training
-
-first model <- Keramati et al, 2011
+Class of for strategy selection when training
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -15,8 +13,78 @@ import os
 import numpy as np
 from fonctions import *
 
+class KSelection():
+    """Class that implement Keramati models for action selection
+    Model-based must be provided
+    """
+    def __init__(self, kalman, based, sigma, tau):
+        self.kalman = kalman
+        self.based = based
+        self.sigma = sigma; self.tau = tau
+        self.actions = kalman.actions; 
+        self.states = kalman.states        
+        self.values = createQValuesDict(self.states, self.actions)
+        self.rfunction = createQValuesDict(kalman.states, kalman.actions)
+        self.vpi = dict.fromkeys(self.states,list())
+        self.rrate = list()
+        self.state = list()
+        self.action = list()
+        self.responses = list()
+        self.reaction = list()
+
+    def initialize(self):
+        self.kalman.initialize()
+        self.based.initialize()
+        self.responses.append([])
+        self.action.append([])
+        self.state.append([])
+        self.reaction.append([])
+        self.rrate.append([0.0])
+
+    def initializeList(self):
+        self.values = createQValuesDict(self.states, self.actions)
+        self.rfunction = createQValuesDict(self.states, self.actions)
+        self.vpi = dict.fromkeys(self.states,list())
+        self.rrate = list()
+        self.state=list()
+        self.answer=list()
+        self.responses=list()
+        self.action=list()
+        self.reaction=list()
+
+    def chooseAction(self, state):
+        self.state[-1].append(state)
+        self.kalman.predictionStep()
+        vpi = computeVPIValues(self.kalman.values[0][self.kalman.values[state]], self.kalman.covariance['cov'].diagonal()[self.kalman.values[state]])
+        model_based_value = self.based.computeValue(state) #WRONG since Q^G(s,a) should be computed after the decision is made
+        for i in range(len(vpi)):
+            if vpi[i] >= self.rrate[-1][-1]*self.tau:
+                #use Model-based                
+                self.values[0][self.values[(state,self.actions[i])]] = model_based_value[i]
+            else:
+                #use Model-free
+                self.values[0][self.values[(state, self.actions[i])]] = self.kalman.values[0][self.kalman.values[(state,self.actions[i])]]
+
+        action = getBestActionSoftMax(state, self.values, self.kalman.beta)                
+        print action
+        self.action[-1].append(action)
+        return action
+
+    def updateValue(self, reward):
+        self.responses[-1].append(reward)
+        self.updateRewardRate(reward, delay = 0.0)
+        print self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward
+        self.kalman.updatePartialValue(self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward)
+        self.based.updatePartialValue(self.state[-1][-1], self.action[-1][-1], reward)
+
+    def updateRewardRate(self, reward, delay = 0.0):
+        self.rrate[-1].append(((1-self.sigma)**(1+delay))*self.rrate[-1][-1]+self.sigma*reward)
+
+            
+
 class Keramati():
     """Class that implement Keramati models for action selection
+    Use to replicate exp 1 from Keramati & al, 2011
     """
     
     def __init__(self, kalman,depth,phi, rau, sigma, tau):
