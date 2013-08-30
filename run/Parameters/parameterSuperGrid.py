@@ -111,7 +111,7 @@ cats = CATS()
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, 15, 0.01, 1.0)})
 
-inter = 8
+inter = 15
 # -----------------------------------
 
 
@@ -171,27 +171,13 @@ for i in sorted_value:
         tmp2.append(v[j][tmp[j]])
     crap[i] = np.array(tmp2)
         
+crap['values'] = values
+
+output = open("../../../Dropbox/ISIR/Plot/superdatagrid_"+str(datetime.datetime.now()).replace(" ","_"), 'wb')
+pickle.dump(crap, output)
+
+output.close()
 
 
 
 
-# -----------------------------------
-# Plot
-# -----------------------------------
-ticks_size = 15
-legend_size = 15
-title_size = 20
-label_size = 19
-
-
-fig = figure(figsize=plt.figaspect(0.5))
-
-
-count = 1
-for i,p in zip(xrange(4), ['beta', 'gamma', 'length', 'noise']):
-    subplot(4,1,i+1)
-    for j in crap.keys():
-        plot(np.ones(len(crap[30][i]))*j, crap[30][i], 'o')    
-    title(p)
-
-show()

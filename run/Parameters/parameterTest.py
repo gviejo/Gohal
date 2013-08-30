@@ -5,6 +5,8 @@ parametersOptimization.py
 
 scripts to load and test parameters
 
+run parameterTest.py -i ../../../Dropbox/ISIR/Plot/optparameters.py
+
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
@@ -22,6 +24,7 @@ from Models import *
 from matplotlib import *
 from pylab import *
 from Sweep import Optimization
+from sklearn.cluster import KMeans
 
 # -----------------------------------
 # ARGUMENT MANAGER
@@ -44,6 +47,26 @@ def iterationStep(iteration, models, display = True):
         action = m.chooseAction(state)
         reward = cats.getOutcome(state, action)
         m.updateValue(reward)
+
+def omegaFunc(cible, freq1, freq2):
+    if cible == freq1 == freq2 == 0:
+        return 0.0
+    elif freq1 == freq2:
+        w = float(cible/freq1)
+        if w < 0.0:
+            return 0.0
+        elif w > 1.0:
+            return 1.0
+        else:
+            return w        
+    else:
+        w = float((cible-freq2)/(freq1-freq2))
+        if w < 0.0:
+            return 0.0
+        elif w > 1.0:
+            return 1.0
+        else:
+            return w
 
 # -----------------------------------
 
@@ -80,12 +103,19 @@ models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gam
 # -----------------------------------
 # PARAMETERS Loading
 # -----------------------------------
-p = dict()
-for m in models.iterkeys():    
-    f = open(m, 'rb')
-    p[m] = pickle.load(f)
+#p = dict()
+#for m in models.iterkeys():    
+#    f = open(m, 'rb')
+#    p[m] = pickle.load(f)
+X = np.load(options.input)
+#est = KMeans(30)
+#est.fit(X)
+
+#X = est.cluster_centers_
 
 
+omega = []
+order = ['beta', 'gamma', 'length', 'noise']
 
 # -----------------------------------
 
@@ -94,41 +124,75 @@ for m in models.iterkeys():
 # -----------------------------------
 
 opt = Optimization(human, cats, nb_trials, nb_blocs)
-    
 
 data = dict()
+data['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 
-for m in models.iterkeys():
-    #models[m].setAllParameters(p[m])
-    opt.testModel(models[m])
-    models[m].state = convertStimulus(np.array(models[m].state))
-    models[m].action = convertAction(np.array(models[m].action))
-    models[m].responses = np.array(models[m].responses)
-    data[m] = extractStimulusPresentation2(models[m].responses, models[m].state, models[m].action, models[m].responses)
+for p,t in zip(X,xrange(len(X))):
+    print str(t)+" | "+str(len(X))
+    models['kalman'].beta = p[0]
+    models['kalman'].gamma = p[1]
+    models['bmw'].length_memory = p[2]
+    models['bmw'].noise_width = p[3]
+    for m in models.iterkeys():    
+        opt.testModel(models[m])
+        models[m].state = convertStimulus(np.array(models[m].state))
+        models[m].action = convertAction(np.array(models[m].action))
+        models[m].responses = np.array(models[m].responses)
+        data[m] = extractStimulusPresentation(models[m].responses, models[m].state, models[m].action, models[m].responses)
+    tmp = np.zeros((3,10))
+    for i in xrange(3):
+        for j in xrange(10):
+            tmp[i,j] = omegaFunc(data['meg']['mean'][i,j],data['bmw']['mean'][i,j],data['kalman']['mean'][i,j])
+    omega.append(tmp)
 
 
-
+omega = np.array(omega)
 
 # -----------------------------------
 # Plot
 # -----------------------------------
-ticks_size = 15
-legend_size = 15
-title_size = 20
-label_size = 19
 
-# Probability of correct responses
-figure(correlation)
-rc('legend',**{'fontsize':legend_size})
-tick_params(labelsize = ticks_size)
+params = {'backend':'pdf',
+          'axes.labelsize':10,
+          'text.fontsize':10,
+          'legend.fontsize':10,
+          'xtick.labelsize':11,
+          'ytick.labelsize':11,
+          'text.usetex':False}
+dashes = ['-', '--', ':']
 
-for i,m in zip([1,2], models.keys()):
-    subplot(2,2,i)
-    for j in [1,2,3]:
-        plot(np.mean(data[m][j], 0), linewidth = 2)
-        plot(np.mean(opt.data_human[j], 0), '--', alpha= 0.9)
-    ylim(0,1)
-    title(m)
+
+fig = figure(figsize=(10, 5))
+rcParams.update(params)                  
+m = np.mean(omega, axis = 0)
+v = np.var(omega, axis = 0)
+for i,l in zip([1,2,3],xrange(3)):
+    subplot(2,3,i)
+    plot(range(1, len(m[l])+1), m[l], linewidth = 2, color = 'black')
+    fill_between(range(1, len(m[l])+1), m[l]-v[l],m[l]+v[l], alpha = 0.4, color = 'grey')
+    ylabel("$\omega$", fontsize = 13)
+    xlabel('Trial')
+    yticks(np.arange(0, 1.2, 0.2))
+    xticks(range(2,11,2))
+    xlim(0.8, 11)
+    title("Stimulus "+str(i), fontsize = 18)
     grid()
 
+for i,l in zip([4,5,6],xrange(3)):
+    subplot(2,3,i)
+    bar(range(1,11), v[l], color = 'black')
+    xlim(0.8, 11)
+    ylim(0, np.max(v)+0.05)
+    ylabel("$\sigma^2$", fontsize = 13)
+    grid()
+    xlabel('Trial')
+
+figtext(0.04, 0.94, 'A', fontsize = 20)
+figtext(0.04, 0.47, 'B', fontsize = 20)
+
+
+subplots_adjust(left = 0.08, wspace = 0.4, right = 0.86, hspace = 0.35)
+
+fig.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig6.pdf', bbox_inches='tight')
 show()
