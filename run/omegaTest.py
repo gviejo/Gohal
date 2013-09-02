@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
-scripts to plot figure pour le rapport IAD
-figure 2 : performances des sujets / perf pour bWM / perf pour Kalman
+to quickly test parameters and see omega
+
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -69,12 +69,12 @@ human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI'
 # -----------------------------------
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
-gamma = 0.34     # discount factor
+gamma = 0.55     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
-beta = 4.0
-noise_width = 0.29
-length_memory = 12.33
+beta = 1.4
+noise_width = 0.05
+length_memory = 13
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]

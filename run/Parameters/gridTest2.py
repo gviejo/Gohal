@@ -5,7 +5,9 @@ parametersOptimization.py
 
 scripts to load and test parameters
 
-run parameterTest.py -i ../../../Dropbox/ISIR/Plot/optparameters.py
+run gridTest.py -i ../../../Dropbox/ISIR/Plot/*pickle
+
+cluster by trial, not parameters
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -25,6 +27,7 @@ from matplotlib import *
 from pylab import *
 from Sweep import Optimization
 from sklearn.cluster import KMeans
+import time
 
 # -----------------------------------
 # ARGUMENT MANAGER
@@ -50,23 +53,32 @@ def iterationStep(iteration, models, display = True):
 
 def omegaFunc(cible, freq1, freq2):
     if cible == freq1 == freq2 == 0:
+        return 0.5
+    elif cible == freq1 == freq2 == 1:
+        return 0.5
+    elif cible == freq1:
+        return 1.0
+    elif cible == freq2:
         return 0.0
-    elif freq1 == freq2:
-        w = float(cible/freq1)
-        if w < 0.0:
-            return 0.0
-        elif w > 1.0:
-            return 1.0
-        else:
-            return w        
+    elif cible > freq1 and cible > freq2 and freq1 > freq2:
+        return 1.0
+    elif cible > freq1 and cible > freq2 and freq1 < freq2:
+        return 0.0
+    elif cible < freq1 and cible < freq2 and freq1 > freq2:
+        return 0.0
+    elif cible < freq1 and cible < freq2 and freq1 < freq2:
+        return 1.0    
     else:
-        w = float((cible-freq2)/(freq1-freq2))
-        if w < 0.0:
-            return 0.0
-        elif w > 1.0:
-            return 1.0
+        if freq1 == freq2:
+            return 0.5
         else:
-            return w
+            w = float((cible-freq2)/(freq1-freq2))
+            if w < 0.0:
+                return 0.0
+            elif w > 1.0:
+                return 1.0
+            else:
+                return w
 
 # -----------------------------------
 
@@ -101,18 +113,20 @@ models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gam
 # -----------------------------------
 
 # -----------------------------------
-# PARAMETERS Loading
+# DATA loading
 # -----------------------------------
-#p = dict()
-#for m in models.iterkeys():    
-#    f = open(m, 'rb')
-#    p[m] = pickle.load(f)
-X = np.load(options.input)
-est = KMeans(5)
+pkfile = open(options.input,'rb')
+data = pickle.load(pkfile)
+values = data['values']
+tmp = data.keys()
+tmp.remove('values')
+tmp.remove(-1)
+X = np.transpose(data[np.max(tmp)])
+est = KMeans(500)
 est.fit(X)
-
+#X2 = X
 X = est.cluster_centers_
-
+#X = X[0:100]
 
 omega = []
 order = ['beta', 'gamma', 'length', 'noise']
@@ -129,6 +143,7 @@ data = dict()
 data['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 
 for p,t in zip(X,xrange(len(X))):
+    time.sleep(0.5)
     print str(t)+" | "+str(len(X))
     models['kalman'].beta = p[0]
     models['kalman'].gamma = p[1]
@@ -140,14 +155,34 @@ for p,t in zip(X,xrange(len(X))):
         models[m].action = convertAction(np.array(models[m].action))
         models[m].responses = np.array(models[m].responses)
         data[m] = extractStimulusPresentation(models[m].responses, models[m].state, models[m].action, models[m].responses)
-    tmp = np.zeros((3,10))
+    tmp2 = np.zeros((3,10))
     for i in xrange(3):
         for j in xrange(10):
-            tmp[i,j] = omegaFunc(data['meg']['mean'][i,j],data['bmw']['mean'][i,j],data['kalman']['mean'][i,j])
-    omega.append(tmp)
-
+            tmp2[i,j] = omegaFunc(data['meg']['mean'][i,j],data['bmw']['mean'][i,j],data['kalman']['mean'][i,j])
+    omega.append(tmp2)
 
 omega = np.array(omega)
+
+#omega are clustered
+#omega2 = np.array([np.reshape(omega[i], 3*omega.shape[2]) for i in xrange(len(omega))])
+
+#est = KMeans(3)
+#est.fit(omega2)
+
+
+"""
+# Mean of omega is made according to est.labels_
+mean_omega = dict()
+var_omega = dict()
+for i in xrange(3):
+    mean_omega[i+1] = []
+    var_omega[i+1] = []
+    for j in np.unique(est.labels_):
+        mean_omega[i+1].append(np.mean(omega[:,i,:][est.labels_ == j], 0))
+        var_omega[i+1].append(np.var(omega[:,i,:][est.labels_ == j], 0))
+    mean_omega[i+1] = np.array(mean_omega[i+1])
+    var_omega[i+1] = np.array(var_omega[i+1])
+"""
 
 # -----------------------------------
 # Plot
@@ -163,14 +198,16 @@ params = {'backend':'pdf',
 dashes = ['-', '--', ':']
 
 
-fig = figure(figsize=(10, 5))
-rcParams.update(params)                  
 m = np.mean(omega, axis = 0)
 v = np.var(omega, axis = 0)
+
+
+fig = figure(figsize=(10, 5))
+rcParams.update(params)                  
 for i,l in zip([1,2,3],xrange(3)):
     subplot(2,3,i)
     plot(range(1, len(m[l])+1), m[l], linewidth = 2, color = 'black')
-    fill_between(range(1, len(m[l])+1), m[l]-v[l],m[l]+v[l], alpha = 0.4, color = 'grey')
+    fill_between(range(1, len(m[l])+1), m[l]-v[l],m[l]+v[l], alpha = 0.4, color = 'grey')        
     ylabel("$\omega$", fontsize = 13)
     xlabel('Trial')
     yticks(np.arange(0, 1.2, 0.2))
@@ -179,20 +216,23 @@ for i,l in zip([1,2,3],xrange(3)):
     title("Stimulus "+str(i), fontsize = 18)
     grid()
 
+
 for i,l in zip([4,5,6],xrange(3)):
     subplot(2,3,i)
     bar(range(1,11), v[l], color = 'black')
     xlim(0.8, 11)
-    ylim(0, np.max(v)+0.05)
+    ylim(0, np.max(v)+0.01)
     ylabel("$\sigma^2$", fontsize = 13)
     grid()
     xlabel('Trial')
 
+
 figtext(0.04, 0.94, 'A', fontsize = 20)
 figtext(0.04, 0.47, 'B', fontsize = 20)
-
-
 subplots_adjust(left = 0.08, wspace = 0.4, right = 0.86, hspace = 0.35)
-
-#fig.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig6.pdf', bbox_inches='tight')
+fig.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig6.pdf', bbox_inches='tight')
 show()
+
+    #for j in xrange(est.k):
+        plot(range(1, omega.shape[2]+1), mean_omega[i][j])
+        errorbar(range(1, omega.shape[2]+1), mean_omega[i][j], var_omega[i][j])

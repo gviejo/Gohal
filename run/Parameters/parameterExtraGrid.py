@@ -7,7 +7,7 @@ Grid-search for a mixture of Kalman and Bayesian Model
 Kalman : beta, gamma
 Bayesian : length, noise
 
-save an ordered dict of all points in the parameters space based on similarity function
+WARNING : target function is bounded between the two models.
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -28,6 +28,7 @@ from pylab import *
 from Sweep import Optimization
 from scipy.stats import norm
 import datetime
+import time
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
@@ -64,24 +65,14 @@ def computeSpecialSingleCorrelation(human_vector, model1_vector, model2_vector):
 
 
 def omegaFunc(cible, freq1, freq2):
+    print cible, freq1, freq2
     if cible == freq1 == freq2 == 0:
-        return 0.0
-    elif freq1 == freq2:
-        w = float(cible/freq1)
-        if w < 0.0:
-            return 0.0
-        elif w > 1.0:
-            return 1.0
-        else:
-            return w        
+        return 0.5
+    elif cible == freq1 == freq2 == 1:
+        return 0.5
     else:
         w = float((cible-freq2)/(freq1-freq2))
-        if w < 0.0:
-            return 0.0
-        elif w > 1.0:
-            return 1.0
-        else:
-            return w
+        return w
 # -----------------------------------
 
 # -----------------------------------
@@ -112,7 +103,7 @@ cats = CATS()
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, 15, 0.01, 1.0)})
 
-inter = 15
+inter = 10
 # -----------------------------------
 
 
@@ -129,6 +120,7 @@ opt = Optimization(human, cats, nb_trials, nb_blocs)
 data = np.zeros((inter, inter, inter, inter))
 values = dict()
 fall = dict()
+fall['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 for m in models.iterkeys():
     p = models[m].getAllParameters()
     for k in p.keys():
@@ -139,6 +131,7 @@ for i in xrange(len(values['beta'])):
     for j in xrange(len(values['gamma'])):
         for k in xrange(len(values['lenght'])):
             for l in xrange(len(values['noise'])):
+                time.sleep(2)
                 count+=1; print str(count)+" | "+str(inter**4)
                 models['kalman'].beta = values['beta'][i]
                 models['kalman'].gamma = values['gamma'][j]
@@ -149,12 +142,26 @@ for i in xrange(len(values['beta'])):
                     models[m].state = convertStimulus(np.array(models[m].state))
                     models[m].action = convertAction(np.array(models[m].action))
                     models[m].responses = np.array(models[m].responses)
-                    fall[m] = extractStimulusPresentation2(models[m].responses, models[m].state, models[m].action, models[m].responses)
-                tmp = 0.0
-                for n in [1,2,3]:
-                    for q in xrange(opt.data_human[n].shape[1]):
-                        tmp+=computeSpecialSingleCorrelation(opt.data_human[n][:,q], fall['bmw'][n][:,q], fall['kalman'][n][:,q])
-                data[i,j,k,l] = tmp
+                    fall[m] = extractStimulusPresentation(models[m].responses, models[m].state, models[m].action, models[m].responses)
+                tmp = 0
+                for n in xrange(3):
+                    for q in xrange(fall['bmw']['mean'].shape[1]):                        
+                        if fall['bmw']['mean'][n, q] > fall['meg']['mean'][n, q] > fall['kalman']['mean'][n, q]:
+                            tmp+=1
+                        elif fall['bmw']['mean'][n, q] < fall['meg']['mean'][n, q] < fall['kalman']['mean'][n, q]:
+                            tmp+=1
+                        elif fall['bmw']['mean'][n, q] == fall['meg']['mean'][n, q] or fall['kalman']['mean'][n, q] == fall['meg']['mean'][n, q]:
+                            tmp+=1
+                if tmp == 3*fall['bmw']['mean'].shape[1]:
+                    for m in models.iterkeys():
+                        fall[m] = extractStimulusPresentation2(models[m].responses, models[m].state, models[m].action, models[m].responses)
+                    v = 0.0
+                    for n in [1,2,3]:
+                        for q in xrange(opt.data_human[n].shape[1]):
+                            v+=computeSpecialSingleCorrelation(opt.data_human[n][:,q], fall['bmw'][n][:,q], fall['kalman'][n][:,q])
+                    data[i,j,k,l] = v
+                else:
+                    data[i,j,k,l] = -1
   
 #######################  
 #VERY UGLY#############
