@@ -25,12 +25,13 @@ class KSelection():
         self.states = kalman.states        
         self.values = createQValuesDict(self.states, self.actions)
         self.rfunction = createQValuesDict(kalman.states, kalman.actions)
-        self.vpi = dict.fromkeys(self.states,list())
+        self.vpi = {i:list() for i in self.states}
         self.rrate = list()
         self.state = list()
         self.action = list()
         self.responses = list()
         self.reaction = list()
+
 
     def initialize(self):
         self.kalman.initialize()
@@ -40,11 +41,13 @@ class KSelection():
         self.state.append([])
         self.reaction.append([])
         self.rrate.append([0.0])
+        [self.vpi[s].append([]) for s in self.vpi.iterkeys()]
+
 
     def initializeList(self):
         self.values = createQValuesDict(self.states, self.actions)
         self.rfunction = createQValuesDict(self.states, self.actions)
-        self.vpi = dict.fromkeys(self.states,list())
+        self.vpi = {i:list() for i in self.states}
         self.rrate = list()
         self.state=list()
         self.answer=list()
@@ -52,11 +55,13 @@ class KSelection():
         self.action=list()
         self.reaction=list()
 
+
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.kalman.predictionStep()
         vpi = computeVPIValues(self.kalman.values[0][self.kalman.values[state]], self.kalman.covariance['cov'].diagonal()[self.kalman.values[state]])
         model_based_value = self.based.computeValue(state) #WRONG since Q^G(s,a) should be computed after the decision is made
+        self.vpi[state][-1].append(vpi)
         for i in range(len(vpi)):
             if vpi[i] >= self.rrate[-1][-1]*self.tau:
                 #use Model-based                
@@ -66,14 +71,13 @@ class KSelection():
                 self.values[0][self.values[(state, self.actions[i])]] = self.kalman.values[0][self.kalman.values[(state,self.actions[i])]]
 
         action = getBestActionSoftMax(state, self.values, self.kalman.beta)                
-        print action
+
         self.action[-1].append(action)
         return action
 
     def updateValue(self, reward):
-        self.responses[-1].append(reward)
+        self.responses[-1].append((reward==1)*1)
         self.updateRewardRate(reward, delay = 0.0)
-        print self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward
         self.kalman.updatePartialValue(self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward)
         self.based.updatePartialValue(self.state[-1][-1], self.action[-1][-1], reward)
 

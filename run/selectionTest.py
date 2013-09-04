@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
-scripts to plot figure pour le rapport IAD
-figure 2 : performances des sujets / perf pour bWM / perf pour Kalman
+
+to test keramati model
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -82,7 +82,7 @@ selection = KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamm
 opt = Optimization(human, cats, nb_trials, nb_blocs)
 
 data = dict()
-data['pcr'] = dict()
+
 # -----------------------------------
 
 # -----------------------------------
@@ -93,15 +93,20 @@ testModel(selection)
 selection.state = convertStimulus(np.array(selection.state))
 selection.action = convertAction(np.array(selection.action))
 selection.responses = np.array(selection.responses)
-data['pcr']['keramati'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
+selection.rrate = np.array(selection.rrate)
+data['keramati'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
+data['r'] = extractStimulusPresentation(selection.rrate[:,0:42], selection.state, selection.action, selection.responses)
 # -----------------------------------
-
-
+data['vpi'] = dict()
+for s in cats.states:
+    selection.vpi[s] = np.array(selection.vpi[s])[:,0:10,:]
+    data['vpi'][s] = np.mean(selection.vpi[s], 0)
 
 # -----------------------------------
 #order data
 # -----------------------------------
-data['pcr']['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+data['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+
 # -----------------------------------
 
 
@@ -109,7 +114,7 @@ data['pcr']['meg'] = extractStimulusPresentation(human.responses['meg'], human.s
 # Plot
 # -----------------------------------
 
-fig1 = figure(figsize=(5, 9))
+fig = figure(figsize=(14, 5))
 params = {'backend':'pdf',
           'axes.labelsize':9,
           'text.fontsize':10,
@@ -118,39 +123,22 @@ params = {'backend':'pdf',
           'ytick.labelsize':8,
           'text.usetex':False}
 dashes = ['-', '--', ':']
-rcParams.update(params)                  
-subplot(211)
-m = data['pcr']['meg']['mean']
-s = data['pcr']['meg']['sem']
-for i in xrange(3):
-    errorbar(range(1, len(m[i])+1), m[i], s[i], linestyle = dashes[i], color = 'black')
-    plot(range(1, len(m[i])+1), m[i], linestyle = dashes[i], color = 'black',linewidth = 2, label = 'Stim '+str(i+1))
-grid()
-legend(loc = 'lower right')
-xticks(range(2,11,2))
-xlabel("Trial")
-xlim(0.8, 10.2)
-ylim(-0.05, 1.05)
-yticks(np.arange(0, 1.2, 0.2))
-ylabel('Probability Correct Responses')
-title('A. MEG')
 
-subplot(212)
-m = data['pcr']['keramati']['mean']
-s = data['pcr']['keramati']['sem']
 for i in xrange(3):
-    errorbar(range(1, len(m[i])+1), m[i], s[i], linestyle = dashes[i], color = 'black')
-    plot(range(1, len(m[i])+1), m[i], linestyle = dashes[i], color = 'black',linewidth = 2, label = 'Stim '+str(i+1))
-grid()
-legend(loc = 'lower right')
-xticks(range(2,11,2))
-xlabel("Trial")
-xlim(0.8, 10.2)
-ylim(-0.05, 1.05)
-yticks(np.arange(0, 1.2, 0.2))
-ylabel('Probability Correct Responses')
-title('B. Keramati selection')
+    subplot(2,3,i+1)
+    plot(range(1, len(data['keramati']['mean'][i])+1), data['keramati']['mean'][i], linewidth = 2, color = 'black')
+    errorbar(range(1, len(data['keramati']['mean'][i])+1), data['keramati']['mean'][i], data['keramati']['sem'][i], linewidth = 2, color = 'black')
+    plot(range(1, len(data['meg']['mean'][i])+1), data['meg']['mean'][i], linewidth = 2, color = 'black', linestyle = '--')
+    errorbar(range(1, len(data['meg']['mean'][i])+1), data['meg']['mean'][i], data['meg']['sem'][i], linewidth = 2, color = 'black', linestyle = '--')
+    legend()
+    grid()
+    title("Stimulus "+str(i+1))
 
+for i,j in zip([4,5,6], xrange(3)):
+    subplot(2,3,i)
+    plot(data['r']['mean'][j])
+    plot(data['vpi'][cats.states[j]])
+    grid()
 
 subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86, hspace = 0.35)
 

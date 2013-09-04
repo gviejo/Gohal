@@ -63,16 +63,55 @@ def computeSpecialSingleCorrelation(human_vector, model1_vector, model2_vector):
         z = (np.abs(ph-pm))/(np.sqrt(p*(1-p)*((1/float(h))+(1/float(m1)))))
         return 1-(norm.cdf(z, 0, 1)-norm.cdf(-z, 0, 1))
 
-
 def omegaFunc(cible, freq1, freq2):
-    print cible, freq1, freq2
     if cible == freq1 == freq2 == 0:
         return 0.5
     elif cible == freq1 == freq2 == 1:
         return 0.5
+    elif cible == freq1:
+        return 1.0
+    elif cible == freq2:
+        return 0.0
+    elif cible > freq1 and cible > freq2 and freq1 > freq2:
+        return 1.0
+    elif cible > freq1 and cible > freq2 and freq1 < freq2:
+        return 0.0
+    elif cible < freq1 and cible < freq2 and freq1 > freq2:
+        return 0.0
+    elif cible < freq1 and cible < freq2 and freq1 < freq2:
+        return 1.0    
     else:
-        w = float((cible-freq2)/(freq1-freq2))
-        return w
+        if freq1 == freq2:
+            return 0.5
+        else:
+            w = float((cible-freq2)/(freq1-freq2))
+            if w < 0.0:
+                return 0.0
+            elif w > 1.0:
+                return 1.0
+            else:
+                return w
+
+def check(f):    
+    tmp = 0
+    for n in xrange(3):
+        bmw = np.mean(f['bmw'][n+1], 0)
+        kalman = np.mean(f['kalman'][n+1], 0)
+        for q in xrange(f['meg']['mean'].shape[1]):                        
+            if bmw[q] > f['meg']['mean'][n, q] > kalman[q]:
+                tmp+=1
+            elif bmw[q] < f['meg']['mean'][n, q] < kalman[q]:
+                tmp+=1
+            elif bmw[q] == f['meg']['mean'][n, q] or kalman[q] == f['meg']['mean'][n, q]:
+                tmp+=1
+    if tmp == 3*f['meg']['mean'].shape[1]:
+        return True
+    else:
+        return False
+
+
+        
+
 # -----------------------------------
 
 # -----------------------------------
@@ -103,7 +142,7 @@ cats = CATS()
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, 15, 0.01, 1.0)})
 
-inter = 10
+inter = 12
 # -----------------------------------
 
 
@@ -131,7 +170,6 @@ for i in xrange(len(values['beta'])):
     for j in xrange(len(values['gamma'])):
         for k in xrange(len(values['lenght'])):
             for l in xrange(len(values['noise'])):
-                time.sleep(2)
                 count+=1; print str(count)+" | "+str(inter**4)
                 models['kalman'].beta = values['beta'][i]
                 models['kalman'].gamma = values['gamma'][j]
@@ -142,19 +180,8 @@ for i in xrange(len(values['beta'])):
                     models[m].state = convertStimulus(np.array(models[m].state))
                     models[m].action = convertAction(np.array(models[m].action))
                     models[m].responses = np.array(models[m].responses)
-                    fall[m] = extractStimulusPresentation(models[m].responses, models[m].state, models[m].action, models[m].responses)
-                tmp = 0
-                for n in xrange(3):
-                    for q in xrange(fall['bmw']['mean'].shape[1]):                        
-                        if fall['bmw']['mean'][n, q] > fall['meg']['mean'][n, q] > fall['kalman']['mean'][n, q]:
-                            tmp+=1
-                        elif fall['bmw']['mean'][n, q] < fall['meg']['mean'][n, q] < fall['kalman']['mean'][n, q]:
-                            tmp+=1
-                        elif fall['bmw']['mean'][n, q] == fall['meg']['mean'][n, q] or fall['kalman']['mean'][n, q] == fall['meg']['mean'][n, q]:
-                            tmp+=1
-                if tmp == 3*fall['bmw']['mean'].shape[1]:
-                    for m in models.iterkeys():
-                        fall[m] = extractStimulusPresentation2(models[m].responses, models[m].state, models[m].action, models[m].responses)
+                    fall[m] = extractStimulusPresentation2(models[m].responses, models[m].state, models[m].action, models[m].responses)
+                if check(fall):
                     v = 0.0
                     for n in [1,2,3]:
                         for q in xrange(opt.data_human[n].shape[1]):
@@ -163,6 +190,7 @@ for i in xrange(len(values['beta'])):
                 else:
                     data[i,j,k,l] = -1
   
+
 #######################  
 #VERY UGLY#############
 #######################
