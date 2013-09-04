@@ -16,6 +16,7 @@ from fonctions import *
 class KSelection():
     """Class that implement Keramati models for action selection
     Model-based must be provided
+    Specially tuned for Brovelli experiment so beware
     """
     def __init__(self, kalman, based, sigma, tau):
         self.kalman = kalman
@@ -25,7 +26,8 @@ class KSelection():
         self.states = kalman.states        
         self.values = createQValuesDict(self.states, self.actions)
         self.rfunction = createQValuesDict(kalman.states, kalman.actions)
-        self.vpi = {i:list() for i in self.states}
+        #self.vpi = {i:list() for i in self.states}
+        self.vpi = list()
         self.rrate = list()
         self.state = list()
         self.action = list()
@@ -34,6 +36,7 @@ class KSelection():
 
 
     def initialize(self):
+        self.values = createQValuesDict(self.states, self.actions)
         self.kalman.initialize()
         self.based.initialize()
         self.responses.append([])
@@ -41,13 +44,14 @@ class KSelection():
         self.state.append([])
         self.reaction.append([])
         self.rrate.append([0.0])
-        [self.vpi[s].append([]) for s in self.vpi.iterkeys()]
-
+        self.vpi.append([])
+        #[self.vpi[s].append([]) for s in self.vpi.iterkeys()]
 
     def initializeList(self):
         self.values = createQValuesDict(self.states, self.actions)
         self.rfunction = createQValuesDict(self.states, self.actions)
-        self.vpi = {i:list() for i in self.states}
+        #self.vpi = {i:list() for i in self.states}
+        self.vpi = list()
         self.rrate = list()
         self.state=list()
         self.answer=list()
@@ -61,7 +65,7 @@ class KSelection():
         self.kalman.predictionStep()
         vpi = computeVPIValues(self.kalman.values[0][self.kalman.values[state]], self.kalman.covariance['cov'].diagonal()[self.kalman.values[state]])
         model_based_value = self.based.computeValue(state) #WRONG since Q^G(s,a) should be computed after the decision is made
-        self.vpi[state][-1].append(vpi)
+        self.vpi[-1].append(vpi)
         for i in range(len(vpi)):
             if vpi[i] >= self.rrate[-1][-1]*self.tau:
                 #use Model-based                
@@ -71,20 +75,107 @@ class KSelection():
                 self.values[0][self.values[(state, self.actions[i])]] = self.kalman.values[0][self.kalman.values[(state,self.actions[i])]]
 
         action = getBestActionSoftMax(state, self.values, self.kalman.beta)                
-
         self.action[-1].append(action)
         return action
 
     def updateValue(self, reward):
         self.responses[-1].append((reward==1)*1)
-        self.updateRewardRate(reward, delay = 0.0)
+        self.updateRewardRate((reward==1)*1, delay = 0.0)
         self.kalman.updatePartialValue(self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward)
         self.based.updatePartialValue(self.state[-1][-1], self.action[-1][-1], reward)
 
     def updateRewardRate(self, reward, delay = 0.0):
         self.rrate[-1].append(((1-self.sigma)**(1+delay))*self.rrate[-1][-1]+self.sigma*reward)
 
+    def getAllParameters(self):
+        tmp = dict({'tau':[0.0, self.tau, 1.0],
+                    'sigma':[0.0, self.sigma, 1.0]})
+        tmp.update(self.kalman.getAllParameters())
+        tmp.update(self.based.getAllParameters())
+        return tmp
+
             
+class CSelection():
+    """Class that implement Collins models for action selection
+    Model-based must be provided
+    Specially tuned for Brovelli experiment so beware
+    """
+    def __init__(self, kalman, based):
+        self.kalman = kalman
+        self.based = based
+        self.actions = kalman.actions; 
+        self.states = kalman.states        
+        self.values = createQValuesDict(self.states, self.actions)
+        self.weight = createQValuesDict(self.states, self.actions)
+        self.state = list()
+        self.action = list()
+        self.responses = list()
+        self.reaction = list()
+
+    def initialize(self):
+        self.kalman.initialize()
+        self.based.initialize()
+        self.responses.append([])
+        self.action.append([])
+        self.state.append([])
+        self.reaction.append([])
+        self.values = createQValuesDict(self.states, self.actions)
+        self.weight = createQValuesDict(self.states, self.actions)
+
+    def initializeList(self):
+        self.values = createQValuesDict(self.states, self.actions)
+        self.weight = createQValuesDict(self.states, self.actions)
+        self.state=list()
+        self.answer=list()
+        self.responses=list()
+        self.action=list()
+        self.reaction=list()
+
+
+    def computeRewardLikelihood(self, p):
+        # p is p(a,s,r) from B-WM
+        p_as = np.sum(p, axis = 2)
+        p_as = p_as/np.sum(p_as)
+        p_r_bwm = p/np.reshape(np.repeat(p_as, 2), p.shape)
+        p_r_bwm = p_r_bwm/np.reshape(np.repeat(np.sum(p_r_bwm, 2), 2), p_r_bwm.shape)
+        p_r_rl = np.zeros((3,5,2))
+        p_r_rl[:,:,0] = np.reshape(self.kalman.values[0], (len(self.states), len(self.actions)))
+        p_r_rl[:,:,1] = 1-np.reshape(self.kalman.values[0], (len(self.states), len(self.actions)))
+        p_r_rl = p_r_rl/np.reshape(np.repeat(np.sum(p_r_rl, 2), 2), p_r_rl.shape)
+        return p_r_bwm, p_r_rl
+
+    def computeWeight(self, reward):
+        (p_r_bwm,p_r_rl) = self.computeRewardLikelihood(self.based.p)
+        tmp = np.reshape(self.weight[0], (len(self.states), len(self.actions)))
+        self.weight = np.flatten((p_r_bwm[:,:,reward]*tmp)/(p_r_bwm[:,:,reward]*tmp + p_r_rl[:,:,reward]*(1-tmp)))        
+            
+    def chooseAction(self, state):
+        self.state[-1].append(state)
+        self.kalman.predictionStep()
+        
+        model_based_values = self.based.computeValue(state) #WRONG since Q^G(s,a) should be computed after the decision is made
+        model_based_values = model_based_values/float(np.sum(model_based_values))
+        tmp = np.exp(self.kalman.values[0][self.kalman.values[state]]*float(self.kalman.beta))
+        model_free_values =  tmp/float(np.sum(tmp))
+        
+        self.values[0][self.values[state]] = (1-self.weight[self.weight[state]])*model_free_values + self.weight[self.weight[state]]*model_based_values
+        action = getBestAction(state, values)
+        self.action[-1].append(action)
+        return action
+
+    def updateValue(self, reward):
+        self.responses[-1].append((reward==1)*1)
+        self.computeWeight((reward==1)*1)        
+        self.kalman.updatePartialValue(self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward)
+        self.based.updatePartialValue(self.state[-1][-1], self.action[-1][-1], reward)
+
+    def getAllParameters(self):
+        tmp = dict({'tau':[0.0, self.tau, 1.0],
+                    'sigma':[0.0, self.sigma, 1.0]})
+        tmp.update(self.kalman.getAllParameters())
+        tmp.update(self.based.getAllParameters())
+        return tmp
+
 
 class Keramati():
     """Class that implement Keramati models for action selection
@@ -119,6 +210,7 @@ class Keramati():
         self.state = state
         self.kalman.predictionStep()
         vpi = computeVPIValues(self.kalman.values[0][self.kalman.values[self.state]], self.kalman.covariance['cov'].diagonal()[self.kalman.values[self.state]])
+        
         for i in range(len(vpi)):
             if vpi[i] >= self.rrate[-1]*self.tau:
                 depth = self.depth

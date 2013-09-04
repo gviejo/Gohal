@@ -2,7 +2,7 @@
 # encoding: utf-8
 """
 
-to test keramati model
+to test collins model
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -20,7 +20,7 @@ from Models import *
 from matplotlib import *
 from pylab import *
 from Sweep import Optimization
-from Selection import KSelection
+from Selection import CSelection
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
@@ -65,8 +65,6 @@ kappa = 0.1      # unscentered transform parameters
 beta = 1.0    
 noise_width = 0.17
 length_memory = 3.0
-sigma = 0.02
-tau = 0.08
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
@@ -74,9 +72,9 @@ nb_blocs = human.responses['meg'].shape[0]
 
 cats = CATS(nb_trials)
 
-selection = KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-                       BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0),
-                       sigma, tau)
+selection = CSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
+                       BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0))
+                       
                        
 
 opt = Optimization(human, cats, nb_trials, nb_blocs)
@@ -95,7 +93,7 @@ selection.action = convertAction(np.array(selection.action))
 selection.responses = np.array(selection.responses)
 selection.rrate = np.array(selection.rrate)
 selection.vpi = np.array(selection.vpi)
-data['keramati'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
+data['collins'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
 data['r'] = extractStimulusPresentation(selection.rrate[:,0:42], selection.state, selection.action, selection.responses)
 # -----------------------------------
 data['vpi'] = dict()
@@ -127,8 +125,8 @@ dashes = ['-', '--', ':']
 
 for i in xrange(3):
     subplot(2,3,i+1)
-    plot(range(1, len(data['keramati']['mean'][i])+1), data['keramati']['mean'][i], linewidth = 2, color = 'black')
-    errorbar(range(1, len(data['keramati']['mean'][i])+1), data['keramati']['mean'][i], data['keramati']['sem'][i], linewidth = 2, color = 'black')
+    plot(range(1, len(data['collins']['mean'][i])+1), data['collins']['mean'][i], linewidth = 2, color = 'black')
+    errorbar(range(1, len(data['collins']['mean'][i])+1), data['collins']['mean'][i], data['collins']['sem'][i], linewidth = 2, color = 'black')
     plot(range(1, len(data['meg']['mean'][i])+1), data['meg']['mean'][i], linewidth = 2, color = 'black', linestyle = '--')
     errorbar(range(1, len(data['meg']['mean'][i])+1), data['meg']['mean'][i], data['meg']['sem'][i], linewidth = 2, color = 'black', linestyle = '--')
     legend()

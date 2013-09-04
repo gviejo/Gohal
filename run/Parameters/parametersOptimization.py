@@ -4,7 +4,6 @@
 parametersOptimization.py
 
 optimization of parameters for the differents models
-through a genetic algorithm
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """

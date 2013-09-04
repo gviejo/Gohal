@@ -333,6 +333,7 @@ class BayesianWorkingMemory():
         self.reaction=list()
         self.initializeBMemory(states, actions)
         self.current_state = None
+        self.p = None
 
     def getAllParameters(self):        
         return dict({'lenght':[3, self.lenght_memory,15],
@@ -396,6 +397,7 @@ class BayesianWorkingMemory():
         for i in xrange(len(self.p_a_s)):
             p += self.computeBayesianInference(i)
         p = p/np.sum(p)
+        self.p = p # for Collins model
         #Current state
         p_ra_s = p[self.current_state]*self.n_state
         p_ra_s = p_ra_s/np.sum(p_ra_s)
