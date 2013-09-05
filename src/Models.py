@@ -406,7 +406,7 @@ class BayesianWorkingMemory():
         value = p_a_rs[:,1]/p_a_rs[:,0]
         self.reaction[-1].append(computeEntropy(value, 1.0))
         #Sample according to p(A/R,S)
-        value = value/np.sum(value)
+        #value = value/np.sum(value)
         return value
 
     def chooseAction(self, state):

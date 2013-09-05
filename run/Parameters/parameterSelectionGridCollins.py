@@ -3,10 +3,10 @@
 """
 parametersOptimization.py
 
-Grid-search for Selection model of Keramati
+Grid-search for Selection model of Collins
 Kalman : beta, gamma
 Bayesian : length, noise
-Keramati : sigma, tau
+Collins : w_0
 
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
@@ -20,7 +20,7 @@ import cPickle as pickle
 sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
-from Selection import KSelection
+from Selection import CSelection
 from HumanLearning import HLearning
 from Models import *
 from matplotlib import *
@@ -46,7 +46,6 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 def testModel(ptr_model):
     ptr_model.initializeList()
     for i in xrange(nb_blocs):
-        #sys.stdout.write("\r Testing model | Blocs : %i" % i); sys.stdout.flush()                        
         cats.reinitialize()
         ptr_model.initialize()
         for j in xrange(nb_trials):
@@ -72,10 +71,10 @@ beta = 1.7          # soft-max
 sigma = 0.02        # reward rate update
 tau = 0.08          # time step
 noise_width = 0.01  # noise of model-based
-
+w_0 = 0.5           # initial weigh for collins model
 
 correlation = "Z"
-length_memory = 15
+length_memory = 10
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
@@ -83,9 +82,9 @@ nb_blocs = human.responses['meg'].shape[0]
 
 cats = CATS()
 
-selection = KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
+selection = CSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                        BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0),
-                       sigma, tau)
+                       w_0)
 
 inter = 7
 # -----------------------------------
@@ -97,7 +96,7 @@ inter = 7
 # -----------------------------------
 opt = Optimization(human, cats, nb_trials, nb_blocs)
 
-data = np.zeros((inter,inter,inter,inter,inter,inter))
+data = np.zeros((inter,inter,inter,inter,inter))
 values = dict()
 fall = dict()
 p = selection.getAllParameters()
@@ -113,23 +112,21 @@ for i in xrange(len(values['beta'])):
             selection.kalman.length_memory = values['lenght'][k]
             for l in xrange(len(values['noise'])):
                 selection.kalman.noise = values['noise'][l]
-                for m in xrange(len(values['sigma'])):
-                    selection.sigma = values['sigma'][m]
-                    for n in xrange(len(values['tau'])):
-                        selection.tau = values['tau'][n]
-                        count+=1; print str(count)+" | "+str(inter**6)
-                        testModel(selection)
-                        selection.state = convertStimulus(np.array(selection.state))
-                        selection.action = convertAction(np.array(selection.action))
-                        selection.responses = np.array(selection.responses)
-
-                        fall = extractStimulusPresentation2(selection.responses, selection.state, selection.action, selection.responses)
-                        data[i,j,k,l,m,n] = opt.computeCorrelation(fall, correlation)
-
+                for m in xrange(len(values['w0'])):
+                    selection.sigma = values['w0'][m]
+                    count+=1; print str(count)+" | "+str(inter**6)
+                    testModel(selection)
+                    selection.state = convertStimulus(np.array(selection.state))
+                    selection.action = convertAction(np.array(selection.action))
+                    selection.responses = np.array(selection.responses)
+                    
+                    fall = extractStimulusPresentation2(selection.responses, selection.state, selection.action, selection.responses)
+                    data[i,j,k,l,m] = opt.computeCorrelation(fall, correlation)
+                        
         
 data['values'] = values
-data['order'] = ['beta', 'gamma', 'lenght', 'noise', 'sigma', 'tau']
-output = open("../../../Dropbox/ISIR/Plot/datagrid_Keramati_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
+data['order'] = ['beta', 'gamma', 'lenght', 'noise', 'w0']
+output = open("../../../Dropbox/ISIR/Plot/datagrid_Collins_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
 pickle.dump(data, output)
 output.close()
 

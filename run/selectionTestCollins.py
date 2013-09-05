@@ -59,12 +59,13 @@ human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI'
 # -----------------------------------
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
-gamma = 0.12     # discount factor
+gamma = 0.6     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
-beta = 1.0    
-noise_width = 0.17
-length_memory = 3.0
+beta = 1.7    
+noise_width = 0.1
+length_memory = 5
+w_0 = 0.5
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
@@ -73,8 +74,8 @@ nb_blocs = human.responses['meg'].shape[0]
 cats = CATS(nb_trials)
 
 selection = CSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-                       BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0))
-                       
+                       BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0), w_0)
+
                        
 
 opt = Optimization(human, cats, nb_trials, nb_blocs)
@@ -91,14 +92,11 @@ testModel(selection)
 selection.state = convertStimulus(np.array(selection.state))
 selection.action = convertAction(np.array(selection.action))
 selection.responses = np.array(selection.responses)
-selection.rrate = np.array(selection.rrate)
-selection.vpi = np.array(selection.vpi)
+selection.weight = np.array(selection.weight)
 data['collins'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
-data['r'] = extractStimulusPresentation(selection.rrate[:,0:42], selection.state, selection.action, selection.responses)
+data['w'] = extractStimulusPresentation(selection.weight, selection.state, selection.action, selection.responses)
 # -----------------------------------
-data['vpi'] = dict()
-for i in xrange(len(cats.actions)):
-    data['vpi'][cats.actions[i]] = extractStimulusPresentation(selection.vpi[:,:,i], selection.state, selection.action, selection.responses)
+
 
     
 # -----------------------------------
@@ -135,12 +133,11 @@ for i in xrange(3):
 
 for i,j in zip([4,5,6], xrange(3)):
     subplot(2,3,i)
-    plot(data['r']['mean'][j], linewidth = 2, linestyle = '--')
-    for a in cats.actions:
-        plot(range(1, len(data['vpi'][a]['mean'][j])+1),data['vpi'][a]['mean'][j], linewidth = 2, label = a)
-        errorbar(range(1, len(data['vpi'][a]['mean'][j])+1),data['vpi'][a]['mean'][j], data['vpi'][a]['sem'][j], linewidth = 2)
+    plot(range(1, len(data['w']['mean'][j])+1), data['w']['mean'][j], linewidth = 2, color = 'black')
+    errorbar(range(1, len(data['w']['mean'][j])+1), data['w']['mean'][j], data['w']['sem'][j], linewidth = 2, color = 'black')
     grid()
     legend()
+
 subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86, hspace = 0.35)
 
 #fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig2.pdf', bbox_inches='tight')

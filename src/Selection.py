@@ -100,17 +100,24 @@ class CSelection():
     Model-based must be provided
     Specially tuned for Brovelli experiment so beware
     """
-    def __init__(self, kalman, based):
+    def __init__(self, kalman, based, w_0):
+        self.w0 = w_0
+        self.C = float(based.lenght_memory)
+        self.n_s = float(len(kalman.states))
+        self.n_a = float(len(kalman.actions))
         self.kalman = kalman
         self.based = based
         self.actions = kalman.actions; 
         self.states = kalman.states        
         self.values = createQValuesDict(self.states, self.actions)
-        self.weight = createQValuesDict(self.states, self.actions)
+        self.w = {i:self.w0*np.min([1,(self.based.lenght_memory/float(len(self.states)))]) for i in self.states}
         self.state = list()
         self.action = list()
         self.responses = list()
         self.reaction = list()
+        self.weight = list()
+        self.model_based_values = None
+        self.model_free_values = None
 
     def initialize(self):
         self.kalman.initialize()
@@ -119,59 +126,59 @@ class CSelection():
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
+        self.weight.append([])
         self.values = createQValuesDict(self.states, self.actions)
-        self.weight = createQValuesDict(self.states, self.actions)
+        self.w = {i:self.w0*np.min([1,self.C/self.n_s]) for i in self.states}
 
     def initializeList(self):
         self.values = createQValuesDict(self.states, self.actions)
-        self.weight = createQValuesDict(self.states, self.actions)
+        self.w = {i:self.w0*np.min([1,self.C/self.n_s]) for i in self.states}
         self.state=list()
         self.answer=list()
         self.responses=list()
         self.action=list()
         self.reaction=list()
+        self.weight=list()
 
-
-    def computeRewardLikelihood(self, p):
-        # p is p(a,s,r) from B-WM
-        p_as = np.sum(p, axis = 2)
-        p_as = p_as/np.sum(p_as)
-        p_r_bwm = p/np.reshape(np.repeat(p_as, 2), p.shape)
-        p_r_bwm = p_r_bwm/np.reshape(np.repeat(np.sum(p_r_bwm, 2), 2), p_r_bwm.shape)
-        p_r_rl = np.zeros((3,5,2))
-        p_r_rl[:,:,0] = np.reshape(self.kalman.values[0], (len(self.states), len(self.actions)))
-        p_r_rl[:,:,1] = 1-np.reshape(self.kalman.values[0], (len(self.states), len(self.actions)))
-        p_r_rl = p_r_rl/np.reshape(np.repeat(np.sum(p_r_rl, 2), 2), p_r_rl.shape)
+    def computeRewardLikelihood(self, s, reward):
+        tmp = np.min([1.0, self.C/self.n_s])
+        if reward == 1:
+            p_r_bwm = tmp*self.model_based_values + (1-tmp)/float(len(self.actions))
+            p_r_rl = self.kalman.values[0][self.kalman.values[self.states[s]]]
+        else:
+            p_r_bwm = tmp*(1-self.model_based_values) + (1-tmp)/float(len(self.actions))
+            p_r_rl = 1.0 - self.kalman.values[0][self.kalman.values[self.states[s]]]
         return p_r_bwm, p_r_rl
 
-    def computeWeight(self, reward):
-        (p_r_bwm,p_r_rl) = self.computeRewardLikelihood(self.based.p)
-        tmp = np.reshape(self.weight[0], (len(self.states), len(self.actions)))
-        self.weight = np.flatten((p_r_bwm[:,:,reward]*tmp)/(p_r_bwm[:,:,reward]*tmp + p_r_rl[:,:,reward]*(1-tmp)))        
-            
+    def updateWeight(self, s, a, reward):
+        assert reward == 0 or reward == 1
+        (p_r_bwm,p_r_rl) = self.computeRewardLikelihood(s, reward)
+        self.w[self.states[s]] = (p_r_bwm[a]*self.w[self.states[s]])/(p_r_bwm[a]*self.w[self.states[s]]+p_r_rl[a]*(1-self.w[self.states[s]]))
+    
     def chooseAction(self, state):
         self.state[-1].append(state)
+        self.weight[-1].append(self.w[state])
         self.kalman.predictionStep()
         
-        model_based_values = self.based.computeValue(state) #WRONG since Q^G(s,a) should be computed after the decision is made
-        model_based_values = model_based_values/float(np.sum(model_based_values))
-        tmp = np.exp(self.kalman.values[0][self.kalman.values[state]]*float(self.kalman.beta))
-        model_free_values =  tmp/float(np.sum(tmp))
-        
-        self.values[0][self.values[state]] = (1-self.weight[self.weight[state]])*model_free_values + self.weight[self.weight[state]]*model_based_values
-        action = getBestAction(state, values)
+        self.model_based_values = self.based.computeValue(state) 
+        self.model_based_values = self.model_based_values/float(np.sum(self.model_based_values))
+        self.model_free_values = np.exp(self.kalman.values[0][self.kalman.values[state]]*float(self.kalman.beta))
+        self.model_free_values =  self.model_free_values/float(np.sum(self.model_free_values))
+
+        self.values[0][self.values[state]] = (1-self.w[state])*self.model_free_values + self.w[state]*self.model_based_values
+
+        action = getBestAction(state, self.values)
         self.action[-1].append(action)
         return action
 
     def updateValue(self, reward):
         self.responses[-1].append((reward==1)*1)
-        self.computeWeight((reward==1)*1)        
+        self.updateWeight(self.states.index(self.state[-1][-1]), self.actions.index(self.action[-1][-1]), (reward==1)*1)        
         self.kalman.updatePartialValue(self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward)
         self.based.updatePartialValue(self.state[-1][-1], self.action[-1][-1], reward)
 
     def getAllParameters(self):
-        tmp = dict({'tau':[0.0, self.tau, 1.0],
-                    'sigma':[0.0, self.sigma, 1.0]})
+        tmp = dict({'w0':[0.0, self.w0, 1.0]})
         tmp.update(self.kalman.getAllParameters())
         tmp.update(self.based.getAllParameters())
         return tmp
