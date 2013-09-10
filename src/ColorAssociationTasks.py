@@ -23,13 +23,19 @@ class CATS():
         self.actions = ['thumb', 'fore', 'midd', 'ring', 'little']
         self.asso = self.createAssociationDict(self.states)
         self.incorrect = np.zeros((len(self.states), len(self.actions)))
-        self.stimuli = self.createStimulusList(self.states, nb_trials)
+        self.stimuli = self.createStimulusList()
         self.order = self.createOrderCorrect(self.states, [1,3,4])
         self.used = []
         self.correct = []
         
     def reinitialize(self):
-        self.__init__(self.nb_trials)
+        #self.__init__(self.nb_trials)
+        self.asso = self.createAssociationDict(self.states)
+        self.incorrect = np.zeros((len(self.states), len(self.actions)))
+        self.stimuli = self.createStimulusList()
+        self.order = self.createOrderCorrect(self.states, [1,3,4])
+        self.used = []
+        self.correct = []
 
     def createOrderCorrect(self, states, nb_incorrect):
         s = list(states)
@@ -51,7 +57,8 @@ class CATS():
         except:
             print "Error: no more stimuli"
             sys.exit(0)
-                        
+
+    """
     def createStimulusList(self, states, nb_trials):
         tmp = list(states)
         s = []
@@ -59,6 +66,13 @@ class CATS():
             np.random.shuffle(tmp)
             s.append(list(tmp))
         return (np.array(s)).flatten()
+    """
+
+    def createStimulusList(self):
+        s = np.tile(np.array(self.states), ((self.nb_trials/len(self.states))+1, 1))
+        map(np.random.shuffle, s)
+        return s.flatten()
+
 
     def getOutcome(self, state, action):
         if state in self.asso.keys() and action in self.asso[state].keys():

@@ -87,7 +87,7 @@ selection = KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamm
                        BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0),
                        sigma, tau)
 
-inter = 7
+inter = 5
 # -----------------------------------
 
 # -----------------------------------

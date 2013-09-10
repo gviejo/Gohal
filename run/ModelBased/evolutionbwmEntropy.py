@@ -23,118 +23,90 @@ from matplotlib import *
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
 
+# -----------------------------------
+# ARGUMENT MANAGER
+# -----------------------------------
+#if not sys.argv[1:]:
+#    sys.stdout.write("Sorry: you must specify at least 1 argument")
+#    sys.stdout.write("More help avalaible with -h or --help option")
+#    sys.exit(0)
+parser = OptionParser()
+parser.add_option("-i", "--input", action="store", help="The name of the directory to load", default=False)
+(options, args) = parser.parse_args() 
+# -----------------------------------
 
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
+def createStimulusList(i,j):
+    n_states = len(cats.states)    
+    s = np.tile(np.array(cats.states), ((nb_trials/n_states)+1, 1))
+    map(np.random.shuffle, s)
+    return s.flatten()
+
+def modelTest(stimuli_list):
+    for i in xrange(nb_blocs):
+        cats.reinitialize()
+        bww.initialize()
+        for j in xrange(nb_trials):
+            state = cats.getStimulus(j)
+            action = bww.chooseAction(state)
+            reward = cats.getOutcome(state, action)
+            bww.updateValue(reward)
 
 # -----------------------------------
-# HUMAN LEARNING
-# -----------------------------------
-human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
-# -----------------------------------
+
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.0106
-length_memory = 10
+beta = 1.7
+length_memory = 100
+noise_width = 0.01
 
-#nb_trials = 42
+correlation = "Z"
+
 nb_trials = 42
-nb_blocs = 46
-cats = CATS()
+nb_blocs = 100
 
-bmw = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise)
-
-opt = Optimization(human, cats, nb_trials, nb_blocs)
-
-data = dict()
-pcr = dict()
-rs = []
-for i in [1,2,3]:
-    data[i] = []
-    pcr[i] = []
+cats = CATS(nb_trials)
 
 
+bww = BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0)
+bww.setEntropyEvolution(nb_blocs, nb_trials)
 # -----------------------------------
 
-for l in xrange(3,30):
-    # New memory length allowed
-    print "Memory size :", l
-    bmw.lenght_memory = l
+# -----------------------------------
+# Training session
+# -----------------------------------
+modelTest(createStimulusList(0,0))
+bww.state = convertStimulus(np.array(bww.state))
+bww.action = convertAction(np.array(bww.action))
+bww.responses = np.array(bww.responses)
+bww.reaction = np.array(bww.reaction)
+#----------------------------------
+
+#----------------------------------
+# DATA Extraction
+#----------------------------------
+pcr = extractStimulusPresentation(bww.responses, bww.state, bww.action, bww.responses)
+
+n_inferences = 5
+gain = np.zeros(n_inferences)
+
+step, indice = getRepresentativeSteps(bww.reaction, bww.state, bww.action, bww.responses)
     
-    # -----------------------------------
-    # SESSION MODELS
-    # -----------------------------------
-    opt.testModel(bmw)
-    # -----------------------------------
+distance = np.zeros((nb_blocs, len(cats.states)))
+for i in xrange(1,4):
+    tmp = np.reshape(np.where(bww.state[:,0:6] == i)[1], (nb_blocs, 2))
+    distance[:,i-1] = tmp[:,1]-tmp[:,0]
 
-    # -----------------------------------
-    #order data
-    # -----------------------------------
-    bmw.state = convertStimulus(np.array(bmw.state))
-    bmw.action = convertAction(np.array(bmw.action))
-    bmw.responses = np.array(bmw.responses)
-    bmw.reaction = np.array(bmw.reaction)
-    rt = getRepresentativeSteps(bmw.reaction, bmw.state, bmw.action, bmw.responses)
-    m_rt, sem_rt = computeMeanRepresentativeSteps(rt[0])
-    rs.append(m_rt)
-    rt2 = extractStimulusPresentation(bmw.reaction, bmw.state, bmw.action, bmw.responses)['mean']
-    r = extractStimulusPresentation(bmw.responses, bmw.state, bmw.action, bmw.responses)['mean']
-    for i in [1,2,3]:
-        data[i].append(rt2[i-1])
-        pcr[i].append(r[i-1])
 
-# -----------------------------------
-rs = np.array(rs)
-for i in [1,2,3]:
-    data[i] = np.array(data[i])
-    pcr[i] = np.array(pcr[i])
-# -----------------------------------
+
+#----------------------------------
 # Plot
-# -----------------------------------
-
-ticks_size = 15
-legend_size = 15
-title_size = 20
-label_size = 19
-
-fig = figure(figsize=plt.figaspect(0.5))
-
-rc('legend',**{'fontsize':legend_size})
-tick_params(labelsize = ticks_size)
-
-for i in [1,2,3]:
-    ax = fig.add_subplot(1,3,i, projection='3d')
-    xs = np.arange(data[i].shape[1])
-    ys = np.arange(data[i].shape[0])
-    X, Y = np.meshgrid(xs, ys)
-    ax.plot_surface(X, Y, data[i], rstride=1, cstride=1, cmap=cm.coolwarm,linewidth=0, antialiased=False)
-    xlabel('Trials')
-    ylabel('Lenght')
-    title(i)
+#----------------------------------
 
 figure()
-subplots_adjust(left=0.02, bottom=0.06, right=0.95, top=0.94, wspace=-0.0)
-for i in [1,2,3]:
-    subplot(2,3,i)
-    imshow(data[i], interpolation='nearest', origin='lower' )
-    xlabel('Trials')
-    ylabel('Lenght')
-    title(i)    
-
-for i in [1,2,3]:
-    subplot(2,3,i+3)
-    imshow(pcr[i], interpolation='nearest', origin='lower' )
-    xlabel('Trials')
-    ylabel('PCR')
-    title(i)    
-
-figure()
-imshow(rs,  interpolation='nearest', origin='lower' )
-xlabel('Representative Steps')
-ylabel('Length')
-
+plot(np.transpose(pcr['mean']))
 show()
-

@@ -335,6 +335,13 @@ class BayesianWorkingMemory():
         self.current_state = None
         self.p = None
 
+    def setEntropyEvolution(self, nb_blocs, nb_trials):
+        ## USE to study evolution of entropy##
+        self.entropy = np.zeros((nb_blocs, nb_trials, nb_trials+1))
+        self.bloc = -1
+        self.trial = 0
+        #####################################$
+        
     def getAllParameters(self):        
         return dict({'lenght':[3, self.lenght_memory,15],
                      'noise':[1.0e-8,self.noise,0.5]})
@@ -366,6 +373,8 @@ class BayesianWorkingMemory():
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
+        self.bloc+=1
+        self.trial = 0
 
     def initializeList(self):
         self.initializeBMemory(self.states, self.actions)
@@ -374,6 +383,8 @@ class BayesianWorkingMemory():
         self.responses=list()
         self.action=list()
         self.reaction=list()
+        self.trial = 0
+        self.bloc = 0
 
     def normalize(self):
         for i in xrange(len(self.p_s)):
@@ -416,6 +427,7 @@ class BayesianWorkingMemory():
         p = np.zeros((self.n_state,self.n_action,2))
         for i in xrange(len(self.p_a_s)):
             p += self.computeBayesianInference(i)
+            self.entropy[self.bloc, self.trial, i] = computeEntropy(p, 1.0)
         p = p/np.sum(p)
         #Current state
         p_ra_s = p[self.current_state]*self.n_state
@@ -429,6 +441,7 @@ class BayesianWorkingMemory():
         self.current_action = self.sample(value)
         #self.current_action = SoftMax(value, self.beta)
         self.action[-1].append(self.actions[self.current_action])
+        self.trial+=1
         return self.action[-1][-1]
 
     def updateValue(self, reward):

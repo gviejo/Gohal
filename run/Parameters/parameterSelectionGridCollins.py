@@ -86,7 +86,7 @@ selection = CSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamm
                        BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0),
                        w_0)
 
-inter = 7
+inter = 5
 # -----------------------------------
 
 # -----------------------------------
@@ -114,7 +114,7 @@ for i in xrange(len(values['beta'])):
                 selection.kalman.noise = values['noise'][l]
                 for m in xrange(len(values['w0'])):
                     selection.sigma = values['w0'][m]
-                    count+=1; print str(count)+" | "+str(inter**6)
+                    count+=1; print str(count)+" | "+str(inter**5)
                     testModel(selection)
                     selection.state = convertStimulus(np.array(selection.state))
                     selection.action = convertAction(np.array(selection.action))
@@ -123,10 +123,11 @@ for i in xrange(len(values['beta'])):
                     fall = extractStimulusPresentation2(selection.responses, selection.state, selection.action, selection.responses)
                     data[i,j,k,l,m] = opt.computeCorrelation(fall, correlation)
                         
-        
-data['values'] = values
-data['order'] = ['beta', 'gamma', 'lenght', 'noise', 'w0']
+data_to_save = dict()  
+data_to_save['data'] = data
+data_to_save['values'] = values
+data_to_save['order'] = ['beta', 'gamma', 'lenght', 'noise', 'w0']
 output = open("../../../Dropbox/ISIR/Plot/datagrid_Collins_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
-pickle.dump(data, output)
+pickle.dump(data_to_save, output)
 output.close()
 
