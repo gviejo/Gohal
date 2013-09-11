@@ -59,11 +59,11 @@ human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI'
 # -----------------------------------
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
-gamma = 0.6     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
-beta = 1.7    
-noise_width = 0.1
+gamma = 0.1     # discount factor
+beta = 1.0
+noise_width = 0.9
 length_memory = 5
 w_0 = 0.5
 
@@ -111,14 +111,15 @@ data['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus
 # Plot
 # -----------------------------------
 
-fig = figure(figsize=(14, 5))
+fig = figure(figsize=(15, 9))
 params = {'backend':'pdf',
-          'axes.labelsize':9,
+          'axes.labelsize':10,
           'text.fontsize':10,
           'legend.fontsize':10,
           'xtick.labelsize':8,
           'ytick.labelsize':8,
           'text.usetex':False}
+#rcParams.update(params)
 dashes = ['-', '--', ':']
 
 for i in xrange(3):
@@ -130,6 +131,9 @@ for i in xrange(3):
     legend()
     grid()
     title("Stimulus "+str(i+1))
+    xlabel('Trial', fontsize = 15)
+    ylim(0,1)
+    ylabel('Probability correct response',fontsize = 15)
 
 for i,j in zip([4,5,6], xrange(3)):
     subplot(2,3,i)
@@ -137,6 +141,9 @@ for i,j in zip([4,5,6], xrange(3)):
     errorbar(range(1, len(data['w']['mean'][j])+1), data['w']['mean'][j], data['w']['sem'][j], linewidth = 2, color = 'black')
     grid()
     legend()
+    ylabel('w', fontsize = 15)
+    ylim(0,1)
+    xlabel('Trial', fontsize = 15)
 
 subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86, hspace = 0.35)
 

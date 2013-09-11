@@ -89,6 +89,7 @@ bww.reaction = np.array(bww.reaction)
 #----------------------------------
 # DATA Extraction
 #---------------------------------
+"""
 step, indice = getRepresentativeSteps(bww.reaction, bww.state, bww.action, bww.responses)
 
 bad = dict({1:[1,2,3],
@@ -99,8 +100,8 @@ bad = dict({1:[1,2,3],
             6:[7,8,9,12,13,14,15,16,17]})
 for i in xrange(7,16):
     bad[i] = range(12,100)
-            
 
+            
 entropy = {i:bww.entropy[np.where(indice == i)] for i in step.keys()}
 
 for i in entropy.iterkeys():
@@ -110,21 +111,45 @@ for i in entropy.iterkeys():
         if j in bad[i]:
             tmp.append(np.mean(entropy[i][size == j][:,0:j], axis=0))
     entropy[i] = tmp
+"""
+####################
+
+crap = np.reshape(np.arange(bww.reaction.shape[0]*bww.reaction.shape[1]), bww.reaction.shape)
+
+step, indice = getRepresentativeSteps(crap, bww.state, bww.action, bww.responses)
+order = extractStimulusPresentation2(crap, bww.state, bww.action, bww.responses)
+
+superstuf = {i:{j:np.array([bww.entropy[np.where(crap == k)][0] for k in np.intersect1d(order[i].flatten(), step[j])]) for j in step.keys()} for i in order.iterkeys()}
+
+for i in superstuf.iterkeys():
+    for j in superstuf[i].iterkeys():
+        if len(superstuf[i][j]) > 0:
+            size = np.sum(superstuf[i][j] <> 0, axis = 1)
+            tmp = []
+            for k in np.unique(size):
+                tmp.append(np.mean(superstuf[i][j][size == k][:,0:k], axis = 0))
+            superstuf[i][j] = tmp
+
 #----------------------------------
 # Plot
 #----------------------------------
 ion()
 figure(figsize = (16, 12))
-for i in entropy.iterkeys():
-    subplot(3,5,i)
-    for j in xrange(len(entropy[i])):
-        plot(range(1, len(entropy[i][j])+1), entropy[i][j],'o-')
-    xlabel('Inference Level')
-    xticks(range(1,len(entropy[i][j])+1, 2))
-    ylabel('Entropy')
-    #ylim(0.5,5)
-    grid()
-    title(i)
+count = 1
+
+for i in superstuf.iterkeys():
+    #for j in superstuf[i].iterkeys():
+    for j in range(1,6):
+        subplot(3,5,count)
+        tmp = superstuf[i][j]
+        for k in tmp:
+            plot(k)
+        # xlabel('Inference Level')
+        # xticks(range(1,len(entropy[i][j])+1, 2))
+        # ylabel('Entropy')
+        grid()
+        # title(i)
+        count+=1
 
 subplots_adjust(left = 0.08, wspace = 0.4, right = 0.86, hspace = 0.35)
 show()
