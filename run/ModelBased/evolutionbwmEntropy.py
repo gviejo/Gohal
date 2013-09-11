@@ -88,25 +88,65 @@ bww.reaction = np.array(bww.reaction)
 
 #----------------------------------
 # DATA Extraction
-#----------------------------------
-pcr = extractStimulusPresentation(bww.responses, bww.state, bww.action, bww.responses)
-
-n_inferences = 5
-gain = np.zeros(n_inferences)
-
+#---------------------------------
 step, indice = getRepresentativeSteps(bww.reaction, bww.state, bww.action, bww.responses)
-    
-distance = np.zeros((nb_blocs, len(cats.states)))
-for i in xrange(1,4):
-    tmp = np.reshape(np.where(bww.state[:,0:6] == i)[1], (nb_blocs, 2))
-    distance[:,i-1] = tmp[:,1]-tmp[:,0]
 
+bad = dict({1:[1,2,3],
+            2:[4,5,6],
+            3:[7,8,9],
+            4:[10,11,12],
+            5:[13,14,15],
+            6:[7,8,9,12,13,14,15,16,17]})
+for i in xrange(7,16):
+    bad[i] = range(12,100)
+            
 
+entropy = {i:bww.entropy[np.where(indice == i)] for i in step.keys()}
 
+for i in entropy.iterkeys():
+    size = np.sum(entropy[i] <> 0, axis=1)
+    tmp = []
+    for j in np.unique(size):
+        if j in bad[i]:
+            tmp.append(np.mean(entropy[i][size == j][:,0:j], axis=0))
+    entropy[i] = tmp
 #----------------------------------
 # Plot
 #----------------------------------
+ion()
+figure(figsize = (16, 12))
+for i in entropy.iterkeys():
+    subplot(3,5,i)
+    for j in xrange(len(entropy[i])):
+        plot(range(1, len(entropy[i][j])+1), entropy[i][j],'o-')
+    xlabel('Inference Level')
+    xticks(range(1,len(entropy[i][j])+1, 2))
+    ylabel('Entropy')
+    #ylim(0.5,5)
+    grid()
+    title(i)
 
-figure()
-plot(np.transpose(pcr['mean']))
+subplots_adjust(left = 0.08, wspace = 0.4, right = 0.86, hspace = 0.35)
 show()
+
+"""
+figure()
+subplot(3,5,1)
+bar(range(1, len(gain[5]['mean'])+1), gain[5]['mean'], yerr = gain[5]['var'], width = 0.3)
+xlabel('Inference Level')
+xticks(range(1, len(gain[5]['mean'])+1))
+ylabel('Entropy Gain')
+title("1 Error search")
+
+gain = dict()
+n_inferences_max = [5]
+for l in n_inferences_max:
+    data = {i:list() for i in xrange(1,l+1)}
+    for i in xrange(1,4):
+        tmp = np.reshape(np.where(bww.state[:,0:l+1] == i)[1], (nb_blocs, 2))
+    distance = tmp[:,1]-tmp[:,0]
+    for j in xrange(nb_blocs):
+        data[distance[j]].append(bww.entropy[j,tmp[j,1],0]-bww.entropy[j,tmp[j,1],distance[j]])
+    gain[l] = dict({'mean':[np.mean(data[k]) for k in data.iterkeys()],
+                    'var':[np.var(data[k]) for k in data.iterkeys()]})
+"""
