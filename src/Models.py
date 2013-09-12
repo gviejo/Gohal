@@ -334,13 +334,15 @@ class BayesianWorkingMemory():
         self.initializeBMemory(states, actions)
         self.current_state = None
         self.p = None
+        self.bloc = -1
+        self.trial = 0
 
     def setEntropyEvolution(self, nb_blocs, nb_trials):
         ## USE to study evolution of entropy##
         self.entropy = np.zeros((nb_blocs, nb_trials, nb_trials+1))
         self.bloc = -1
         self.trial = 0
-        #####################################$
+        #####################################
         
     def getAllParameters(self):        
         return dict({'lenght':[3, self.lenght_memory,15],

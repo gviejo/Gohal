@@ -92,14 +92,6 @@ bww.reaction = np.array(bww.reaction)
 """
 step, indice = getRepresentativeSteps(bww.reaction, bww.state, bww.action, bww.responses)
 
-bad = dict({1:[1,2,3],
-            2:[4,5,6],
-            3:[7,8,9],
-            4:[10,11,12],
-            5:[13,14,15],
-            6:[7,8,9,12,13,14,15,16,17]})
-for i in xrange(7,16):
-    bad[i] = range(12,100)
 
             
 entropy = {i:bww.entropy[np.where(indice == i)] for i in step.keys()}
@@ -113,6 +105,15 @@ for i in entropy.iterkeys():
     entropy[i] = tmp
 """
 ####################
+bad = dict({1:[1,2,3],
+            2:[4,5,6],
+            3:[7,8,9],
+            4:[10,11,12],
+            5:[13,14,15],
+            6:[7,8,9,12,13,14,15,16,17]})
+for i in xrange(7,16):
+    bad[i] = range(12,100)
+
 
 crap = np.reshape(np.arange(bww.reaction.shape[0]*bww.reaction.shape[1]), bww.reaction.shape)
 
@@ -127,31 +128,41 @@ for i in superstuf.iterkeys():
             size = np.sum(superstuf[i][j] <> 0, axis = 1)
             tmp = []
             for k in np.unique(size):
-                tmp.append(np.mean(superstuf[i][j][size == k][:,0:k], axis = 0))
+                if k in bad[j]:
+                    tmp.append(np.mean(superstuf[i][j][size == k][:,0:k], axis = 0))
             superstuf[i][j] = tmp
 
 #----------------------------------
 # Plot
 #----------------------------------
 ion()
-figure(figsize = (16, 12))
-count = 1
-
-for i in superstuf.iterkeys():
-    #for j in superstuf[i].iterkeys():
-    for j in range(1,6):
-        subplot(3,5,count)
-        tmp = superstuf[i][j]
-        for k in tmp:
-            plot(k)
-        # xlabel('Inference Level')
-        # xticks(range(1,len(entropy[i][j])+1, 2))
-        # ylabel('Entropy')
-        grid()
-        # title(i)
-        count+=1
-
+for f in [(1,6),(6,11)]:
+    figure(figsize = (16, 12))
+    count = 1
+    for i in superstuf.iterkeys():
+        for j in range(f[0],f[1]):
+            subplot(3,5,count)
+            tmp = superstuf[i][j]
+            for k in tmp:
+                plot(range(1, len(k)+1), k, 'o-')
+            grid()
+            count+=1
+            #ylim(0.5,5)
+    for i,j in zip(xrange(1,6), xrange(f[0],f[1])):
+        subplot(3,5,i)
+        title("RStep "+str(j))
+    for i in [1,6,11]:
+        subplot(3,5,i)
+        ylabel('Entropy')
+    for i in xrange(11,16):
+        subplot(3,5,i)
+        xlabel('Inference Level')
+        
+        
+    
 subplots_adjust(left = 0.08, wspace = 0.4, right = 0.86, hspace = 0.35)
+
+
 show()
 
 """

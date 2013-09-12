@@ -25,15 +25,14 @@ class KSelection():
         self.actions = kalman.actions; 
         self.states = kalman.states        
         self.values = createQValuesDict(self.states, self.actions)
-        self.rfunction = createQValuesDict(kalman.states, kalman.actions)
-        #self.vpi = {i:list() for i in self.states}
+        self.rrfunc = {i:0.0 for i in self.states}
         self.vpi = list()
         self.rrate = list()
         self.state = list()
         self.action = list()
         self.responses = list()
         self.reaction = list()
-
+        self.model_used = list()
 
     def initialize(self):
         self.values = createQValuesDict(self.states, self.actions)
@@ -43,14 +42,15 @@ class KSelection():
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
-        self.rrate.append([0.0])
+        self.rrate.append([])
         self.vpi.append([])
-        #[self.vpi[s].append([]) for s in self.vpi.iterkeys()]
+        self.model_used.append([])
+        self.rrfunc = {i:0.0 for i in self.states}
 
     def initializeList(self):
         self.values = createQValuesDict(self.states, self.actions)
         self.rfunction = createQValuesDict(self.states, self.actions)
-        #self.vpi = {i:list() for i in self.states}
+        self.rrfunc = {i:0.0 for i in self.states}
         self.vpi = list()
         self.rrate = list()
         self.state=list()
@@ -58,24 +58,27 @@ class KSelection():
         self.responses=list()
         self.action=list()
         self.reaction=list()
-
+        self.model_used = list()
 
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.kalman.predictionStep()
         vpi = computeVPIValues(self.kalman.values[0][self.kalman.values[state]], self.kalman.covariance['cov'].diagonal()[self.kalman.values[state]])
         model_based_value = self.based.computeValue(state) #WRONG since Q^G(s,a) should be computed after the decision is made
+        model_used = 0
         self.vpi[-1].append(vpi)
         for i in range(len(vpi)):
-            if vpi[i] >= self.rrate[-1][-1]*self.tau:
+            if vpi[i] >= self.rrfunc[state]*self.tau:
                 #use Model-based                
                 self.values[0][self.values[(state,self.actions[i])]] = model_based_value[i]
+                model_used+=1
             else:
                 #use Model-free
                 self.values[0][self.values[(state, self.actions[i])]] = self.kalman.values[0][self.kalman.values[(state,self.actions[i])]]
-
         action = getBestActionSoftMax(state, self.values, self.kalman.beta)                
         self.action[-1].append(action)
+        self.model_used[-1].append(float(model_used)/len(self.actions))
+
         return action
 
     def updateValue(self, reward):
@@ -85,7 +88,9 @@ class KSelection():
         self.based.updatePartialValue(self.state[-1][-1], self.action[-1][-1], reward)
 
     def updateRewardRate(self, reward, delay = 0.0):
-        self.rrate[-1].append(((1-self.sigma)**(1+delay))*self.rrate[-1][-1]+self.sigma*reward)
+        #self.rrate[-1].append(((1-self.sigma)**(1+delay))*self.rrate[-1][-1]+self.sigma*reward)
+        self.rrfunc[self.state[-1][-1]] = ((1-self.sigma)**(1+delay))*self.rrfunc[self.state[-1][-1]]+self.sigma*reward
+        self.rrate[-1].append([self.rrfunc[s] for s in self.states])
 
     def getAllParameters(self):
         tmp = dict({'tau':[0.0, self.tau, 1.0],
