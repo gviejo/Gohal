@@ -49,7 +49,6 @@ class KSelection():
 
     def initializeList(self):
         self.values = createQValuesDict(self.states, self.actions)
-        self.rfunction = createQValuesDict(self.states, self.actions)
         self.rrfunc = {i:0.0 for i in self.states}
         self.vpi = list()
         self.rrate = list()
@@ -78,7 +77,6 @@ class KSelection():
         action = getBestActionSoftMax(state, self.values, self.kalman.beta)                
         self.action[-1].append(action)
         self.model_used[-1].append(float(model_used)/len(self.actions))
-
         return action
 
     def updateValue(self, reward):
@@ -90,7 +88,7 @@ class KSelection():
     def updateRewardRate(self, reward, delay = 0.0):
         #self.rrate[-1].append(((1-self.sigma)**(1+delay))*self.rrate[-1][-1]+self.sigma*reward)
         self.rrfunc[self.state[-1][-1]] = ((1-self.sigma)**(1+delay))*self.rrfunc[self.state[-1][-1]]+self.sigma*reward
-        self.rrate[-1].append([self.rrfunc[s] for s in self.states])
+        self.rrate[-1].append(self.rrfunc[self.state[-1][-1]]*self.tau)
 
     def getAllParameters(self):
         tmp = dict({'tau':[0.0, self.tau, 1.0],

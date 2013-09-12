@@ -67,13 +67,13 @@ human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI'
 # -----------------------------------
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
-gamma = 0.7     # discount factor
+gamma = 0.95     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
-beta = 2.0    
-noise_width = 0.02
+beta = 1.5    
+noise_width = 0.05
 length_memory = 7
-sigma = 0.05
+sigma = 0.1
 tau = 0.05
 
 nb_trials = human.responses['meg'].shape[1]
@@ -101,16 +101,13 @@ testModel()
 
 data['keramati'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
 data['used'] = extractStimulusPresentation(selection.model_used, selection.state, selection.action, selection.responses)
-
+data['r'] = extractStimulusPresentation(selection.rrate, selection.state, selection.action, selection.responses)
 # -----------------------------------
 data['vpi'] = dict()
 for i in xrange(len(cats.actions)):
     data['vpi'][cats.actions[i]] = extractStimulusPresentation(selection.vpi[:,:,i], selection.state, selection.action, selection.responses)
-data['r'] = {s:[] for s in xrange(len(cats.states))}
-for i in xrange(len(cats.states)):
-    tmp = extractStimulusPresentation2(selection.rrate[:,:,i], selection.state, selection.action, selection.responses)
-    for j in tmp.keys():
-        
+
+
 # -----------------------------------
 #order data
 # -----------------------------------
