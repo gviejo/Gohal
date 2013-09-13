@@ -37,13 +37,22 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # FONCTIONS
 # -----------------------------------
 
-def testModel(ptr_model):
+def testModel():
     for i in xrange(nb_blocs):
-        #sys.stdout.write("\r Testing model | Blocs : %i" % i); sys.stdout.flush()                        
+        sys.stdout.write("\r Testing model | Blocs : %i" % i); sys.stdout.flush()                        
         cats.reinitialize()
-        ptr_model.initialize()
+        selection.initialize()
         for j in xrange(nb_trials):
-            opt.iterationStep(j, ptr_model, False)
+            state = cats.getStimulus(j)
+            action = selection.chooseAction(state)
+            reward = cats.getOutcome(state, action)
+            selection.updateValue(reward)
+    selection.state = convertStimulus(np.array(selection.state))
+    selection.action = convertAction(np.array(selection.action))
+    selection.responses = np.array(selection.responses)
+    selection.weight = np.array(selection.weight)
+    selection.p_r_based = np.array(selection.p_r_based)
+    selection.p_r_free = np.array(selection.p_r_free)
 
 
 # -----------------------------------
@@ -61,11 +70,11 @@ eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
-gamma = 0.1     # discount factor
+gamma = 0.9     # discount factor
 beta = 1.0
-noise_width = 0.9
+noise_width = 0.1
 length_memory = 5
-w_0 = 0.5
+w_0 = 0.9
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
@@ -88,13 +97,11 @@ data = dict()
 # SESSION MODELS
 # -----------------------------------
 
-testModel(selection)
-selection.state = convertStimulus(np.array(selection.state))
-selection.action = convertAction(np.array(selection.action))
-selection.responses = np.array(selection.responses)
-selection.weight = np.array(selection.weight)
+testModel()
 data['collins'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
 data['w'] = extractStimulusPresentation(selection.weight, selection.state, selection.action, selection.responses)
+data['prbased'] = extractStimulusPresentation(selection.p_r_based, selection.state, selection.action, selection.responses)
+data['prfree'] = extractStimulusPresentation(selection.p_r_free, selection.state, selection.action, selection.responses)
 # -----------------------------------
 
 
@@ -110,7 +117,7 @@ data['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus
 # -----------------------------------
 # Plot
 # -----------------------------------
-
+ion()
 fig = figure(figsize=(15, 9))
 params = {'backend':'pdf',
           'axes.labelsize':10,
@@ -123,7 +130,7 @@ params = {'backend':'pdf',
 dashes = ['-', '--', ':']
 
 for i in xrange(3):
-    subplot(2,3,i+1)
+    subplot(3,3,i+1)
     plot(range(1, len(data['collins']['mean'][i])+1), data['collins']['mean'][i], linewidth = 2, color = 'black')
     errorbar(range(1, len(data['collins']['mean'][i])+1), data['collins']['mean'][i], data['collins']['sem'][i], linewidth = 2, color = 'black')
     plot(range(1, len(data['meg']['mean'][i])+1), data['meg']['mean'][i], linewidth = 2, color = 'black', linestyle = '--')
@@ -136,7 +143,7 @@ for i in xrange(3):
     ylabel('Probability correct response',fontsize = 15)
 
 for i,j in zip([4,5,6], xrange(3)):
-    subplot(2,3,i)
+    subplot(3,3,i)
     plot(range(1, len(data['w']['mean'][j])+1), data['w']['mean'][j], linewidth = 2, color = 'black')
     errorbar(range(1, len(data['w']['mean'][j])+1), data['w']['mean'][j], data['w']['sem'][j], linewidth = 2, color = 'black')
     grid()
@@ -144,6 +151,19 @@ for i,j in zip([4,5,6], xrange(3)):
     ylabel('w', fontsize = 15)
     ylim(0,1)
     xlabel('Trial', fontsize = 15)
+
+for i,j in zip([7,8,9], xrange(3)):
+    subplot(3,3,i)
+    plot(range(1, len(data['prbased']['mean'][j])+1), data['prbased']['mean'][j], linewidth = 2, color = 'grey', label='B-WM')
+    errorbar(range(1, len(data['prbased']['mean'][j])+1), data['prbased']['mean'][j], data['prbased']['sem'][j], linewidth = 2, color='grey')
+    plot(range(1, len(data['prfree']['mean'][j])+1), data['prfree']['mean'][j], linewidth = 2, color = 'black', label='K-QL')
+    errorbar(range(1, len(data['prfree']['mean'][j])+1), data['prfree']['mean'][j], data['prfree']['sem'][j], linewidth = 2, color = 'black')
+    grid()
+    legend()
+    ylabel('$p(r_t|s_t,a_t)$', fontsize = 15)
+    ylim(0,1)
+    xlabel('Trial', fontsize = 15)
+
 
 subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86, hspace = 0.35)
 

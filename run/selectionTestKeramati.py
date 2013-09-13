@@ -53,7 +53,7 @@ def testModel():
     selection.rrate = np.array(selection.rrate)
     selection.vpi = np.array(selection.vpi)
     selection.model_used = np.array(selection.model_used)
-
+    selection.n_inf = np.array(selection.n_inf)
 # -----------------------------------
 
 # -----------------------------------
@@ -102,6 +102,8 @@ testModel()
 data['keramati'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
 data['used'] = extractStimulusPresentation(selection.model_used, selection.state, selection.action, selection.responses)
 data['r'] = extractStimulusPresentation(selection.rrate, selection.state, selection.action, selection.responses)
+tmp =getRepresentativeSteps(selection.n_inf, selection.state, selection.action, selection.responses)
+data['rt'] = computeMeanRepresentativeSteps(tmp[0])
 # -----------------------------------
 data['vpi'] = dict()
 for i in xrange(len(cats.actions)):
@@ -131,7 +133,7 @@ params = {'backend':'pdf',
 dashes = ['-', '--', ':']
 
 for i in xrange(3):
-    subplot(3,3,i+1)
+    subplot(4,3,i+1)
     plot(range(1, len(data['keramati']['mean'][i])+1), data['keramati']['mean'][i], linewidth = 2, color = 'black')
     errorbar(range(1, len(data['keramati']['mean'][i])+1), data['keramati']['mean'][i], data['keramati']['sem'][i], linewidth = 2, color = 'black')
     plot(range(1, len(data['meg']['mean'][i])+1), data['meg']['mean'][i], linewidth = 2, color = 'black', linestyle = '--')
@@ -143,7 +145,7 @@ for i in xrange(3):
     title("Stimulus "+str(i+1))
 
 for i,j in zip([4,5,6], xrange(3)):
-    subplot(3,3,i)
+    subplot(4,3,i)
     plot(range(1, len(data['r']['mean'][j])+1),data['r']['mean'][j], linewidth = 2, linestyle = '--')
     for a in cats.actions:
         plot(range(1, len(data['vpi'][a]['mean'][j])+1),data['vpi'][a]['mean'][j], linewidth = 2, label = a)
@@ -153,16 +155,20 @@ for i,j in zip([4,5,6], xrange(3)):
     legend()
 
 for i,j in zip([7,8,9], xrange(3)):
-    subplot(3,3,i)
+    subplot(4,3,i)
     plot(range(1, len(data['used']['mean'][j])+1),data['used']['mean'][j], 'o-', linewidth = 2)
     grid()
     xlim(0,10)
     legend()
     ylabel("$N^{Based}_a / N^{Free}_a$")
 
-
-
 subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86, hspace = 0.35)
 
+subplot(4,2,7)
+#rrorbar(range(1, len(data['rt'][0])+1), data['rt'][0], data['rt'][1], 'o-', linewidth = 2)
+plot(range(1, len(data['rt'][0])+1), data['rt'][0], 'o-', linewidth = 2)
+xlabel("Representative Steps")
+ylabel("$Length * R(B/F)r")
+grid()
 #fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig2.pdf', bbox_inches='tight')
 show()
