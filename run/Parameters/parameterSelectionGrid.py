@@ -43,14 +43,21 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def testModel(ptr_model):
-    ptr_model.initializeList()
+
+def testModel():
+    selection.initializeList()
     for i in xrange(nb_blocs):
         #sys.stdout.write("\r Testing model | Blocs : %i" % i); sys.stdout.flush()                        
         cats.reinitialize()
-        ptr_model.initialize()
+        selection.initialize()
         for j in xrange(nb_trials):
-            opt.iterationStep(j, ptr_model, False)
+            state = cats.getStimulus(j)
+            action = selection.chooseAction(state)
+            reward = cats.getOutcome(state, action)
+            selection.updateValue(reward)
+    selection.state = convertStimulus(np.array(selection.state))
+    selection.action = convertAction(np.array(selection.action))
+    selection.responses = np.array(selection.responses)
 
 # -----------------------------------
 
@@ -72,10 +79,10 @@ beta = 1.7          # soft-max
 sigma = 0.02        # reward rate update
 tau = 0.08          # time step
 noise_width = 0.01  # noise of model-based
+length_memory = 7   # 
 
+correlation = "JSD"
 
-correlation = "Z"
-length_memory = 15
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
@@ -87,7 +94,7 @@ selection = KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamm
                        BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0),
                        sigma, tau)
 
-inter = 5
+inter = 10
 # -----------------------------------
 
 # -----------------------------------
@@ -118,15 +125,11 @@ for i in xrange(len(values['beta'])):
                     for n in xrange(len(values['tau'])):
                         selection.tau = values['tau'][n]
                         count+=1; print str(count)+" | "+str(inter**6)
-                        testModel(selection)
-                        selection.state = convertStimulus(np.array(selection.state))
-                        selection.action = convertAction(np.array(selection.action))
-                        selection.responses = np.array(selection.responses)
-
+                        testModel()
                         fall = extractStimulusPresentation2(selection.responses, selection.state, selection.action, selection.responses)
                         data[i,j,k,l,m,n] = opt.computeCorrelation(fall, correlation)
 
-        
+data = {correlation:data}        
 data['values'] = values
 data['order'] = ['beta', 'gamma', 'lenght', 'noise', 'sigma', 'tau']
 output = open("../../../Dropbox/ISIR/Plot/datagrid_Keramati_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
