@@ -18,12 +18,12 @@ class KSelection():
     Model-based must be provided
     Specially tuned for Brovelli experiment so beware
     """
-    def __init__(self, kalman, based, sigma, tau):
-        self.kalman = kalman
+    def __init__(self, free, based, sigma, tau):
+        self.free = free
         self.based = based
         self.sigma = sigma; self.tau = tau
-        self.actions = kalman.actions; 
-        self.states = kalman.states        
+        self.actions = free.actions; 
+        self.states = free.states        
         self.values = createQValuesDict(self.states, self.actions)
         self.rrfunc = {i:0.0 for i in self.states}
         self.vpi = list()
@@ -37,7 +37,7 @@ class KSelection():
 
     def initialize(self):
         self.values = createQValuesDict(self.states, self.actions)
-        self.kalman.initialize()
+        self.free.initialize()
         self.based.initialize()
         self.responses.append([])
         self.action.append([])
@@ -64,40 +64,44 @@ class KSelection():
 
     def chooseAction(self, state):
         self.state[-1].append(state)
-        self.kalman.predictionStep()
-        vpi = computeVPIValues(self.kalman.values[0][self.kalman.values[state]], self.kalman.covariance['cov'].diagonal()[self.kalman.values[state]])
-        model_based_value = self.based.computeValue(state) #WRONG since Q^G(s,a) should be computed after the decision is made
-        model_used = 0
+        self.free.predictionStep()
+        vpi = computeVPIValues(self.free.values[0][self.free.values[state]], self.free.covariance['cov'].diagonal()[self.free.values[state]])
         self.vpi[-1].append(vpi)
-        for i in range(len(vpi)):
-            if vpi[i] >= self.rrfunc[state]*self.tau:
-                #use Model-based                
-                self.values[0][self.values[(state,self.actions[i])]] = model_based_value[i]
-                model_used+=1
-            else:
-                #use Model-free
-                self.values[0][self.values[(state, self.actions[i])]] = self.kalman.values[0][self.kalman.values[(state,self.actions[i])]]
-        action = getBestActionSoftMax(state, self.values, self.kalman.beta)                
+        
+        # Decision True => Model based | False => Model free
+        model_used = vpi > self.rrfunc[state]
+        
+        # copy Model-free value
+        self.values[0][self.values[state]] = self.free.values[0][self.free.values[state]]
+        
+        # replace with Model-based value only if needed
+        if True in model_used:            
+            model_based_value = self.based.computeValue(state)
+            self.values[0][np.array(self.values[state])[model_used]] = model_based_value[model_used]
+            
+        # choose Action 
+        action = getBestActionSoftMax(state, self.values, self.free.beta)
+        
         self.action[-1].append(action)
-        self.model_used[-1].append(float(model_used)/len(self.actions))
-        self.n_inf[-1].append(len(self.based.p_s)*(float(model_used)/len(self.actions)))
+        self.model_used[-1].append(float(np.sum(model_used))/len(self.actions))
+        self.n_inf[-1].append(len(self.based.p_s)*(float(np.sum(model_used))/len(self.actions)))
         return action
 
     def updateValue(self, reward):
         self.responses[-1].append((reward==1)*1)
         self.updateRewardRate((reward==1)*1, delay = 0.0)
-        self.kalman.updatePartialValue(self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward)
+        self.free.updatePartialValue(self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward)
         self.based.updatePartialValue(self.state[-1][-1], self.action[-1][-1], reward)
 
     def updateRewardRate(self, reward, delay = 0.0):
         #self.rrate[-1].append(((1-self.sigma)**(1+delay))*self.rrate[-1][-1]+self.sigma*reward)
         self.rrfunc[self.state[-1][-1]] = ((1-self.sigma)**(1+delay))*self.rrfunc[self.state[-1][-1]]+self.sigma*reward
-        self.rrate[-1].append(self.rrfunc[self.state[-1][-1]]*self.tau)
+        self.rrate[-1].append(self.rrfunc[self.state[-1][-1]])
 
     def getAllParameters(self):
         tmp = dict({'tau':[0.0, self.tau, 1.0],
                     'sigma':[0.0, self.sigma, 1.0]})
-        tmp.update(self.kalman.getAllParameters())
+        tmp.update(self.free.getAllParameters())
         tmp.update(self.based.getAllParameters())
         return tmp
 

@@ -53,6 +53,10 @@ def modelTest(stimuli_list):
             action = bww.chooseAction(state)
             reward = cats.getOutcome(state, action)
             bww.updateValue(reward)
+    bww.state = convertStimulus(np.array(bww.state))
+    bww.action = convertAction(np.array(bww.action))
+    bww.responses = np.array(bww.responses)
+    bww.reaction = np.array(bww.reaction)
 
 # -----------------------------------
 
@@ -80,31 +84,11 @@ bww.setEntropyEvolution(nb_blocs, nb_trials)
 # Training session
 # -----------------------------------
 modelTest(createStimulusList(0,0))
-bww.state = convertStimulus(np.array(bww.state))
-bww.action = convertAction(np.array(bww.action))
-bww.responses = np.array(bww.responses)
-bww.reaction = np.array(bww.reaction)
 #----------------------------------
 
 #----------------------------------
 # DATA Extraction
 #---------------------------------
-"""
-step, indice = getRepresentativeSteps(bww.reaction, bww.state, bww.action, bww.responses)
-
-
-            
-entropy = {i:bww.entropy[np.where(indice == i)] for i in step.keys()}
-
-for i in entropy.iterkeys():
-    size = np.sum(entropy[i] <> 0, axis=1)
-    tmp = []
-    for j in np.unique(size):
-        if j in bad[i]:
-            tmp.append(np.mean(entropy[i][size == j][:,0:j], axis=0))
-    entropy[i] = tmp
-"""
-####################
 bad = dict({1:[1,2,3],
             2:[4,5,6],
             3:[7,8,9],
