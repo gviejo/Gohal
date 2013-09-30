@@ -162,5 +162,5 @@ title('C. Kalman Q-Learning')
 
 subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86, hspace = 0.35)
 
-fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig2.pdf', bbox_inches='tight')
-#show()
+#fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig2.pdf', bbox_inches='tight')
+show()

@@ -22,11 +22,21 @@ from pylab import *
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def iterationStep(iteration, m, display = True):
-    state = cats.getStimulus(iteration)
-    action = m.chooseAction(state)
-    reward = cats.getOutcome(state, action)
-    m.updateValue(reward)
+def testModel():
+    bww.initializeList()
+    for i in xrange(nb_blocs):
+        sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                    
+        cats.reinitialize()
+        bww.initialize()
+        for j in xrange(nb_trials):
+            state = cats.getStimulus(j)
+            action = bww.chooseAction(state)
+            reward = cats.getOutcome(state, action)
+            bww.updateValue(reward)
+    bww.state = convertStimulus(np.array(bww.state))
+    bww.action = convertAction(np.array(bww.action))
+    bww.responses = np.array(bww.responses)
+
 
 # -----------------------------------
 
@@ -34,49 +44,36 @@ def iterationStep(iteration, m, display = True):
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
 beta = 1.0
-noise = 0.01
-length_memory = 15
+noise = 0.0
+length_memory = 10
 
 nb_trials = 42
-nb_blocs = 100
+nb_blocs = 48
 cats = CATS()
 
-bmw = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, beta)
+bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, beta)
 
-responses = []
-stimulus = []
-action_list = []
-reaction = []
-
-#bmw.initialize()
-#cats.reinitialize()
-#state = 's1'
 
 # -----------------------------------
 
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
-for i in xrange(nb_blocs):
-    sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                       
-    cats.reinitialize()
-    bmw.initialize()
-    for j in xrange(nb_trials):
-        iterationStep(j, bmw, True)        
-        #sys.stdin.read(1)
+bww.initializeList()
+bww.initialize()
+action = bww.chooseAction('s1')
+#bww.updateValue(0.0)
+bww.updateValue(1.0)
+sys.exit()
 
+#testModel()
 # -----------------------------------
 
 
 # -----------------------------------
 #order data
 # -----------------------------------
-
-data = dict()
-bmw.state = convertStimulus(np.array(bmw.state))
-bmw.action = convertAction(np.array(bmw.action))
-bmw.responses = np.array(bmw.responses)
-pcr = extractStimulusPresentation(bmw.responses, bmw.state, bmw.action, bmw.responses)
+pcr = extractStimulusPresentation(bww.responses, bww.state, bww.action, bww.responses)
 # -----------------------------------
 
 

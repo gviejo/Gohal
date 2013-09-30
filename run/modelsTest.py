@@ -35,12 +35,22 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def iterationStep(iteration, models, display = True):
-    state = cats.getStimulus(iteration)
+def testModels():
     for m in models.itervalues():
-        action = m.chooseAction(state)
-        reward = cats.getOutcome(state, action, m.name)
-        m.updateValue(reward)
+        m.initializeList()
+        for i in xrange(nb_blocs):
+            sys.stdout.write("\r Testing model "+m.name+"| Blocs : %i" % i); sys.stdout.flush()                    
+            cats.reinitialize()
+            m.initialize()
+            for j in xrange(nb_trials):
+                state = cats.getStimulus(j)
+                action = m.chooseAction(state)
+                reward = cats.getOutcome(state, action)
+                m.updateValue(reward)
+        m.state = convertStimulus(np.array(m.state))
+        m.action = convertAction(np.array(m.action))
+        m.responses = np.array(m.responses)
+        m.value = np.array(m.value)
 
 
 # -----------------------------------
@@ -60,12 +70,11 @@ gamma = 0.12     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 beta = 1.0    
-noise_width = 0.17
-length_memory = 3.0
+noise_width = 0.01
+length_memory = 9.0
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
-#nb_blocs = 46
 
 cats = CATS(nb_trials)
 
@@ -81,12 +90,7 @@ data['pcr'] = dict()
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
-for m in models.iterkeys():
-    opt.testModel(models[m])
-    models[m].state = convertStimulus(np.array(models[m].state))
-    models[m].action = convertAction(np.array(models[m].action))
-    models[m].responses = np.array(models[m].responses)
-    data['pcr'][m] = extractStimulusPresentation(models[m].responses, models[m].state, models[m].action, models[m].responses) 
+testModels()
 # -----------------------------------
 
 
@@ -94,6 +98,8 @@ for m in models.iterkeys():
 # -----------------------------------
 #order data
 # -----------------------------------
+for m in models.iterkeys():
+    data['pcr'][m] = extractStimulusPresentation(models[m].responses, models[m].state, models[m].action, models[m].responses) 
 data['pcr']['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 # -----------------------------------
 

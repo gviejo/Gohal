@@ -84,10 +84,15 @@ def SoftMax(values, beta):
     tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
     return np.sum(np.array(tmp) < np.random.rand())-1
 
+def SoftMaxValues(values, beta):
+    tmp = np.exp(values*float(beta))
+    return  tmp/float(np.sum(tmp))
+
 def computeEntropy(values, beta):
     tmp = np.exp(values*float(beta))
     tmp = tmp/float(np.sum(tmp))
     return -np.sum(tmp*np.log2(tmp))
+
 
 def computeVPIValues(mean, variance):
     #WARNING input and output very specific

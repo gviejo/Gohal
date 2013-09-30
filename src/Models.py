@@ -88,7 +88,8 @@ class KalmanQLearning():
         self.state = list()
         self.responses = list()
         self.reaction = list()        
-
+        self.value = list()
+        
     def getAllParameters(self):        
         return dict({'gamma':[0.1,self.gamma,0.9],
                      'beta':[1,self.beta,5]})
@@ -133,6 +134,7 @@ class KalmanQLearning():
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
+        self.value.append([])
 
     def initializeList(self):
         self.values = createQValuesDict(self.states, self.actions)
@@ -141,11 +143,13 @@ class KalmanQLearning():
         self.state = list()
         self.responses = list()
         self.reaction = list()
+        self.value = list()
 
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.covariance['noise'] = self.covariance['cov']*self.eta
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']
+        self.value[-1].append(SoftMaxValues(self.values[0][self.values[state]], self.beta))
         self.action[-1].append(getBestActionSoftMax(state, self.values, self.beta, 0))
         self.reaction[-1].append(computeEntropy(self.values[0][self.values[state]], self.beta))
         return self.action[-1][-1]
@@ -331,11 +335,11 @@ class BayesianWorkingMemory():
         self.responses=list()
         self.action=list()
         self.reaction=list()
+        self.value=list()
         self.initializeBMemory(states, actions)
         self.current_state = None
         self.p = None
-        self.bloc = -1
-        self.trial = 0
+        self.setEntropyEvolution(48, 42)
 
     def setEntropyEvolution(self, nb_blocs, nb_trials):
         ## USE to study evolution of entropy##
@@ -375,6 +379,7 @@ class BayesianWorkingMemory():
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
+        self.value.append([])
         self.bloc+=1
         self.trial = 0
 
@@ -385,6 +390,7 @@ class BayesianWorkingMemory():
         self.responses=list()
         self.action=list()
         self.reaction=list()
+        self.value=list()
         self.trial = 0
         self.bloc = 0
 
@@ -429,17 +435,17 @@ class BayesianWorkingMemory():
         p = np.zeros((self.n_state,self.n_action,2))
         for i in xrange(len(self.p_a_s)):
             p += self.computeBayesianInference(i)
-            self.entropy[self.bloc, self.trial, i] = computeEntropy(p, 1.0)
+            #self.entropy[self.bloc, self.trial, i] = computeEntropy(p[self.current_state], 1.0)
         p = p/np.sum(p)
         #Current state
-        p_ra_s = p[self.current_state]*self.n_state
-        p_ra_s = p_ra_s/np.sum(p_ra_s)
+        p_ra_s = p[self.current_state]/np.sum(p[self.current_state]
         p_r_s = np.sum(p_ra_s, axis = 0)        
         p_a_rs = p_ra_s/p_r_s
         value = p_a_rs[:,1]/p_a_rs[:,0]
         self.reaction[-1].append(computeEntropy(value, 1.0))
         #Sample according to p(A/R,S)
         value = value/np.sum(value)
+        self.value[-1].append(value)
         self.current_action = self.sample(value)
         #self.current_action = SoftMax(value, self.beta)
         self.action[-1].append(self.actions[self.current_action])
@@ -447,18 +453,27 @@ class BayesianWorkingMemory():
         return self.action[-1][-1]
 
     def updateValue(self, reward):
-        r = (reward==1)*1
+        r = int((reward==1)*1)
         self.responses[-1].append(r)
         #Shifting memory            
         self.p_s.insert(0, np.zeros((self.n_state)))
         self.p_a_s.insert(0, np.ones((self.n_state, self.n_action))*(1/float(self.n_action)))
         self.p_r_as.insert(0, np.ones((self.n_state, self.n_action, 2))*0.5)        
         #Adding last choice         
-        self.p_s[0][self.current_state] = 1.0
-        self.p_a_s[0][self.current_state] = 0.0        
-        self.p_a_s[0][self.current_state, self.current_action] = 1.0
-        self.p_r_as[0][self.current_state, self.current_action] = 0.0
-        self.p_r_as[0][self.current_state, self.current_action, int(r)] = 1.0
+        # plus condition if good responses for p_r_as
+        # very specific to the task
+        self.p_s[0][self.current_state] = 1.0    
+        if r == 1:
+            self.p_a_s[0][self.current_state] = 1.0/self.n_action
+            self.p_r_as[0][self.current_state,:,0] = 1.0
+            self.p_r_as[0][self.current_state,:,1] = 0.0                      
+            self.p_r_as[0][self.current_state, self.current_action, 0] = 0.0
+            self.p_r_as[0][self.current_state, self.current_action, 1] = 1.0
+        else:
+            self.p_a_s[0][self.current_state] = 0.0        
+            self.p_a_s[0][self.current_state, self.current_action] = 1.0
+            self.p_r_as[0][self.current_state, self.current_action] = 0.0
+            self.p_r_as[0][self.current_state, self.current_action, r] = 1.0
         #Length of memory allowed
         while len(self.p_a_s) > self.lenght_memory:
             self.p_s.pop(-1)
@@ -472,32 +487,32 @@ class BayesianWorkingMemory():
                 self.p_r_as[i] = np.abs(np.random.normal(self.p_r_as[i], np.ones(self.p_r_as[i].shape)*self.noise,self.p_r_as[i].shape))
             self.normalize()        
 
-    def updatePartialValue(self, state, action, reward):
-        r = (reward==1)*1
-        self.action[-1].append(action)
-        self.state[-1].append(state)
-        self.current_state = convertStimulus(state)-1
-        self.current_action = convertAction(action)-1
-        self.responses[-1].append(r)
-        #Shifting memory            
-        self.p_s.insert(0, np.zeros((self.n_state)))
-        self.p_a_s.insert(0, np.ones((self.n_state, self.n_action))*(1/float(self.n_action)))
-        self.p_r_as.insert(0, np.ones((self.n_state, self.n_action, 2))*0.5)        
-        #Adding last choice         
-        self.p_s[0][self.current_state] = 1.0
-        self.p_a_s[0][self.current_state] = 0.0        
-        self.p_a_s[0][self.current_state, self.current_action] = 1.0
-        self.p_r_as[0][self.current_state, self.current_action] = 0.0
-        self.p_r_as[0][self.current_state, self.current_action, int(r)] = 1.0
-        #Length of memory allowed
-        while len(self.p_a_s) > self.lenght_memory:
-            self.p_s.pop(-1)
-            self.p_a_s.pop(-1)
-            self.p_r_as.pop(-1)
-        #Adding noise
-        if self.noise:
-            for i in xrange(1, len(self.p_s)):
-                self.p_s[i] = np.abs(np.random.normal(self.p_s[i], np.ones(self.p_s[i].shape)*self.noise, self.p_s[i].shape))
-                self.p_a_s[i] = np.abs(np.random.normal(self.p_a_s[i], np.ones(self.p_a_s[i].shape)*self.noise, self.p_a_s[i].shape))
-                self.p_r_as[i] = np.abs(np.random.normal(self.p_r_as[i], np.ones(self.p_r_as[i].shape)*self.noise,self.p_r_as[i].shape))
-            self.normalize()        
+    # def updatePartialValue(self, state, action, reward):
+    #     r = (reward==1)*1
+    #     self.action[-1].append(action)
+    #     self.state[-1].append(state)
+    #     self.current_state = convertStimulus(state)-1
+    #     self.current_action = convertAction(action)-1
+    #     self.responses[-1].append(r)
+    #     #Shifting memory            
+    #     self.p_s.insert(0, np.zeros((self.n_state)))
+    #     self.p_a_s.insert(0, np.ones((self.n_state, self.n_action))*(1/float(self.n_action)))
+    #     self.p_r_as.insert(0, np.ones((self.n_state, self.n_action, 2))*0.5)        
+    #     #Adding last choice         
+    #     self.p_s[0][self.current_state] = 1.0
+    #     self.p_a_s[0][self.current_state] = 0.0        
+    #     self.p_a_s[0][self.current_state, self.current_action] = 1.0
+    #     self.p_r_as[0][self.current_state, self.current_action] = 0.0
+    #     self.p_r_as[0][self.current_state, self.current_action, int(r)] = 1.0
+    #     #Length of memory allowed
+    #     while len(self.p_a_s) > self.lenght_memory:
+    #         self.p_s.pop(-1)
+    #         self.p_a_s.pop(-1)
+    #         self.p_r_as.pop(-1)
+    #     #Adding noise
+    #     if self.noise:
+    #         for i in xrange(1, len(self.p_s)):
+    #             self.p_s[i] = np.abs(np.random.normal(self.p_s[i], np.ones(self.p_s[i].shape)*self.noise, self.p_s[i].shape))
+    #             self.p_a_s[i] = np.abs(np.random.normal(self.p_a_s[i], np.ones(self.p_a_s[i].shape)*self.noise, self.p_a_s[i].shape))
+    #             self.p_r_as[i] = np.abs(np.random.normal(self.p_r_as[i], np.ones(self.p_r_as[i].shape)*self.noise,self.p_r_as[i].shape))
+    #         self.normalize()        
