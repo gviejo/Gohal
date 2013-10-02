@@ -111,15 +111,15 @@ class CSelection():
     Model-based must be provided
     Specially tuned for Brovelli experiment so beware
     """
-    def __init__(self, kalman, based, w_0):
+    def __init__(self, free, based, w_0):
         self.w0 = w_0
         self.C = float(based.lenght_memory)
-        self.n_s = float(len(kalman.states))
-        self.n_a = float(len(kalman.actions))
-        self.kalman = kalman
+        self.n_s = float(len(free.states))
+        self.n_a = float(len(free.actions))
+        self.free = free
         self.based = based
-        self.actions = kalman.actions; 
-        self.states = kalman.states        
+        self.actions = free.actions; 
+        self.states = free.states        
         self.values = createQValuesDict(self.states, self.actions)
         self.w = {i:self.w0*np.min([1,(self.based.lenght_memory/float(len(self.states)))]) for i in self.states}
         self.state = list()
@@ -133,7 +133,7 @@ class CSelection():
         self.p_r_free = list()
 
     def initialize(self):
-        self.kalman.initialize()
+        self.free.initialize()
         self.based.initialize()
         self.responses.append([])
         self.action.append([])
@@ -159,18 +159,19 @@ class CSelection():
 
     def computeRewardLikelihood(self, s, reward):
         tmp = np.min([1.0, self.C/self.n_s])
-
         if reward == 1:
             p_r_bwm = tmp*self.model_based_values + (1-tmp)/float(len(self.actions))
-            p_r_rl = self.kalman.values[0][self.kalman.values[self.states[s]]]
+            p_r_rl = self.free.values[0][self.free.values[self.states[s]]]
         elif reward == 0:
             p_r_bwm = tmp*(1-self.model_based_values) + (1-tmp)/float(len(self.actions))
-            p_r_rl = 1.0 - self.kalman.values[0][self.kalman.values[self.states[s]]]
+            p_r_rl = 1.0 - self.free.values[0][self.free.values[self.states[s]]]
+        p_r_bwm = p_r_bwm/np.sum(p_r_bwm)
+        p_r_rl = np.exp(p_r_rl)/np.sum(np.exp(p_r_rl))
         return p_r_bwm, p_r_rl
 
     def updateWeight(self, s, a, reward):
         assert reward == 0 or reward == 1
-        #print reward, self.kalman.values[0][self.kalman.values[(self.states[s],self.actions[a])]]
+        #print reward, self.free.values[0][self.free.values[(self.states[s],self.actions[a])]]
         (p_r_bwm,p_r_rl) = self.computeRewardLikelihood(s, reward)
         #print p_r_rl[a]
         self.w[self.states[s]] = (p_r_bwm[a]*self.w[self.states[s]])/(p_r_bwm[a]*self.w[self.states[s]]+p_r_rl[a]*(1-self.w[self.states[s]]))
@@ -180,11 +181,11 @@ class CSelection():
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.weight[-1].append(self.w[state])
-        self.kalman.predictionStep()
+        self.free.predictionStep()
         
         self.model_based_values = self.based.computeValue(state) 
         self.model_based_values = self.model_based_values/float(np.sum(self.model_based_values))
-        self.model_free_values = np.exp(self.kalman.values[0][self.kalman.values[state]]*float(self.kalman.beta))
+        self.model_free_values = np.exp(self.free.values[0][self.free.values[state]]*float(self.free.beta))
         self.model_free_values =  self.model_free_values/float(np.sum(self.model_free_values))
 
         self.values[0][self.values[state]] = (1-self.w[state])*self.model_free_values + self.w[state]*self.model_based_values
@@ -196,12 +197,12 @@ class CSelection():
     def updateValue(self, reward):
         self.responses[-1].append((reward==1)*1)
         self.updateWeight(self.states.index(self.state[-1][-1]), self.actions.index(self.action[-1][-1]), (reward==1)*1)        
-        self.kalman.updatePartialValue(self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward)
+        self.free.updatePartialValue(self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward)
         self.based.updatePartialValue(self.state[-1][-1], self.action[-1][-1], reward)
 
     def getAllParameters(self):
         tmp = dict({'w0':[0.0, self.w0, 1.0]})
-        tmp.update(self.kalman.getAllParameters())
+        tmp.update(self.free.getAllParameters())
         tmp.update(self.based.getAllParameters())
         return tmp
 

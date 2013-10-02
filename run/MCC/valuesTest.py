@@ -82,7 +82,7 @@ cats = CATS(nb_trials)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0)})
-                       
+models['bmw'].setEntropyEvolution(nb_blocs+1,nb_trials)                       
 # -----------------------------------
 
 # -----------------------------------

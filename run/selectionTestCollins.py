@@ -1,3 +1,4 @@
+
 #!/usr/bin/python
 # encoding: utf-8
 """
@@ -8,10 +9,8 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
-import os
 from optparse import OptionParser
 import numpy as np
-#from pylab import *
 sys.path.append("../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
@@ -38,6 +37,7 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 
 def testModel():
+    selection.initializeList()
     for i in xrange(nb_blocs):
         sys.stdout.write("\r Testing model | Blocs : %i" % i); sys.stdout.flush()                        
         cats.reinitialize()
@@ -66,19 +66,19 @@ human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI'
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-eta = 0.0001     # variance of evolution noise v
-var_obs = 0.05   # variance of observation noise n
-init_cov = 10   # initialisation of covariance matrice
-kappa = 0.1      # unscentered transform parameters
-gamma = 0.9     # discount factor
-beta = 1.0
-noise_width = 0.1
-length_memory = 5
-w_0 = 0.9
+eta = 0.0001        # variance of evolution noise v
+var_obs = 0.05      # variance of observation noise n
+init_cov = 10       # initialisation of covariance matrice
+kappa = 0.1         # unscentered transform parameters
+gamma = 0.9         # discount factor
+beta = 1.0          # temperature
+noise_width = 0.2   # noise of bwm
+length_memory = 5   # length of memory
+w_0 = 0.87           # initial weight
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
-#nb_blocs = 46
+
 
 cats = CATS(nb_trials)
 
@@ -96,12 +96,7 @@ data = dict()
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
-
 testModel()
-data['collins'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
-data['w'] = extractStimulusPresentation(selection.weight, selection.state, selection.action, selection.responses)
-data['prbased'] = extractStimulusPresentation(selection.p_r_based, selection.state, selection.action, selection.responses)
-data['prfree'] = extractStimulusPresentation(selection.p_r_free, selection.state, selection.action, selection.responses)
 # -----------------------------------
 
 
@@ -109,6 +104,10 @@ data['prfree'] = extractStimulusPresentation(selection.p_r_free, selection.state
 # -----------------------------------
 #order data
 # -----------------------------------
+data['collins'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
+data['w'] = extractStimulusPresentation(selection.weight, selection.state, selection.action, selection.responses)
+data['prbased'] = extractStimulusPresentation(selection.p_r_based, selection.state, selection.action, selection.responses)
+data['prfree'] = extractStimulusPresentation(selection.p_r_free, selection.state, selection.action, selection.responses)
 data['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 
 # -----------------------------------

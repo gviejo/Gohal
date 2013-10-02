@@ -7,3 +7,5 @@ fMRI/
 *.py~
 *.pdf
 *.pickle
+.gohal.sublime-project
+.gohal.sublime-workspace

@@ -52,7 +52,7 @@ nb_blocs = 48
 cats = CATS()
 
 bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, beta)
-
+bww.setEntropyEvolution(nb_blocs+1,nb_trials)                       
 
 # -----------------------------------
 
@@ -62,7 +62,8 @@ bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, no
 bww.initializeList()
 bww.initialize()
 action = bww.chooseAction('s1')
-#bww.updateValue(0.0)
+bww.updateValue(0.0)
+action = bww.chooseAction('s1')
 bww.updateValue(1.0)
 sys.exit()
 

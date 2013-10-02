@@ -75,7 +75,7 @@ def modelTest(stimuli_list):
 
 beta = 1.7
 length_memory = 100
-noise_width = 0.01
+noise_width = 0.0
 
 correlation = "Z"
 
@@ -123,12 +123,12 @@ for i in [1,2,3]:
         # Plot
         #----------------------------------
         subplot(4,4,j+1)
-        plot(range(1, len(ent)+1), ent, 'o-', markersize = 1.2)
+        plot(range(0, len(ent)), ent, 'o-', markersize = 1.2)
         xlabel("Nb inferences", fontsize = 10)
         ylabel("Entropy", fontsize = 10)
         legend()
         #grid()
-        #ylim(0,5)
+        ylim(0,2.5)
         xlim(0,42)
         r = bww.responses[0][indice[i]]        
         for k,l in zip(range(0,45,3)[1:j+1], r[0:len(range(0,45,3)[1:j+1])][::-1]):
@@ -140,4 +140,4 @@ for i in [1,2,3]:
         
     subplots_adjust(left=0.08, wspace=0.3, right = 0.86)
     savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig_entropy_stim'+str(i)+'.pdf', bbox_inches = 'tight')
-#show()        
+show()        

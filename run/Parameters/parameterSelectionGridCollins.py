@@ -13,7 +13,6 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
-import os
 from optparse import OptionParser
 import numpy as np
 import cPickle as pickle
@@ -26,8 +25,9 @@ from Models import *
 from matplotlib import *
 from pylab import *
 from Sweep import Optimization
-from mpl_toolkits.mplot3d import Axes3D
 import datetime
+
+
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
@@ -43,13 +43,20 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def testModel(ptr_model):
-    ptr_model.initializeList()
+def testModel():
+    selection.initializeList()
     for i in xrange(nb_blocs):
         cats.reinitialize()
-        ptr_model.initialize()
+        selection.initialize()
         for j in xrange(nb_trials):
-            opt.iterationStep(j, ptr_model, False)
+            #opt.iterationStep(j, ptr_model, False)
+            state = cats.getStimulus(j)
+            action = selection.chooseAction(state)
+            reward = cats.getOutcome(state, action)
+            selection.updateValue(reward)
+    selection.state = convertStimulus(np.array(selection.state))
+    selection.action = convertAction(np.array(selection.action))
+    selection.responses = np.array(selection.responses)
 
 # -----------------------------------
 
@@ -86,7 +93,7 @@ selection = CSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamm
                        BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0),
                        w_0)
 
-inter = 5
+inter = 6
 # -----------------------------------
 
 # -----------------------------------
@@ -105,21 +112,17 @@ for k in p.iterkeys():
 
 count = 0
 for i in xrange(len(values['beta'])):
-    selection.kalman.beta = values['beta'][i]
+    selection.free.beta = values['beta'][i]
     for j in xrange(len(values['gamma'])):
-        selection.kalman.gamma = values['gamma'][j]
+        selection.free.gamma = values['gamma'][j]
         for k in xrange(len(values['lenght'])):
-            selection.kalman.length_memory = values['lenght'][k]
+            selection.free.length_memory = values['lenght'][k]
             for l in xrange(len(values['noise'])):
-                selection.kalman.noise = values['noise'][l]
+                selection.free.noise = values['noise'][l]
                 for m in xrange(len(values['w0'])):
                     selection.sigma = values['w0'][m]
                     count+=1; print str(count)+" | "+str(inter**5)
-                    testModel(selection)
-                    selection.state = convertStimulus(np.array(selection.state))
-                    selection.action = convertAction(np.array(selection.action))
-                    selection.responses = np.array(selection.responses)
-                    
+                    testModel()                    
                     fall = extractStimulusPresentation2(selection.responses, selection.state, selection.action, selection.responses)
                     data[i,j,k,l,m] = opt.computeCorrelation(fall, correlation)
                         
