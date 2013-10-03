@@ -1,11 +1,10 @@
 import numpy as np
 from scipy.stats import norm
 from prettytable import PrettyTable
-import operator
 from copy import deepcopy
 import cPickle as pickle
-import scipy.io
-from scipy import misc
+
+
 from scipy import stats
 from scipy.stats import binom, sem
 from scipy.stats import chi2_contingency
@@ -89,9 +88,12 @@ def SoftMaxValues(values, beta):
     return  tmp/float(np.sum(tmp))
 
 def computeEntropy(values, beta):
-    tmp = np.exp(values*float(beta))
-    tmp = tmp/float(np.sum(tmp))
-    return -np.sum(tmp*np.log2(tmp))
+    if np.sum(values) == 1:
+        return -np.sum(values*np.log2(values))
+    else:
+        tmp = np.exp(values*float(beta))
+        tmp = tmp/float(np.sum(tmp))
+        return -np.sum(tmp*np.log2(tmp))
 
 
 def computeVPIValues(mean, variance):

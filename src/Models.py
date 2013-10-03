@@ -322,29 +322,41 @@ class BayesianWorkingMemory():
     """
 
     def __init__(self, name, states, actions, lenght_memory = 7, noise = 0.0, beta = 1.0):
+        # State Action Space        
+        self.states=states
+        self.actions=actions        
+        #Parameters
         self.name = name
         self.lenght_memory = lenght_memory
         self.beta = beta
+        self.threshold = 1.0
         self.noise = noise
-        self.states=states
-        self.actions=actions
         self.n_action=float(len(actions))
         self.n_state=float(len(states))
+        # Probability Initialization
+        self.initializeBMemory(states, actions)
+        self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))        
+        self.values = np.ones(self.n_action)*(1./self.n_action)
+        self.p = None        
+        # Various Init
+        self.nb_inferences = 0
+        self.current_state = None
+        self.current_action = None        
+        self.initial_entropy = -np.log2(1./self.n_action)
+        #List Init
         self.state=list()
         self.answer=list()
         self.responses=list()
         self.action=list()
         self.reaction=list()
         self.value=list()
-        self.initializeBMemory(states, actions)
-        self.current_state = None
-        self.p = None        
 
     def setEntropyEvolution(self, nb_blocs, nb_trials):
         ## USE to study evolution of entropy##
         self.entropy = np.zeros((nb_blocs, nb_trials, nb_trials+1))
         self.bloc = -1
         self.trial = 0
+        self.entropy[0,:,0] = self.initial_entropy
         #####################################
         
     def getAllParameters(self):        
@@ -368,9 +380,12 @@ class BayesianWorkingMemory():
             sys.exit(0)
 
     def initializeBMemory(self, state, action):        
-        self.p_s = [np.ones((self.n_state))*(1/self.n_state)]
-        self.p_a_s = [np.ones((self.n_state, self.n_action))*(1/self.n_action)]
-        self.p_r_as = [np.ones((self.n_state, self.n_action, 2))*0.5]
+        #self.p_s = [np.ones((self.n_state))*(1/self.n_state)]
+        #self.p_a_s = [np.ones((self.n_state, self.n_action))*(1/self.n_action)]
+        #self.p_r_as = [np.ones((self.n_state, self.n_action, 2))*0.5]
+        self.p_s = list() 
+        self.p_a_s = list()
+        self.p_r_as = list()
 
     def initialize(self):
         self.initializeBMemory(self.states, self.actions)
@@ -402,41 +417,34 @@ class BayesianWorkingMemory():
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
         return np.sum(np.array(tmp) < np.random.rand())-1
-    
-    def computeBayesianInference(self, i):
-        tmp = self.p_a_s[i] * np.vstack(self.p_s[i])
-        return self.p_r_as[i] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[i].shape)
 
-    def computeDecisionValues(self, p):
-        p_ra_s = p/np.sum(p)
+    def inferenceModule(self):        
+        tmp = self.p_a_s[self.nb_inferences] * np.vstack(self.p_s[self.nb_inferences])
+        self.p += self.p_r_as[self.nb_inferences] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[self.nb_inferences].shape)
+        self.p = self.p/np.sum(self.p)        
+        self.nb_inferences+=1
+
+    def evaluationModule(self):
+        p_ra_s = self.p[self.current_state]/np.sum(self.p[self.current_state])
         p_r_s = np.sum(p_ra_s, axis = 0)
         p_a_rs = p_ra_s/p_r_s
-        value = p_a_rs[:,1]/p_a_rs[:,0]
-        return value                                
-
-    def computeValue(self, state):
-        self.state[-1].append(state)
-        self.current_state = convertStimulus(state)-1
-        #Bayesian Inference
-        p = np.zeros((self.n_state,self.n_action,2))
-        for i in xrange(len(self.p_a_s)):
-            p += self.computeBayesianInference(i) 
-            p = p/np.sum(p)
-            value = self.computeDecisionValues(p[self.current_state])
-            #self.entropy[self.bloc, self.trial, i] = computeEntropy(p[self.current_state], 1.0)
-            self.entropy[self.bloc, self.trial, i] = computeEntropy(value, 10.0)        
-        self.p = p # for Collins model
-        #Current state        
-        return value
+        self.values = p_a_rs[:,1]/p_a_rs[:,0]
+        self.values = self.values/np.sum(self.values)        
+        #self.entropy = -np.sum(self.values*np.log2(self.values))
+        self.entropy[self.bloc, self.trial, self.nb_inferences] = -np.sum(self.values*np.log2(self.values))
 
     def chooseAction(self, state):
-        value = self.computeValue(state)
-        value = value/np.sum(value)
-        self.reaction[-1].append(computeEntropy(value, 1.0))
-        #Sample according to p(A/R,S)        
-        self.value[-1].append(value)
-        self.current_action = self.sample(value)
-        #self.current_action = SoftMax(value, self.beta)
+        self.state[-1].append(state)
+        self.current_state = convertStimulus(state)-1
+        self.p = self.uniform
+        #self.entropy = self.initial_entropy
+        self.nb_inferences = 0        
+        #while self.entropy > self.threshold:
+        for i in xrange(len(self.p_s)):
+            self.inferenceModule()
+            self.evaluationModule()
+        self.current_action = self.sample(self.values)            
+        self.value[-1].append(self.values)        
         self.action[-1].append(self.actions[self.current_action])
         self.trial+=1
         return self.action[-1][-1]
@@ -445,15 +453,15 @@ class BayesianWorkingMemory():
         r = int((reward==1)*1)
         self.responses[-1].append(r)
         #Shifting memory            
-        self.p_s.insert(1, np.zeros((self.n_state)))
-        self.p_a_s.insert(1, np.ones((self.n_state, self.n_action))*(1/float(self.n_action)))
-        self.p_r_as.insert(1, np.ones((self.n_state, self.n_action, 2))*0.5)        
+        self.p_s.insert(0, np.zeros((self.n_state)))
+        self.p_a_s.insert(0, np.ones((self.n_state, self.n_action))*(1/float(self.n_action)))
+        self.p_r_as.insert(0, np.ones((self.n_state, self.n_action, 2))*0.5)        
         #Adding last choice         
-        self.p_s[1][self.current_state] = 1.0    
-        self.p_a_s[1][self.current_state] = 0.0        
-        self.p_a_s[1][self.current_state, self.current_action] = 1.0
-        self.p_r_as[1][self.current_state, self.current_action] = 0.0
-        self.p_r_as[1][self.current_state, self.current_action, int(r)] = 1.0
+        self.p_s[0][self.current_state] = 1.0    
+        self.p_a_s[0][self.current_state] = 0.0        
+        self.p_a_s[0][self.current_state, self.current_action] = 1.0
+        self.p_r_as[0][self.current_state, self.current_action] = 0.0
+        self.p_r_as[0][self.current_state, self.current_action, int(r)] = 1.0
         #Length of memory allowed
         while len(self.p_a_s) > self.lenght_memory:
             self.p_s.pop(-1)
@@ -461,7 +469,7 @@ class BayesianWorkingMemory():
             self.p_r_as.pop(-1)
         #Adding noise
         if self.noise:
-            for i in xrange(2, len(self.p_s)):
+            for i in xrange(1, len(self.p_s)):
                 self.p_s[i] = np.abs(np.random.normal(self.p_s[i], np.ones(self.p_s[i].shape)*self.noise, self.p_s[i].shape))
                 self.p_a_s[i] = np.abs(np.random.normal(self.p_a_s[i], np.ones(self.p_a_s[i].shape)*self.noise, self.p_a_s[i].shape))
                 self.p_r_as[i] = np.abs(np.random.normal(self.p_r_as[i], np.ones(self.p_r_as[i].shape)*self.noise,self.p_r_as[i].shape))
@@ -496,3 +504,43 @@ class BayesianWorkingMemory():
                 self.p_a_s[i] = np.abs(np.random.normal(self.p_a_s[i], np.ones(self.p_a_s[i].shape)*self.noise, self.p_a_s[i].shape))
                 self.p_r_as[i] = np.abs(np.random.normal(self.p_r_as[i], np.ones(self.p_r_as[i].shape)*self.noise,self.p_r_as[i].shape))
             self.normalize()        
+
+    
+
+    # def computeBayesianInference(self, i):
+    #     tmp = self.p_a_s[i] * np.vstack(self.p_s[i])
+    #     return self.p_r_as[i] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[i].shape)
+
+    # def computeDecisionValues(self, p):
+    #     p_ra_s = p/np.sum(p)
+    #     p_r_s = np.sum(p_ra_s, axis = 0)
+    #     p_a_rs = p_ra_s/p_r_s
+    #     value = p_a_rs[:,1]/p_a_rs[:,0]
+    #     return value                                
+
+    # def computeValue(self, state):
+    #     self.state[-1].append(state)
+    #     self.current_state = convertStimulus(state)-1
+    #     #Bayesian Inference
+    #     p = np.zeros((self.n_state,self.n_action,2))
+    #     for i in xrange(len(self.p_a_s)):
+    #         p += self.computeBayesianInference(i) 
+    #         p = p/np.sum(p)
+    #         value = self.computeDecisionValues(p[self.current_state])            
+    #         value = value/np.sum(value)
+    #         self.entropy[self.bloc, self.trial, i] = computeEntropy(value, 1.0)        
+    #     self.p = p # for Collins model
+    #     #Current state        
+    #     return value
+
+    # def chooseAction2(self, state):
+    #     value = self.computeValue(state)                
+    #     self.reaction[-1].append(computeEntropy(value, 1.0))
+    #     #Sample according to p(A/R,S)        
+    #     self.value[-1].append(value)
+    #     self.current_action = self.sample(value)
+    #     #self.current_action = SoftMax(value, self.beta)
+    #     self.action[-1].append(self.actions[self.current_action])
+    #     self.trial+=1        
+    #     return self.action[-1][-1]
+

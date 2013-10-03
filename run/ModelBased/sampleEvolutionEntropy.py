@@ -46,9 +46,11 @@ def singleTest(stimuli_list, order):
     bww.initialize()
     for j in xrange(nb_trials):
             state = cats.getStimulus(j)
-            action = bww.chooseAction(state)
+            action = bww.chooseAction(state)    
             reward = cats.getOutcome(state, action)
             bww.updateValue(reward)
+            #if np.sum(cats.incorrect[2]) == -3.0:
+             #   sys.exit()
     bww.state = convertStimulus(np.array(bww.state))
     bww.action = convertAction(np.array(bww.action))
     bww.responses = np.array(bww.responses)
@@ -110,7 +112,7 @@ rcParams.update(params)
 colorscode = {1:'blue',
               2:'green',
               3:'red'}
-#ion()
+ion()
 for i in [1,2,3]:
     figure(str(i), figsize=(16,10))
     #----------------------------------
@@ -139,5 +141,5 @@ for i in [1,2,3]:
         
         
     subplots_adjust(left=0.08, wspace=0.3, right = 0.86)
-    savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig_entropy_stim'+str(i)+'.pdf', bbox_inches = 'tight')
+    #savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig_entropy_stim'+str(i)+'.pdf', bbox_inches = 'tight')
 show()        
