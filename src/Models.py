@@ -318,18 +318,16 @@ class TreeConstruction():
 class BayesianWorkingMemory():
     """Class that implement a bayesian working memory based on 
     Color Association Experiments from Brovelli & al 2011
-    choose Action based on p(A = i/ R = 1,S = j)
     """
 
-    def __init__(self, name, states, actions, lenght_memory = 7, noise = 0.0, beta = 1.0):
+    def __init__(self, name, states, actions, lenght_memory = 7, noise = 0.0, threshold = 1.0):
         # State Action Space        
         self.states=states
         self.actions=actions        
         #Parameters
         self.name = name
         self.lenght_memory = lenght_memory
-        self.beta = beta
-        self.threshold = 1.0
+        self.threshold = threshold
         self.noise = noise
         self.n_action=float(len(actions))
         self.n_state=float(len(states))
@@ -343,6 +341,7 @@ class BayesianWorkingMemory():
         self.current_state = None
         self.current_action = None        
         self.initial_entropy = -np.log2(1./self.n_action)
+        self.entropy = self.initial_entropy
         #List Init
         self.state=list()
         self.answer=list()
@@ -350,19 +349,11 @@ class BayesianWorkingMemory():
         self.action=list()
         self.reaction=list()
         self.value=list()
-
-    def setEntropyEvolution(self, nb_blocs, nb_trials):
-        ## USE to study evolution of entropy##
-        self.entropy = np.zeros((nb_blocs, nb_trials, nb_trials+1))
-        self.bloc = -1
-        self.trial = 0
-        self.entropy[0,:,0] = self.initial_entropy
-        #####################################
         
     def getAllParameters(self):        
         return dict({'lenght':[3, self.lenght_memory,15],
-                     'noise':[1.0e-8,self.noise,0.5]})
-                     #'beta':[1.0,self.beta,5.0]})
+                     'noise':[1.0e-8,self.noise,0.5],
+                     'threshold':[0.0, self.threshold, 2.5]})
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -380,9 +371,6 @@ class BayesianWorkingMemory():
             sys.exit(0)
 
     def initializeBMemory(self, state, action):        
-        #self.p_s = [np.ones((self.n_state))*(1/self.n_state)]
-        #self.p_a_s = [np.ones((self.n_state, self.n_action))*(1/self.n_action)]
-        #self.p_r_as = [np.ones((self.n_state, self.n_action, 2))*0.5]
         self.p_s = list() 
         self.p_a_s = list()
         self.p_r_as = list()
@@ -394,8 +382,6 @@ class BayesianWorkingMemory():
         self.state.append([])
         self.reaction.append([])
         self.value.append([])
-        self.bloc+=1
-        self.trial = 0
 
     def initializeList(self):
         self.initializeBMemory(self.states, self.actions)
@@ -405,8 +391,6 @@ class BayesianWorkingMemory():
         self.action=list()
         self.reaction=list()
         self.value=list()
-        self.trial = 0
-        self.bloc = 0
 
     def normalize(self):
         for i in xrange(len(self.p_s)):
@@ -420,33 +404,31 @@ class BayesianWorkingMemory():
 
     def inferenceModule(self):        
         tmp = self.p_a_s[self.nb_inferences] * np.vstack(self.p_s[self.nb_inferences])
-        self.p += self.p_r_as[self.nb_inferences] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[self.nb_inferences].shape)
-        self.p = self.p/np.sum(self.p)        
+        self.p = self.p + self.p_r_as[self.nb_inferences] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[self.nb_inferences].shape)
         self.nb_inferences+=1
 
     def evaluationModule(self):
-        p_ra_s = self.p[self.current_state]/np.sum(self.p[self.current_state])
+        tmp = self.p/np.sum(self.p)
+        p_ra_s = tmp[self.current_state]/np.sum(tmp[self.current_state])
         p_r_s = np.sum(p_ra_s, axis = 0)
         p_a_rs = p_ra_s/p_r_s
         self.values = p_a_rs[:,1]/p_a_rs[:,0]
         self.values = self.values/np.sum(self.values)        
-        #self.entropy = -np.sum(self.values*np.log2(self.values))
-        self.entropy[self.bloc, self.trial, self.nb_inferences] = -np.sum(self.values*np.log2(self.values))
+        self.entropy = -np.sum(self.values*np.log2(self.values))
 
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
-        self.p = self.uniform
-        #self.entropy = self.initial_entropy
+        self.p = self.uniform[:,:,:]
+        self.entropy = self.initial_entropy
         self.nb_inferences = 0        
-        #while self.entropy > self.threshold:
-        for i in xrange(len(self.p_s)):
+        while self.entropy > self.threshold and self.nb_inferences < len(self.p_s):
             self.inferenceModule()
             self.evaluationModule()
         self.current_action = self.sample(self.values)            
         self.value[-1].append(self.values)        
         self.action[-1].append(self.actions[self.current_action])
-        self.trial+=1
+        self.reaction[-1].append(self.nb_inferences)
         return self.action[-1][-1]
 
     def updateValue(self, reward):
@@ -505,6 +487,15 @@ class BayesianWorkingMemory():
                 self.p_r_as[i] = np.abs(np.random.normal(self.p_r_as[i], np.ones(self.p_r_as[i].shape)*self.noise,self.p_r_as[i].shape))
             self.normalize()        
 
+
+
+    # def setEntropyEvolution(self, nb_blocs, nb_trials):
+    #     ## USE to study evolution of entropy##
+    #     self.entropy = np.zeros((nb_blocs, nb_trials, nb_trials+1))
+    #     self.bloc = -1
+    #     self.trial = 0
+    #     self.entropy[0,:,0] = self.initial_entropy
+    #     #####################################
     
 
     # def computeBayesianInference(self, i):

@@ -18,7 +18,7 @@ from ColorAssociationTasks import CATS_MODELS
 from Models import BayesianWorkingMemory
 from matplotlib import *
 from pylab import *
-
+from HumanLearning import HLearning
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
@@ -36,9 +36,16 @@ def testModel():
     bww.state = convertStimulus(np.array(bww.state))
     bww.action = convertAction(np.array(bww.action))
     bww.responses = np.array(bww.responses)
-
+    bww.reaction = np.array(bww.reaction)
+    
+# -----------------------------------
 
 # -----------------------------------
+# HUMAN LEARNING
+# -----------------------------------
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
+# -----------------------------------
+
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
@@ -46,13 +53,13 @@ def testModel():
 beta = 1.0
 noise = 0.0
 length_memory = 10
+threshold = 1.0
 
 nb_trials = 42
 nb_blocs = 48
 cats = CATS()
 
-bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, beta)
-bww.setEntropyEvolution(nb_blocs+1,nb_trials)                       
+bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
 
 # -----------------------------------
 
@@ -61,17 +68,8 @@ bww.setEntropyEvolution(nb_blocs+1,nb_trials)
 # -----------------------------------
 bww.initializeList()
 bww.initialize()
-action = bww.chooseAction('s1')
-bww.updateValue(0.0)
-action = bww.chooseAction('s1')
-bww.updateValue(0.0)
-action = bww.chooseAction('s1')
-bww.updateValue(0.0)
-action = bww.chooseAction('s1')
-bww.updateValue(0.0)
-sys.exit()
 
-#testModel()
+testModel()
 # -----------------------------------
 
 
@@ -79,6 +77,19 @@ sys.exit()
 #order data
 # -----------------------------------
 pcr = extractStimulusPresentation(bww.responses, bww.state, bww.action, bww.responses)
+pcr_human = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+
+ratio = ((np.max(human.reaction['meg'])-np.min(human.reaction['meg']))/(np.max(bww.reaction)-np.min(bww.reaction)))
+bww.reaction = bww.reaction*(0.1*ratio)
+#bww.reaction = bww.reaction + (np.min(bww.reaction)-np.min(human.reaction['meg']))
+bww.reaction = bww.reaction + 0.45
+
+step, indice = getRepresentativeSteps(bww.reaction, bww.state, bww.action, bww.responses)
+rt = computeMeanRepresentativeSteps(step)
+
+step, indice = getRepresentativeSteps(human.reaction['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+rt_human = computeMeanRepresentativeSteps(step) 
+    
 # -----------------------------------
 
 
@@ -88,12 +99,18 @@ pcr = extractStimulusPresentation(bww.responses, bww.state, bww.action, bww.resp
 
 # Probability of correct responses
 figure()
-subplot(211)
-for mean, sem in zip(pcr['mean'], pcr['sem']):
-    errorbar(range(len(mean)), mean, sem, linewidth = 2)
-legend()
-grid()
-ylim(0,1)
-title('pcr')
-
+for i in xrange(3):
+    subplot(4,1,i+1)
+    plot(range(len(pcr['mean'][i])), pcr['mean'][i], linewidth = 2, linestyle = '-', color = 'black')    
+    errorbar(range(len(pcr['mean'][i])), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = 'black')
+    plot(range(len(pcr_human['mean'][i])), pcr_human['mean'][i], linewidth = 2, linestyle = ':', color = 'black')    
+    errorbar(range(len(pcr_human['mean'][i])), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = 'black')
+    
+    grid()
+    ylim(0,1)
+subplot(4,1,4)
+plot(range(len(rt[0])), rt[0], linewidth = 2, linestyle = '-', color = 'black')
+errorbar(range(len(rt[0])), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
+plot(range(len(rt_human[0])), rt_human[0], linewidth = 2, linestyle = ':', color = 'black')
+errorbar(range(len(rt_human[0])), rt_human[0], rt_human[1], linewidth = 2, linestyle = ':', color = 'black')
 show()

@@ -74,7 +74,6 @@ models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gam
 
 cats = CATS_MODELS(nb_trials, models.keys())
 
-human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
 sweep = Sweep_performances(human, cats, nb_trials, nb_blocs)
 data = dict()
 data['human'] = extractStimulusPresentation2(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
