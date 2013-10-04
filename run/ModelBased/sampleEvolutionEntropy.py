@@ -141,5 +141,5 @@ for i in [1,2,3]:
         
         
     subplots_adjust(left=0.08, wspace=0.3, right = 0.86)
-    savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig_entropy_stim'+str(i)+'.pdf', bbox_inches = 'tight')
-#show()        
+    #savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig_entropy_stim'+str(i)+'.pdf', bbox_inches = 'tight')
+show()        

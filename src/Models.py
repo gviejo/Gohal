@@ -349,11 +349,12 @@ class BayesianWorkingMemory():
         self.action=list()
         self.reaction=list()
         self.value=list()
+        self.entropies=list()
         
     def getAllParameters(self):        
         return dict({'lenght':[3, self.lenght_memory,15],
-                     'noise':[1.0e-8,self.noise,0.5],
-                     'threshold':[0.0, self.threshold, 2.5]})
+                     'noise':[0.0,self.noise,0.01],
+                     'threshold':[0.5, self.threshold, 2.0]})
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -382,6 +383,7 @@ class BayesianWorkingMemory():
         self.state.append([])
         self.reaction.append([])
         self.value.append([])
+        self.entropies.append([])
 
     def initializeList(self):
         self.initializeBMemory(self.states, self.actions)
@@ -391,6 +393,7 @@ class BayesianWorkingMemory():
         self.action=list()
         self.reaction=list()
         self.value=list()
+        self.entropies=list()
 
     def normalize(self):
         for i in xrange(len(self.p_s)):
@@ -429,6 +432,7 @@ class BayesianWorkingMemory():
         self.value[-1].append(self.values)        
         self.action[-1].append(self.actions[self.current_action])
         self.reaction[-1].append(self.nb_inferences)
+        self.entropies[-1].append(self.entropy)
         return self.action[-1][-1]
 
     def updateValue(self, reward):

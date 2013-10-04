@@ -53,26 +53,28 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-eta = 0.0001     # variance of evolution noise v
-var_obs = 0.05   # variance of observation noise n
-gamma = 0.9     # discount factor
-init_cov = 10   # initialisation of covariance matrice
-kappa = 0.1      # unscentered transform parameters
-beta = 1.7      
-noise_width = 0.01
+eta = 0.0001        # variance of evolution noise v
+var_obs = 0.05      # variance of observation noise n
+gamma = 0.9         # discount factor
+init_cov = 10       # initialisation of covariance matrice
+kappa = 0.1         # unscentered transform parameters
+beta = 1.7          # temperature
+noise = 0.001
+length_memory = 10
+threshold = 1.5
+
+inter = 10
 correlation = "JSD"
-length_memory = 15
 
 nb_trials = human.responses['meg'].shape[1]
-#nb_blocs = human.responses['meg'].shape[0]
-nb_blocs = 46
+nb_blocs = human.responses['meg'].shape[0]
 
 cats = CATS()
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-               'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, 15, 0.01, 1.0)})
+              'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, 15, 0.01, 1.0)})
 
-inter = 10
+
 # -----------------------------------
 
 data = {}
