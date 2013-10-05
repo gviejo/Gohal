@@ -13,7 +13,7 @@ import sys
 import os
 from optparse import OptionParser
 import numpy as np
-sys.path.append("../src")
+sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
 from HumanLearning import HLearning
@@ -60,22 +60,23 @@ def testModel():
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI',39)}))
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-eta = 0.0001        # variance of evolution noise v
-var_obs = 0.05      # variance of observation noise n
-gamma = 0.95        # discount factor
-init_cov = 10       # initialisation of covariance matrice
-kappa = 0.1         # unscentered transform parameters
-beta = 1.5          # temperature for kalman soft-max
-noise_width = 0.01  # variance of white noise for working memory
-length_memory = 10  # size of working memory
-sigma = 0.02        # updating rate of the average reward
-tau = 1             # time step for edge crossing
+eta = 0.0001            # variance of evolution noise v
+var_obs = 0.05          # variance of observation noise n
+gamma = 0.95            # discount factor
+init_cov = 10           # initialisation of covariance matrice
+kappa = 0.1             # unscentered transform parameters
+beta = 5.5              # temperature for kalman soft-max
+noise = 0.000            # variance of white noise for working memory
+length_memory = 100     # size of working memory
+threshold = 0.2         # inference threshold
+sigma = 0.00002           # updating rate of the average reward
+
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
@@ -84,8 +85,8 @@ nb_blocs = human.responses['meg'].shape[0]
 cats = CATS(nb_trials)
 
 selection = KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-                       BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0),
-                       sigma, tau)
+                       BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise, threshold),
+                       sigma)
                        
 # -----------------------------------
 
@@ -182,5 +183,5 @@ figtext(0.04, 0.92, 'A', fontsize = 15)
 figtext(0.04, 0.61, 'B', fontsize = 15)
 figtext(0.04, 0.33, 'C', fontsize = 15)
 
-fig.savefig('../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig8.pdf', bbox_inches='tight')
+#fig.savefig('../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig8.pdf', bbox_inches='tight')
 show()

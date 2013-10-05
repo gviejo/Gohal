@@ -96,7 +96,7 @@ p = bww.getAllParameters()
 for k in p.keys():
     values[k] = np.linspace(p[k][0], p[k][2], inter)
 values['lenght'] = values['lenght'].astype(int)
-
+sys.exit()
 count = 0
 for i in xrange(len(values['lenght'])):
     for j in xrange(len(values['noise'])):
@@ -128,7 +128,7 @@ for i in sorted_value:
 
 crap['values'] = values
 
-#output = open("../../../Dropbox/ISIR/Plot/datagrid_bwm_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
-#pickle.dump(data, output)
-#output.close()
+output = open("../../../Dropbox/ISIR/Plot/datagrid_bwm_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
+pickle.dump(crap, output)
+output.close()
 

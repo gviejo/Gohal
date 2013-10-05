@@ -419,6 +419,16 @@ class BayesianWorkingMemory():
         self.values = self.values/np.sum(self.values)        
         self.entropy = -np.sum(self.values*np.log2(self.values))
 
+    def computeValue(self, state):        
+        self.current_state = convertStimulus(state)-1
+        self.p = self.uniform[:,:,:]
+        self.entropy = self.initial_entropy
+        self.nb_inferences = 0        
+        while self.entropy > self.threshold and self.nb_inferences < len(self.p_s):
+            self.inferenceModule()
+            self.evaluationModule()        
+        return self.values
+
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
@@ -490,52 +500,3 @@ class BayesianWorkingMemory():
                 self.p_a_s[i] = np.abs(np.random.normal(self.p_a_s[i], np.ones(self.p_a_s[i].shape)*self.noise, self.p_a_s[i].shape))
                 self.p_r_as[i] = np.abs(np.random.normal(self.p_r_as[i], np.ones(self.p_r_as[i].shape)*self.noise,self.p_r_as[i].shape))
             self.normalize()        
-
-
-
-    # def setEntropyEvolution(self, nb_blocs, nb_trials):
-    #     ## USE to study evolution of entropy##
-    #     self.entropy = np.zeros((nb_blocs, nb_trials, nb_trials+1))
-    #     self.bloc = -1
-    #     self.trial = 0
-    #     self.entropy[0,:,0] = self.initial_entropy
-    #     #####################################
-    
-
-    # def computeBayesianInference(self, i):
-    #     tmp = self.p_a_s[i] * np.vstack(self.p_s[i])
-    #     return self.p_r_as[i] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[i].shape)
-
-    # def computeDecisionValues(self, p):
-    #     p_ra_s = p/np.sum(p)
-    #     p_r_s = np.sum(p_ra_s, axis = 0)
-    #     p_a_rs = p_ra_s/p_r_s
-    #     value = p_a_rs[:,1]/p_a_rs[:,0]
-    #     return value                                
-
-    # def computeValue(self, state):
-    #     self.state[-1].append(state)
-    #     self.current_state = convertStimulus(state)-1
-    #     #Bayesian Inference
-    #     p = np.zeros((self.n_state,self.n_action,2))
-    #     for i in xrange(len(self.p_a_s)):
-    #         p += self.computeBayesianInference(i) 
-    #         p = p/np.sum(p)
-    #         value = self.computeDecisionValues(p[self.current_state])            
-    #         value = value/np.sum(value)
-    #         self.entropy[self.bloc, self.trial, i] = computeEntropy(value, 1.0)        
-    #     self.p = p # for Collins model
-    #     #Current state        
-    #     return value
-
-    # def chooseAction2(self, state):
-    #     value = self.computeValue(state)                
-    #     self.reaction[-1].append(computeEntropy(value, 1.0))
-    #     #Sample according to p(A/R,S)        
-    #     self.value[-1].append(value)
-    #     self.current_action = self.sample(value)
-    #     #self.current_action = SoftMax(value, self.beta)
-    #     self.action[-1].append(self.actions[self.current_action])
-    #     self.trial+=1        
-    #     return self.action[-1][-1]
-

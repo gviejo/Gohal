@@ -108,6 +108,7 @@ models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gam
 #    f = open(m, 'rb')
 #    p[m] = pickle.load(f)
 X = np.load(options.input)
+sys.exit()
 est = KMeans(5)
 est.fit(X)
 

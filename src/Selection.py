@@ -18,10 +18,10 @@ class KSelection():
     Model-based must be provided
     Specially tuned for Brovelli experiment so beware
     """
-    def __init__(self, free, based, sigma, tau):
+    def __init__(self, free, based, sigma):
         self.free = free
         self.based = based
-        self.sigma = sigma; self.tau = tau
+        self.sigma = sigma
         self.actions = free.actions; 
         self.states = free.states        
         self.values = createQValuesDict(self.states, self.actions)
@@ -72,8 +72,7 @@ class KSelection():
         model_used = vpi > self.rrfunc[state]
         
         # copy Model-free value
-        self.values[0][self.values[state]] = self.free.values[0][self.free.values[state]]
-        
+        self.values[0][self.values[state]] = self.free.values[0][self.free.values[state]]        
         # replace with Model-based value only if needed
         if True in model_used:            
             model_based_value = self.based.computeValue(state)

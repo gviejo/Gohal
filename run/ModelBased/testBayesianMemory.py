@@ -16,6 +16,9 @@ from Models import BayesianWorkingMemory
 from matplotlib import *
 from pylab import *
 from HumanLearning import HLearning
+
+
+
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
@@ -47,12 +50,12 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.0
-length_memory = 10
-threshold = 1.2
+noise = 0.0078
+length_memory = 12
+threshold = 0.5
 
 nb_trials = 42
-nb_blocs = 48
+nb_blocs = 1000
 cats = CATS()
 
 bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
@@ -66,6 +69,7 @@ bww.initializeList()
 bww.initialize()
 
 testModel()
+
 # -----------------------------------
 
 
