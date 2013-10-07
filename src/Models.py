@@ -431,7 +431,7 @@ class BayesianWorkingMemory():
         self.p = self.uniform[:,:,:]
         self.entropy = self.initial_entropy
         self.nb_inferences = 0        
-        while self.entropy > self.threshold and self.nb_inferences < len(self.p_s):
+        while self.entropy > self.threshold and self.nb_inferences < self.n_element:
             self.inferenceModule()
             self.evaluationModule()        
         return self.values
@@ -473,11 +473,11 @@ class BayesianWorkingMemory():
         #Adding noise
         if self.noise:
             self.p_s = self.p_s + np.random.beta(self.noise, 5, self.p_s.shape)
-            self.p_s = self.p_s/np.sum(self.p_s, axis = 1, keepdims = True)
+            self.p_s[0:self.n_element] = self.p_s[0:self.n_element]/np.sum(self.p_s[0:self.n_element], axis = 1, keepdims = True)
             self.p_a_s = self.p_a_s + np.random.beta(self.noise, 5, self.p_a_s.shape)
-            self.p_a_s = self.p_a_s/np.sum(self.p_a_s, axis = 2, keepdims = True)
+            self.p_a_s[0:self.n_element] = self.p_a_s[0:self.n_element]/np.sum(self.p_a_s[0:self.n_element], axis = 2, keepdims = True)
             self.p_r_as = self.p_r_as + np.random.beta(self.noise, 5, self.p_r_as.shape)
-            self.p_r_as = self.p_r_as/np.sum(self.p_r_as, axis = 3, keepdims = True)            
+            self.p_r_as[0:self.n_element] = self.p_r_as[0:self.n_element]/np.sum(self.p_r_as[0:self.n_element], axis = 3, keepdims = True)            
 
     def updatePartialValue(self, state, action, reward):
         r = (reward==1)*1

@@ -9,7 +9,7 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 ***************************
 
 	==> python	: 2.7.3
- 	==> numpy  	: 1.6.1
+ 	==> numpy  	: 1.7.1
 	==> scipy	: 0.9.0
 	==> matplotlib 	: 1.1.1
 	==> prettytable

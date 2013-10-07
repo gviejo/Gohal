@@ -17,7 +17,7 @@ from matplotlib import *
 from pylab import *
 from HumanLearning import HLearning
 from time import time
-
+from sklearn.decomposition import PCA
 
 # -----------------------------------
 # FONCTIONS
@@ -50,12 +50,12 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.0001
+noise = 0.01
 length_memory = 10
 threshold = 1.2
 
 nb_trials = 42
-nb_blocs = 1000
+nb_blocs = 100
 cats = CATS()
 
 bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
@@ -94,15 +94,21 @@ rt = computeMeanRepresentativeSteps(step)
 
 step, indice = getRepresentativeSteps(human.reaction['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 rt_human = computeMeanRepresentativeSteps(step) 
-rt = list(rt)
-rt[0] = rt[0]*0.01
-rt[1] = rt[1]*0.01
-rt[0] = rt[0] - (np.min(rt[0])-np.min(rt_human[0]))
-rt = tuple(rt)  
+#rt = list(rt)
+#rt[0] = rt[0]*0.01
+#rt[1] = rt[1]*0.01
+#rt[0] = rt[0] - (np.min(rt[0])-np.min(rt_human[0]))
+#rt = tuple(rt)  
 
 step, indice = getRepresentativeSteps(bww.entropies, bww.state, bww.action, bww.responses)
 ent = computeMeanRepresentativeSteps(step)
 
+# X = np.transpose(human.reaction['meg'])
+# pca = PCA(n_components = 42)
+# Y = pca.fit_transform(X)
+# Y = np.transpose(Y)
+# step, indice = getRepresentativeSteps(Y, human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+# rt_pca = computeMeanRepresentativeSteps(step) 
 
 # -----------------------------------
 
@@ -114,6 +120,7 @@ ent = computeMeanRepresentativeSteps(step)
 # Probability of correct responses
 figure(figsize = (16,9))
 count = 1
+ion()
 for i in xrange(3):
     subplot(3,2,count)
     plot(range(len(pcr['mean'][i])), pcr['mean'][i], linewidth = 2, linestyle = '-', color = 'black')    
@@ -125,12 +132,19 @@ for i in xrange(3):
     ylim(0,1)
     count+=2
 
-subplot(2,2,2)
-plot(range(len(rt[0])), rt[0], linewidth = 2, linestyle = '-', color = 'black')
-errorbar(range(len(rt[0])), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
-plot(range(len(rt_human[0])), rt_human[0], linewidth = 2, linestyle = ':', color = 'black')
-errorbar(range(len(rt_human[0])), rt_human[0], rt_human[1], linewidth = 2, linestyle = ':', color = 'black')
-ylabel("Inference level")
+
+ax1 = plt.subplot(2,2,2)
+ax1.plot(range(len(rt[0])), rt[0], linewidth = 2, linestyle = '-', color = 'black')
+ax1.errorbar(range(len(rt[0])), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
+ax1.set_ylabel("Inference Level")
+##
+ax2 = ax1.twinx()
+ax2.plot(range(len(rt_human[0])), rt_human[0], linewidth = 2, linestyle = ':', color = 'black')
+ax2.errorbar(range(len(rt_human[0])), rt_human[0], rt_human[1], linewidth = 2, linestyle = ':', color = 'black')
+ax3 = ax1.twinx()
+ax3.plot(range(len(rt_pca[0])), rt_pca[0], linewidth = 1, linestyle = '--', color = 'red')
+ax3.errorbar(range(len(rt_pca[0])), rt_pca[0], rt_human[1], linewidth = 1, linestyle = '--', color = 'red')
+ax3.set_ylabel("Reaction time (ms)")
 grid()
 
 subplot(2,2,4)
