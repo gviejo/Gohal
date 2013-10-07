@@ -69,7 +69,7 @@ length_memory = 10
 threshold = 1
 
 correlation = "JSD"
-inter = 15
+inter = 10
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
@@ -96,7 +96,7 @@ p = bww.getAllParameters()
 for k in p.keys():
     values[k] = np.linspace(p[k][0], p[k][2], inter)
 values['lenght'] = values['lenght'].astype(int)
-sys.exit()
+
 count = 0
 for i in xrange(len(values['lenght'])):
     for j in xrange(len(values['noise'])):

@@ -331,8 +331,7 @@ class BayesianWorkingMemory():
         self.noise = noise
         self.n_action=float(len(actions))
         self.n_state=float(len(states))
-        # Probability Initialization
-        self.initializeBMemory(states, actions)
+        # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))        
         self.values = np.ones(self.n_action)*(1./self.n_action)
         self.p = None        
@@ -342,6 +341,14 @@ class BayesianWorkingMemory():
         self.current_action = None        
         self.initial_entropy = -np.log2(1./self.n_action)
         self.entropy = self.initial_entropy
+        self.n_element = 0
+        # Optimization init
+        self.p_s = np.zeros((self.lenght_memory, self.n_state))
+        self.p_a_s = np.zeros((self.lenght_memory, self.n_state, self.n_action))
+        self.p_r_as = np.zeros((self.lenght_memory, self.n_state, self.n_action, 2))
+        self.p_s_var = np.ones(self.n_state)*self.noise
+        self.p_a_s_var = np.ones((self.n_state, self.n_action))*self.noise
+        self.p_r_as_var = np.ones((self.n_state, self.n_action, 2))*self.noise
         #List Init
         self.state=list()
         self.answer=list()
@@ -377,7 +384,10 @@ class BayesianWorkingMemory():
         self.p_r_as = list()
 
     def initialize(self):
-        self.initializeBMemory(self.states, self.actions)
+        self.n_element = 0
+        self.p_s = np.zeros((self.lenght_memory, self.n_state))
+        self.p_a_s = np.zeros((self.lenght_memory, self.n_state, self.n_action))
+        self.p_r_as = np.zeros((self.lenght_memory, self.n_state, self.n_action, 2))
         self.responses.append([])
         self.action.append([])
         self.state.append([])
@@ -386,7 +396,10 @@ class BayesianWorkingMemory():
         self.entropies.append([])
 
     def initializeList(self):
-        self.initializeBMemory(self.states, self.actions)
+        self.n_element = 0
+        self.p_s = np.zeros((self.lenght_memory, self.n_state))
+        self.p_a_s = np.zeros((self.lenght_memory, self.n_state, self.n_action))
+        self.p_r_as = np.zeros((self.lenght_memory, self.n_state, self.n_action, 2))
         self.state=list()
         self.answer=list()
         self.responses=list()
@@ -394,12 +407,6 @@ class BayesianWorkingMemory():
         self.reaction=list()
         self.value=list()
         self.entropies=list()
-
-    def normalize(self):
-        for i in xrange(len(self.p_s)):
-            self.p_s[i] = self.p_s[i]/np.sum(self.p_s[i])
-            self.p_a_s[i] = self.p_a_s[i]/np.vstack(np.sum(self.p_a_s[i], axis = 1))
-            self.p_r_as[i] = self.p_r_as[i]/np.reshape(np.repeat(np.sum(self.p_r_as[i], axis=2),2),self.p_r_as[i].shape)
             
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -435,7 +442,7 @@ class BayesianWorkingMemory():
         self.p = self.uniform[:,:,:]
         self.entropy = self.initial_entropy
         self.nb_inferences = 0        
-        while self.entropy > self.threshold and self.nb_inferences < len(self.p_s):
+        while self.entropy > self.threshold and self.nb_inferences < self.n_element:
             self.inferenceModule()
             self.evaluationModule()
         self.current_action = self.sample(self.values)            
@@ -447,29 +454,30 @@ class BayesianWorkingMemory():
 
     def updateValue(self, reward):
         r = int((reward==1)*1)
-        self.responses[-1].append(r)
+        self.responses[-1].append(r)        
         #Shifting memory            
-        self.p_s.insert(0, np.zeros((self.n_state)))
-        self.p_a_s.insert(0, np.ones((self.n_state, self.n_action))*(1/float(self.n_action)))
-        self.p_r_as.insert(0, np.ones((self.n_state, self.n_action, 2))*0.5)        
-        #Adding last choice         
-        self.p_s[0][self.current_state] = 1.0    
-        self.p_a_s[0][self.current_state] = 0.0        
-        self.p_a_s[0][self.current_state, self.current_action] = 1.0
-        self.p_r_as[0][self.current_state, self.current_action] = 0.0
-        self.p_r_as[0][self.current_state, self.current_action, int(r)] = 1.0
-        #Length of memory allowed
-        while len(self.p_a_s) > self.lenght_memory:
-            self.p_s.pop(-1)
-            self.p_a_s.pop(-1)
-            self.p_r_as.pop(-1)
+        if self.n_element < self.lenght_memory:
+            self.n_element+=1
+        self.p_s[1:self.n_element] = self.p_s[0:self.n_element-1]
+        self.p_a_s[1:self.n_element] = self.p_a_s[0:self.n_element-1]
+        self.p_r_as[1:self.n_element] = self.p_r_as[0:self.n_element-1]
+        self.p_s[0] = 0.0
+        self.p_a_s[0] = np.ones((self.n_state, self.n_action))*(1/float(self.n_action))
+        self.p_r_as[0] = np.ones((self.n_state, self.n_action, 2))*0.5
+        #Adding last choice                 
+        self.p_s[0, self.current_state] = 1.0        
+        self.p_a_s[0, self.current_state] = 0.0
+        self.p_a_s[0, self.current_state, self.current_action] = 1.0
+        self.p_r_as[0, self.current_state, self.current_action] = 0.0
+        self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0
         #Adding noise
         if self.noise:
-            for i in xrange(1, len(self.p_s)):
-                self.p_s[i] = np.abs(np.random.normal(self.p_s[i], np.ones(self.p_s[i].shape)*self.noise, self.p_s[i].shape))
-                self.p_a_s[i] = np.abs(np.random.normal(self.p_a_s[i], np.ones(self.p_a_s[i].shape)*self.noise, self.p_a_s[i].shape))
-                self.p_r_as[i] = np.abs(np.random.normal(self.p_r_as[i], np.ones(self.p_r_as[i].shape)*self.noise,self.p_r_as[i].shape))
-            self.normalize()        
+            self.p_s = self.p_s + np.random.beta(self.noise, 5, self.p_s.shape)
+            self.p_s = self.p_s/np.sum(self.p_s, axis = 1, keepdims = True)
+            self.p_a_s = self.p_a_s + np.random.beta(self.noise, 5, self.p_a_s.shape)
+            self.p_a_s = self.p_a_s/np.sum(self.p_a_s, axis = 2, keepdims = True)
+            self.p_r_as = self.p_r_as + np.random.beta(self.noise, 5, self.p_r_as.shape)
+            self.p_r_as = self.p_r_as/np.sum(self.p_r_as, axis = 3, keepdims = True)            
 
     def updatePartialValue(self, state, action, reward):
         r = (reward==1)*1
@@ -479,24 +487,25 @@ class BayesianWorkingMemory():
         self.current_action = convertAction(action)-1
         self.responses[-1].append(r)
         #Shifting memory            
-        self.p_s.insert(0, np.zeros((self.n_state)))
-        self.p_a_s.insert(0, np.ones((self.n_state, self.n_action))*(1/float(self.n_action)))
-        self.p_r_as.insert(0, np.ones((self.n_state, self.n_action, 2))*0.5)        
-        #Adding last choice         
-        self.p_s[0][self.current_state] = 1.0
-        self.p_a_s[0][self.current_state] = 0.0        
-        self.p_a_s[0][self.current_state, self.current_action] = 1.0
-        self.p_r_as[0][self.current_state, self.current_action] = 0.0
-        self.p_r_as[0][self.current_state, self.current_action, int(r)] = 1.0
-        #Length of memory allowed
-        while len(self.p_a_s) > self.lenght_memory:
-            self.p_s.pop(-1)
-            self.p_a_s.pop(-1)
-            self.p_r_as.pop(-1)
+        if self.n_element < self.lenght_memory:
+            self.n_element+=1
+        self.p_s[1:self.n_element] = self.p_s[0:self.n_element-1]
+        self.p_a_s[1:self.n_element] = self.p_a_s[0:self.n_element-1]
+        self.p_r_as[1:self.n_element] = self.p_r_as[0:self.n_element-1]
+        self.p_s[0] = 0.0
+        self.p_a_s[0] = np.ones((self.n_state, self.n_action))*(1/float(self.n_action))
+        self.p_r_as[0] = np.ones((self.n_state, self.n_action, 2))*0.5
+        #Adding last choice                 
+        self.p_s[0, self.current_state] = 1.0        
+        self.p_a_s[0, self.current_state] = 0.0
+        self.p_a_s[0, self.current_state, self.current_action] = 1.0
+        self.p_r_as[0, self.current_state, self.current_action] = 0.0
+        self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0
         #Adding noise
         if self.noise:
-            for i in xrange(1, len(self.p_s)):
-                self.p_s[i] = np.abs(np.random.normal(self.p_s[i], np.ones(self.p_s[i].shape)*self.noise, self.p_s[i].shape))
-                self.p_a_s[i] = np.abs(np.random.normal(self.p_a_s[i], np.ones(self.p_a_s[i].shape)*self.noise, self.p_a_s[i].shape))
-                self.p_r_as[i] = np.abs(np.random.normal(self.p_r_as[i], np.ones(self.p_r_as[i].shape)*self.noise,self.p_r_as[i].shape))
-            self.normalize()        
+            self.p_s = self.p_s + np.random.beta(self.noise, 5, self.p_s.shape)
+            self.p_s = self.p_s/np.sum(self.p_s, axis = 1, keepdims = True)
+            self.p_a_s = self.p_a_s + np.random.beta(self.noise, 5, self.p_a_s.shape)
+            self.p_a_s = self.p_a_s/np.sum(self.p_a_s, axis = 2, keepdims = True)
+            self.p_r_as = self.p_r_as + np.random.beta(self.noise, 5, self.p_r_as.shape)
+            self.p_r_as = self.p_r_as/np.sum(self.p_r_as, axis = 3, keepdims = True)  
