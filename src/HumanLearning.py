@@ -14,7 +14,7 @@ import numpy as np
 from fonctions import *
 from LearningAnalysis import SSLearning
 import scipy.io
-from scipy.stats import binom, sem
+
 
 class HLearning():
     def __init__(self, directory):
@@ -22,21 +22,22 @@ class HLearning():
         self.directory = directory
         self.nStepEm = 200
         self.pOutset = 0.2
-# -----------------------------------
-# Loading human data
-# -----------------------------------
+        # -----------------------------------
+        # Loading human data
+        # -----------------------------------
         self.responses = dict()
         self.stimulus = dict()
         self.action = dict()
         self.reaction = dict()
         self.indice = dict()
-
+        self.subject = dict()
         for k in self.directory.iterkeys():
             self.responses[k] = []
             self.stimulus[k] = []
             self.action[k] = []
             self.reaction[k] = []
             self.indice[k] = []
+            self.subject[k] = dict()
             if k is 'meg':
                 data = self.loadDirectoryMEG(self.directory[k][0])
             elif k is 'fmri':
@@ -47,13 +48,18 @@ class HLearning():
             self.extractData(data, k, self.directory[k][1])
 
     def extractData(self, data, case, size):
-        for i in data.iterkeys():
+        for i in data.iterkeys():            
+            self.subject[case][i] = dict()
             for j in data[i].iterkeys():
                 self.responses[case].append(data[i][j]['sar'][0:size,2])
                 self.stimulus[case].append(data[i][j]['sar'][0:size,0])
                 self.action[case].append(data[i][j]['sar'][0:size,1])
                 #self.reaction[case].append(data[i][j]['time'][0:size,1]-data[i][j]['time'][0:size,0])
                 self.reaction[case].append(data[i][j]['RT'].flatten()[0:size])
+                #########
+                self.subject[case][i][j] = dict({'sar':data[i][j]['sar'],
+                                                 'rt':data[i][j]['RT']})                
+                #########
         self.responses[case] = np.array(self.responses[case])
         self.stimulus[case] = np.array(self.stimulus[case])
         self.action[case] = np.array(self.action[case])
@@ -94,9 +100,9 @@ class HLearning():
                         data[sujet][num][tmp[i][j].dtype.names[k]] = tmp[i][j][k]                                   
         return data
 
-#-----------------------------------
-#fitting state space model
-# -----------------------------------
+    #-----------------------------------
+    #fitting state space model
+    # -----------------------------------
     def stateSpaceAnalysis(case = 'meg'):
         ss = SSLearning(len(self.responses[case][0]), self.pOutset)
         p = []
@@ -131,7 +137,8 @@ class HLearning():
                      'Icc':Icc,
                      'Psd':Psd,
                      'Isd':Isd})
-        
+    
+
 
 
 

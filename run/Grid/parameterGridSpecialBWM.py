@@ -68,7 +68,7 @@ noise = 0.001
 length_memory = 10
 threshold = 1
 
-correlation = "JSD"
+correlation = "Z"
 inter = 10
 
 nb_trials = human.responses['meg'].shape[1]
@@ -127,7 +127,7 @@ for i in sorted_value:
     crap[i] = np.array(tmp2)
 
 crap['values'] = values
-
+crap['correlation'] = correlation
 output = open("../../../Dropbox/ISIR/Plot/datagrid_bwm_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
 pickle.dump(crap, output)
 output.close()

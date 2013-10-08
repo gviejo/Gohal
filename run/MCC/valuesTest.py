@@ -71,8 +71,9 @@ gamma = 0.6        # discount factor
 init_cov = 10       # initialisation of covariance matrice
 kappa = 0.1         # unscentered transform parameters
 beta = 1.5          # temperature for kalman soft-max
-noise_width = 0.01  # variance of white noise for working memory
-length_memory = 10  # size of working memory
+noise_width = 0.0  # variance of white noise for working memory
+length_memory = 9  # size of working memory
+threshold = 1.3     # entropy threshold
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
@@ -81,8 +82,8 @@ nb_blocs = human.responses['meg'].shape[0]
 cats = CATS(nb_trials)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-               'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0)})
-models['bmw'].setEntropyEvolution(nb_blocs+1,nb_trials)                       
+               'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, threshold)})
+
 # -----------------------------------
 
 # -----------------------------------

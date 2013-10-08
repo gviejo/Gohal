@@ -9,3 +9,4 @@ fMRI/
 *.pickle
 .gohal.sublime-project
 .gohal.sublime-workspace
+plot/

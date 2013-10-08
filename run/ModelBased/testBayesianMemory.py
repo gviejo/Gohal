@@ -52,11 +52,11 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 noise = 0.01
 length_memory = 10
-threshold = 1.2
+threshold = 1.0
 
 nb_trials = 42
-nb_blocs = 100
-cats = CATS()
+nb_blocs = 1000
+cats = CATS(nb_trials)
 
 bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
 
@@ -141,10 +141,10 @@ ax1.set_ylabel("Inference Level")
 ax2 = ax1.twinx()
 ax2.plot(range(len(rt_human[0])), rt_human[0], linewidth = 2, linestyle = ':', color = 'black')
 ax2.errorbar(range(len(rt_human[0])), rt_human[0], rt_human[1], linewidth = 2, linestyle = ':', color = 'black')
-ax3 = ax1.twinx()
-ax3.plot(range(len(rt_pca[0])), rt_pca[0], linewidth = 1, linestyle = '--', color = 'red')
-ax3.errorbar(range(len(rt_pca[0])), rt_pca[0], rt_human[1], linewidth = 1, linestyle = '--', color = 'red')
-ax3.set_ylabel("Reaction time (ms)")
+#ax3 = ax1.twinx()
+#ax3.plot(range(len(rt_pca[0])), rt_pca[0], linewidth = 1, linestyle = '--', color = 'red')
+#ax3.errorbar(range(len(rt_pca[0])), rt_pca[0], rt_human[1], linewidth = 1, linestyle = '--', color = 'red')
+#ax3.set_ylabel("Reaction time (ms)")
 grid()
 
 subplot(2,2,4)
@@ -153,6 +153,9 @@ errorbar(range(len(ent[0])), ent[0], ent[1], linewidth = 2, linestyle = '-', col
 ylabel("Final Entropy")
 grid()
 
+subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
+savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig_testBWM.pdf', bbox_inches='tight')
+show()
 
 
 show()
