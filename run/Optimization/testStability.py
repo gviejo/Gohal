@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
-subjectOptimization.py
+testStability.py
 
-scripts to optimize subject parameters 
+to see if log-likelihood is robust to noise
 
 See : Trial-by-trial data analysis using computational models, Daw, 2009
 
@@ -21,9 +21,8 @@ from Models import *
 from Selection import KSelection
 from ColorAssociationTasks import CATS
 from Sweep import Likelihood
-
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
+from matplotlib import *
+from pylab import *
 
 # -----------------------------------
 # ARGUMENT MANAGER
@@ -65,7 +64,7 @@ sigma = 0.00002         # updating rate of the average reward
 
 cats = CATS(0)
 
-opt = Likelihood(human, 5)
+opt = Likelihood(human, 1)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise, threshold),
@@ -74,36 +73,26 @@ models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gam
                        sigma)})
 
 bww = models['bmw']
+opt.set(bww, 'S9')
+opt.searchStimOrder()
+ll = list()
+psampled = list()
 
-p_opt, p_start = opt.optimize(bww)
+for i in xrange(1000):
+	print i
+	t = np.random.uniform(0.01, 2.0)
+	ll.append(opt.computeLikelihood(np.array([t, length_memory, noise])))
+	psampled.append(t)
 
-
-opt = []
-start = []
-for i in p_opt.iterkeys():
-	for j in xrange(len(p_opt[i])):
-		opt.append(p_opt[i][j])
-		start.append(p_start[i][j])
-
-
-opt = np.array(opt)
-start = np.array(start)
+ll = np.array(ll)
+psampled = np.array(psampled)
 
 # ---------------------------------
 # Plot
 # ---------------------------------
 fig = plt.figure()
+plot(psampled, ll, 'o')
 
-tmp = bww.getAllParameters()
-ax = fig.add_subplot(111, projection='3d')
-ax.scatter(opt[:,0], opt[:,1], opt[:,2], marker = '^')
-ax.scatter(start[:,0], start[:,1], start[:,2], marker = 'o', alpha = 0.4)
-ax.set_xlim(tmp[tmp.keys()[0]][0], tmp[tmp.keys()[0]][2])
-ax.set_xlabel(tmp.keys()[0])
-ax.set_ylim(tmp[tmp.keys()[1]][0], tmp[tmp.keys()[1]][2])
-ax.set_ylabel(tmp.keys()[1])
-ax.set_zlim(tmp[tmp.keys()[2]][0], tmp[tmp.keys()[2]][2])
-ax.set_zlabel(tmp.keys()[2])
 plt.show()
 
 

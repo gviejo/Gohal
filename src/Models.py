@@ -359,9 +359,9 @@ class BayesianWorkingMemory():
         self.entropies=list()
         
     def getAllParameters(self):        
-        return dict({'lenght':[3, self.lenght_memory,15],
+        return dict({'lenght':[5, self.lenght_memory,15],
                      'noise':[0.0,self.noise,0.01],
-                     'threshold':[0.5, self.threshold, 2.0]})
+                     'threshold':[0.1, self.threshold, 2.0]})
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -372,8 +372,8 @@ class BayesianWorkingMemory():
             self.lenght_memory = int(value)
         elif name == 'noise':
             self.noise = value
-        elif name == 'beta':
-            self.beta = value
+        elif name == 'threshold':
+            self.threshold = value
         else:
             print("Parameters not found")
             sys.exit(0)

@@ -13,9 +13,8 @@ import os
 import numpy as np
 from fonctions import *
 from scipy.stats import chi2_contingency
-from scipy.stats.contingency import expected_freq
 from scipy.stats import norm
-
+import scipy.optimize
 
 class Sweep_performances():
     """
@@ -256,3 +255,136 @@ class Optimization():
         for i in [1,2,3]:
             tmp += np.sum((np.mean(self.data_human[i], 0)-np.mean(model[i], 0))**2)
         return tmp
+
+
+class Likelihood():
+    """
+    Optimization with scipy.optimize.fmin
+    See : Trial-by-trial data analysis using computational models, Daw, 2009
+    """
+    def __init__(self, human, n_run):
+        self.X = human.subject['meg']
+        self.subject = self.X.keys()
+        self.n_run = n_run
+        self.best_parameters = None
+        self.start_parameters = None
+        self.p = None
+        self.p_order = None        
+        self.model = None
+        self.current_subject = None
+        self.cvt = dict({i:'s'+str(i) for i in [1,2,3]})
+        self.lower = None
+        self.upper = None
+        self.ranges = None
+
+    def searchStimOrder(self):
+        for s in self.subject:            
+            for b in self.X[s].iterkeys():                
+                sar = self.X[s][b]['sar']
+                tmp = np.ones((sar.shape[0], 1))
+                # search for order
+                for j in [1,2,3]:
+                    if len(np.where((sar[:,2] == 1) & (sar[:,0] == j))[0]):
+                        correct = np.where((sar[:,2] == 1) & (sar[:,0] == j))[0][0]
+                        t = len(np.where((sar[0:correct,2] == 0) & (sar[0:correct,0] == j))[0])
+                        if t == 1:
+                            first = j
+                            tmp[np.where(sar[:,0] == first)[0][0]] = 0
+                        elif t == 3:
+                            second = j
+                            tmp[np.where(sar[:,0] == second)[0][0]] = 0
+                        elif t >= 4:
+                            third = j
+                            tmp[np.where(sar[:,0] == third)[0][0]] = 0
+                        else:
+                            print "Class Sweep.Likelihood.searchStimOrder : unable to find nb errors"
+                            sys.exit()
+                self.X[s][b]['sar'] = np.hstack((self.X[s][b]['sar'], tmp))
+
+    def computeLikelihood(self, p):
+        """ Maximize log-likelihood for one subject
+            based only on performances
+        """
+        llh = 0.0
+        for i, v in zip(self.p_order, p):
+            self.model.setParameter(i, v)
+        self.model.initializeList()
+        for bloc in self.X[self.current_subject].iterkeys():
+            self.model.initialize()                        
+            for trial in self.X[self.current_subject][bloc]['sar']:                
+                state = self.cvt[trial[0]]                
+                true_action = trial[1]-1
+                values = self.model.computeValue(state)
+                llh = llh + np.log(values[true_action])*trial[3]
+                self.model.current_action = true_action
+                self.model.updateValue(trial[2])                        
+        return llh
+
+    def computeLikelihoodAll(self, p):
+        """ Maximize log-likelihood based on 
+            reaction time and performances
+        """
+        llh = 0.0
+        for i,v in zip(self.p_order, p):
+            self.model.setParameter(i, v)
+        self.model.initializeList()
+        for bloc in self.X[self.current_subject].iterkeys():
+            self.model.initialize()
+            for trial in self.X[self.current_subject][bloc]['sar']:
+                print 1
+
+    def set(self, ptr_m, subject):
+        self.model = ptr_m
+        self.current_subject = subject
+        self.p = self.model.getAllParameters()
+        self.p_order = self.p.keys()
+        self.lower = np.array([self.p[i][0] for i in self.p_order])
+        self.upper = np.array([self.p[i][2] for i in self.p_order])
+        self.ranges = tuple(map(tuple, np.array([self.lower, self.upper]).transpose()))
+
+    def optimize(self, ptr_m):
+        self.searchStimOrder()
+        self.best_parameters = dict({s:list() for s in self.subject})
+        self.start_parameters = dict({s:list() for s in self.subject})
+        self.model = ptr_m                
+        self.p = self.model.getAllParameters()
+        self.p_order = self.p.keys()
+        self.lower = np.array([self.p[i][0] for i in self.p_order])
+        self.upper = np.array([self.p[i][2] for i in self.p_order])
+        self.ranges = tuple(map(tuple, np.array([self.lower, self.upper]).transpose()))
+        for s in self.subject:
+            self.current_subject = s            
+            for i in xrange(self.n_run):                
+                p_start = self.generateStart()                
+                new_p = scipy.optimize.minimize(fun=self.computeLikelihood,
+                                                x0=p_start,
+                                                method='L-BFGS-B',
+                                                jac=None,
+                                                hess=None,
+                                                hessp=None,
+                                                bounds=self.ranges)
+                # new_p = scipy.optimize.fmin(func=self.computeLikelihood,
+                #                             x0=p_start,
+                #                             maxiter=100,
+                #                             maxfun=100,
+                #                             ftol=0.01,
+                #                             disp=True)
+                #                             #retall=True)                
+                # new_p = scipy.optimize.anneal(func=self.computeLikelihood,
+                #                               x0=p_start,
+                #                               schedule='fast',
+                #                               lower=self.lower,
+                #                               upper=self.upper,
+                #                               disp=True)
+                # new_p = scipy.optimize.brute(func=self.computeLikelihood,
+                #                              ranges=self.ranges,
+                #                              disp=True)
+                self.best_parameters[s].append(new_p)
+                self.start_parameters[s].append(p_start)
+            self.best_parameters[s] = np.array(self.best_parameters[s])
+            self.start_parameters[s] = np.array(self.start_parameters[s])
+        return self.best_parameters, self.start_parameters
+
+    def generateStart(self):
+        return [np.random.uniform(self.p[i][0], self.p[i][2]) for i in self.p_order]
+

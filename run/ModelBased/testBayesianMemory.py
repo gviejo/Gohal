@@ -55,7 +55,7 @@ length_memory = 10
 threshold = 1.0
 
 nb_trials = 42
-nb_blocs = 1000
+nb_blocs = 100
 cats = CATS(nb_trials)
 
 bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
