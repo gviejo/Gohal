@@ -75,6 +75,10 @@ class PlotTree():
         self.updateTree(tree, ('',''))
         plt.show(block = False)
 
+    def saveFigure(self, path):
+        self.fig.savefig(path, bbox_inches='tight')
+        sys.exit()
+
     def updateTree(self, tree, (state, action)):
         self.ax1.clear()
         self.plotNode(state+" "+action, (0.0, 1.0), (0.0, 1.0), self.decisionNode)

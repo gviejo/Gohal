@@ -111,10 +111,10 @@ subplot(121)
 m = data['pcr']['meg']['mean']
 s = data['pcr']['meg']['sem']
 dashes = ['-', '--', ':']
-
+colors = ['blue','red','green']
 for i in xrange(3):
-    errorbar(range(1, len(m[i])+1), m[i], s[i], linestyle = dashes[i], color = 'black')
-    plot(range(1, len(m[i])+1), m[i], linestyle = dashes[i], color = 'black',linewidth = 2, label = 'Stim '+str(i+1))
+    errorbar(range(1, len(m[i])+1), m[i], s[i], linestyle = dashes[0], color = colors[i])
+    plot(range(1, len(m[i])+1), m[i], linestyle = dashes[0], color = colors[i], linewidth = 2, label = 'Stim '+str(i+1))
 grid()
 legend(loc = 'lower right')
 xticks(range(2,11,2))
@@ -129,14 +129,36 @@ subplot(122)
 m = data['rt']['meg']['mean']
 s = data['rt']['meg']['sem']
 errorbar(range(1, len(m)+1), m, s, color = 'black', marker = 'o')
+###
+msize = 8.0
+mwidth = 2.5
+plot(1, 0.455, 'x', color = 'blue', markersize=msize, markeredgewidth=mwidth)
+plot(1, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+plot(1, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+plot(2, 0.455, 'o', color = 'blue', markersize=msize)
+plot(2, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+plot(2, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+plot(3, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+plot(3, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+plot(4, 0.4445, 'o', color = 'red', markersize=msize)
+plot(4, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+plot(5, 0.435, 'o', color = 'green', markersize=msize)
+for i in xrange(6,16,1):
+    plot(i, 0.455, 'o', color = 'blue', markersize=msize)
+    plot(i, 0.4445, 'o', color = 'red', markersize=msize)
+    plot(i, 0.435, 'o', color = 'green', markersize=msize)
+
+###
 grid()
 xlabel("Representative steps")
 xticks([1,5,10,15])
 yticks([0.46, 0.50, 0.54])
-ylim(0.44, 0.56)
+ylim(0.43, 0.56)
 ylabel("Reaction time (s)")
 title('B')
 
+
+
 subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86)
-#fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig1.pdf', bbox_inches='tight')
+fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig1.pdf', bbox_inches='tight')
 show()

@@ -394,7 +394,7 @@ class BayesianWorkingMemory():
         self.reaction.append([])
         self.value.append([])
         self.entropies.append([])
-
+        
     def initializeList(self):
         self.n_element = 0
         self.p_s = np.zeros((self.lenght_memory, self.n_state))
@@ -407,7 +407,7 @@ class BayesianWorkingMemory():
         self.reaction=list()
         self.value=list()
         self.entropies=list()
-            
+        
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
         return np.sum(np.array(tmp) < np.random.rand())-1
@@ -441,7 +441,8 @@ class BayesianWorkingMemory():
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
         self.entropy = self.initial_entropy
-        self.nb_inferences = 0        
+        self.nb_inferences = 0
+        tmp = 0
         while self.entropy > self.threshold and self.nb_inferences < self.n_element:
             self.inferenceModule()
             self.evaluationModule()

@@ -83,9 +83,12 @@ for i in xrange(nb_blocs):
     mods.initialize()
     answer = []
     for j in xrange(nb_trials):
+        print j
+        if j == 2:
+            plottree.saveFigure('../../../Dropbox/ISIR/JournalClub/images/fig9.pdf')
         state, action = iterationStep(j, mods, False)
         plottree.updateTree(mods.g, (state, action))
-
+        
 # -----------------------------------
 
 # -----------------------------------
