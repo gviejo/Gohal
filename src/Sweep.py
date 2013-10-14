@@ -356,20 +356,21 @@ class Likelihood():
             self.current_subject = s            
             for i in xrange(self.n_run):                
                 p_start = self.generateStart()                
-                new_p = scipy.optimize.minimize(fun=self.computeLikelihood,
-                                                x0=p_start,
-                                                method='L-BFGS-B',
-                                                jac=None,
-                                                hess=None,
-                                                hessp=None,
-                                                bounds=self.ranges)
-                # new_p = scipy.optimize.fmin(func=self.computeLikelihood,
-                #                             x0=p_start,
-                #                             maxiter=100,
-                #                             maxfun=100,
-                #                             ftol=0.01,
-                #                             disp=True)
-                #                             #retall=True)                
+                # new_p = scipy.optimize.minimize(fun=self.computeLikelihood,
+                #                                 x0=p_start,
+                #                                 method='L-BFGS-B',
+                #                                 jac=None,
+                #                                 hess=None,
+                #                                 hessp=None,
+                #                                 bounds=self.ranges)
+                new_p = scipy.optimize.fmin(func=self.computeLikelihood,
+                                            x0=p_start,
+                                            maxiter=10000,
+                                            maxfun=10000,
+                                            xtol=0.01,
+                                            ftol=0.01,
+                                            disp=True)
+                                            #retall=True)                
                 # new_p = scipy.optimize.anneal(func=self.computeLikelihood,
                 #                               x0=p_start,
                 #                               schedule='fast',
@@ -378,7 +379,9 @@ class Likelihood():
                 #                               disp=True)
                 # new_p = scipy.optimize.brute(func=self.computeLikelihood,
                 #                              ranges=self.ranges,
-                #                              disp=True)
+                #                              disp=True,
+                #                              Ns=20,
+                #                              full_output=False)
                 self.best_parameters[s].append(new_p)
                 self.start_parameters[s].append(p_start)
             self.best_parameters[s] = np.array(self.best_parameters[s])

@@ -78,20 +78,30 @@ class KalmanQLearning():
     """
 
     def __init__(self, name, states, actions, gamma, beta, eta, var_obs, init_cov, kappa):
+        #State Action Space
+        self.states=states
+        self.actions=actions
+        #Parameters
         self.name=name
         self.gamma=gamma;self.beta=beta;self.eta=eta;self.var_obs=var_obs;self.init_cov=init_cov;self.kappa=kappa
-        self.values = createQValuesDict(states, actions)
+        self.n_action=float(len(actions))
+        self.n_state=float(len(states))
+        #Values Initialization        
+        #self.values = createQValuesDict(states, actions)
+        self.values = np.zeros((self.n_state,self.n_action))
         self.covariance = createCovarianceDict(len(states)*len(actions), self.init_cov, self.eta)
-        self.states = states
-        self.actions = actions
-        self.action = list()
+        #Various Init
+        self.current_state=None
+        self.current_action=None
+        #List Init
         self.state = list()
+        self.action = list()        
         self.responses = list()
         self.reaction = list()        
-        self.value = list()
-        
+        self.value = list()        
+
     def getAllParameters(self):        
-        return dict({'gamma':[0.1,self.gamma,0.9],
+        return dict({'gamma':[0.01,self.gamma,0.99],
                      'beta':[1,self.beta,5]})
                      #'eta':[1.0e-6,self.eta,0.001],
                      #'var_obs':[0.01,self.var_obs,0.07]})
@@ -125,12 +135,13 @@ class KalmanQLearning():
             self.init_cov = value
         else:
             print "Parameters not found"
-            sys.exit(0)
+            sys.exit(0)    
 
     def initialize(self):
         self.responses.append([])
-        self.values = createQValuesDict(self.states, self.actions)
-        self.covariance = createCovarianceDict(len(self.states)*len(self.actions), self.init_cov, self.eta)
+        #self.values = createQValuesDict(self.states, self.actions)
+        self.values = np.zeros((self.n_state, self.n_action))
+        self.covariance = createCovarianceDict(self.n_state*self.n_action, self.init_cov, self.eta)
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
@@ -145,18 +156,28 @@ class KalmanQLearning():
         self.reaction = list()
         self.value = list()
 
+    def computeValue(self, state):
+        self.current_state = state        
+        self.covariance['noise'] = self.covariance['cov']*self.eta
+        self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']        
+        return SoftMaxValues(self.values[0][self.values[state]], self.beta)
+
     def chooseAction(self, state):
+        self.state[-1].append(state)
+        self.current_state = convertStimulus(state)-1
         self.state[-1].append(state)
         self.covariance['noise'] = self.covariance['cov']*self.eta
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']
-        self.value[-1].append(SoftMaxValues(self.values[0][self.values[state]], self.beta))
+        self.value[-1].append(SoftMaxValues(self.values[0][self.values[state]], self.beta))        
         self.action[-1].append(getBestActionSoftMax(state, self.values, self.beta, 0))
+        self.current_action = self.values([state, self.action[-1][-1]])
         self.reaction[-1].append(computeEntropy(self.values[0][self.values[state]], self.beta))
         return self.action[-1][-1]
 
     def updateValue(self, reward):
         self.responses[-1].append((reward==1)*1)
-        s = self.state[-1][-1]; a = self.action[-1][-1]
+        #s = self.state[-1][-1]; a = self.action[-1][-1]
+        s = self.current_state; a = self.current_action
         sigma_points, weights = computeSigmaPoints(self.values[0], self.covariance['cov'], self.kappa)
         rewards_predicted = (sigma_points[:,self.values[(s,a)]]-self.gamma*np.max(sigma_points[:,self.values[s]], 1)).reshape(len(sigma_points), 1)
         reward_predicted = np.dot(rewards_predicted.flatten(), weights.flatten())
@@ -369,11 +390,26 @@ class BayesianWorkingMemory():
 
     def setParameter(self, name, value):
         if name == 'lenght':
-            self.lenght_memory = int(value)
+            if value < 5:
+                self.lenght_memory = 5
+            elif value > 15:
+                self.lenght_memory = 15
+            else:
+                self.lenght_memory = int(value)
         elif name == 'noise':
-            self.noise = value
+            if value < 0.0:
+                self.noise = 0.0
+            elif value > 0.01:
+                self.noise = 0.01
+            else:
+                self.noise = value
         elif name == 'threshold':
-            self.threshold = value
+            if value < 0.1:
+                self.threshold = 0.1
+            elif value > 2.0:
+                self.threshold = 2.0
+            else:                
+                self.threshold = value
         else:
             print("Parameters not found")
             sys.exit(0)
@@ -441,8 +477,7 @@ class BayesianWorkingMemory():
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
         self.entropy = self.initial_entropy
-        self.nb_inferences = 0
-        tmp = 0
+        self.nb_inferences = 0        
         while self.entropy > self.threshold and self.nb_inferences < self.n_element:
             self.inferenceModule()
             self.evaluationModule()
