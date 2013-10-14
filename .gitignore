@@ -10,3 +10,4 @@ fMRI/
 .gohal.sublime-project
 .gohal.sublime-workspace
 plot/
+data*

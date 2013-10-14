@@ -262,8 +262,13 @@ class Likelihood():
     Optimization with scipy.optimize.fmin
     See : Trial-by-trial data analysis using computational models, Daw, 2009
     """
-    def __init__(self, human, n_run):
+    def __init__(self, human, n_run, maxiter, maxfun, xtol, ftol, disp):
         self.X = human.subject['meg']
+        self.maxiter = maxiter
+        self.maxfun = maxfun
+        self.xtol = xtol
+        self.ftol = ftol
+        self.disp = disp
         self.subject = self.X.keys()
         self.n_run = n_run
         self.best_parameters = None
@@ -365,11 +370,11 @@ class Likelihood():
                 #                                 bounds=self.ranges)
                 new_p = scipy.optimize.fmin(func=self.computeLikelihood,
                                             x0=p_start,
-                                            maxiter=10000,
-                                            maxfun=10000,
-                                            xtol=0.01,
-                                            ftol=0.01,
-                                            disp=True)
+                                            maxiter=self.maxiter,
+                                            maxfun=self.maxfun,
+                                            xtol=self.xtol,
+                                            ftol=self.ftol,
+                                            disp=self.disp)
                                             #retall=True)                
                 # new_p = scipy.optimize.anneal(func=self.computeLikelihood,
                 #                               x0=p_start,

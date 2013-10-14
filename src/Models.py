@@ -84,15 +84,16 @@ class KalmanQLearning():
         #Parameters
         self.name=name
         self.gamma=gamma;self.beta=beta;self.eta=eta;self.var_obs=var_obs;self.init_cov=init_cov;self.kappa=kappa
-        self.n_action=float(len(actions))
-        self.n_state=float(len(states))
-        #Values Initialization        
-        #self.values = createQValuesDict(states, actions)
+        self.n_action=len(actions)
+        self.n_state=len(states)
+        #Values Initialization                
         self.values = np.zeros((self.n_state,self.n_action))
         self.covariance = createCovarianceDict(len(states)*len(actions), self.init_cov, self.eta)
         #Various Init
         self.current_state=None
         self.current_action=None
+        self.point = None
+        self.weights = None
         #List Init
         self.state = list()
         self.action = list()        
@@ -102,10 +103,7 @@ class KalmanQLearning():
 
     def getAllParameters(self):        
         return dict({'gamma':[0.01,self.gamma,0.99],
-                     'beta':[1,self.beta,5]})
-                     #'eta':[1.0e-6,self.eta,0.001],
-                     #'var_obs':[0.01,self.var_obs,0.07]})
-                     #'init_cov':[5,self.init_cov,15]})
+                     'beta':[1,self.beta,5]})                     
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -124,22 +122,25 @@ class KalmanQLearning():
 
     def setParameter(self, name, value):
         if name == 'gamma':
-            self.gamma = value
+            if value < 0.01:
+                self.gamma = 0.01
+            elif value > 0.99:
+                self.gamma = 0.99
+            else:
+                self.gamma = value                
         elif name == 'beta':
-            self.beta = value
-        elif name == 'eta':
-            self.eta = value
-        elif name == 'var_obs':
-            self.var_obs = value
-        elif name == 'init_cov':
-            self.init_cov = value
+            if value < 1:
+                self.beta = 1
+            elif value > 5:
+                self.beta = 5
+            else :
+                self.beta = value        
         else:
             print "Parameters not found"
             sys.exit(0)    
 
     def initialize(self):
-        self.responses.append([])
-        #self.values = createQValuesDict(self.states, self.actions)
+        self.responses.append([])        
         self.values = np.zeros((self.n_state, self.n_action))
         self.covariance = createCovarianceDict(self.n_state*self.n_action, self.init_cov, self.eta)
         self.action.append([])
@@ -148,7 +149,7 @@ class KalmanQLearning():
         self.value.append([])
 
     def initializeList(self):
-        self.values = createQValuesDict(self.states, self.actions)
+        self.values = np.zeros((self.n_state, self.n_action))
         self.covariance = createCovarianceDict(len(self.states)*len(self.actions), self.init_cov, self.eta)
         self.action = list()
         self.state = list()
@@ -156,36 +157,51 @@ class KalmanQLearning():
         self.reaction = list()
         self.value = list()
 
-    def computeValue(self, state):
-        self.current_state = state        
+    def sampleSoftMax(self, values):
+        tmp = np.exp(values*float(self.beta))
+        tmp = tmp/float(np.sum(tmp))
+        tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
+        return np.sum(np.array(tmp) < np.random.rand())-1
+
+    def computeValue(self, state):        
+        self.current_state = convertStimulus(state)-1        
         self.covariance['noise'] = self.covariance['cov']*self.eta
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']        
-        return SoftMaxValues(self.values[0][self.values[state]], self.beta)
+        return SoftMaxValues(self.values[self.current_state], self.beta)
 
     def chooseAction(self, state):
         self.state[-1].append(state)
-        self.current_state = convertStimulus(state)-1
-        self.state[-1].append(state)
+        self.current_state = convertStimulus(state)-1        
         self.covariance['noise'] = self.covariance['cov']*self.eta
-        self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']
-        self.value[-1].append(SoftMaxValues(self.values[0][self.values[state]], self.beta))        
-        self.action[-1].append(getBestActionSoftMax(state, self.values, self.beta, 0))
-        self.current_action = self.values([state, self.action[-1][-1]])
-        self.reaction[-1].append(computeEntropy(self.values[0][self.values[state]], self.beta))
+        self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']        
+        self.current_action = self.sampleSoftMax(self.values[self.current_state])
+        self.value[-1].append(SoftMaxValues(self.values[self.current_state], self.beta))        
+        self.action[-1].append(self.actions[self.current_action])        
+        self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.beta))
         return self.action[-1][-1]
 
     def updateValue(self, reward):
-        self.responses[-1].append((reward==1)*1)
-        #s = self.state[-1][-1]; a = self.action[-1][-1]
-        s = self.current_state; a = self.current_action
-        sigma_points, weights = computeSigmaPoints(self.values[0], self.covariance['cov'], self.kappa)
-        rewards_predicted = (sigma_points[:,self.values[(s,a)]]-self.gamma*np.max(sigma_points[:,self.values[s]], 1)).reshape(len(sigma_points), 1)
-        reward_predicted = np.dot(rewards_predicted.flatten(), weights.flatten())
-        cov_values_rewards = np.sum(weights*(sigma_points-self.values[0])*(rewards_predicted-reward_predicted), 0)
-        cov_rewards = np.sum(weights*(rewards_predicted-reward_predicted)**2) + self.var_obs
+        r = int((reward==1)*1)
+        self.responses[-1].append(r)                
+        self.computeSigmaPoints()                
+        t =self.n_action*self.current_state+self.current_action
+        rewards_predicted = (self.point[:,t]-self.gamma*np.max(self.point[:,self.n_action*self.current_state:self.n_action*self.current_state+self.n_action], 1)).reshape(len(self.point), 1)
+        reward_predicted = np.dot(rewards_predicted.flatten(), self.weights.flatten())        
+        cov_values_rewards = np.sum(self.weights*(self.point-self.values.flatten())*(rewards_predicted-reward_predicted), 0)
+        cov_rewards = np.sum(self.weights*(rewards_predicted-reward_predicted)**2) + self.var_obs
         kalman_gain = cov_values_rewards/cov_rewards
-        self.values[0] = self.values[0] + kalman_gain*(reward-reward_predicted)
+        self.values = (self.values.flatten() + kalman_gain*(reward-reward_predicted)).reshape(self.n_state, self.n_action)
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] - (kalman_gain.reshape(len(kalman_gain), 1)*cov_rewards)*kalman_gain
+
+    def computeSigmaPoints(self):
+        n = self.n_state*self.n_action
+        self.point = np.zeros((2*n+1, n))
+        self.point[0] = self.values.flatten()
+        c = np.linalg.cholesky((n+self.kappa)*self.covariance['cov'])
+        self.point[range(1,n+1)] = self.values.flatten()+np.transpose(c)
+        self.point[range(n+1, 2*n+1)] = self.values.flatten()-np.transpose(c)
+        self.weights = np.zeros((2*n+1,1))
+        self.weights[1:2*n+1] = 1/(2*n+self.kappa)
 
     def predictionStep(self):
         self.covariance['noise'] = self.covariance['cov']*self.eta
@@ -381,8 +397,8 @@ class BayesianWorkingMemory():
         
     def getAllParameters(self):        
         return dict({'lenght':[5, self.lenght_memory,15],
-                     'noise':[0.0,self.noise,0.01],
-                     'threshold':[0.1, self.threshold, 2.0]})
+                     'noise':[0.0,self.noise,0.001],
+                     'threshold':[0.1, self.threshold, 1.5]})
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -508,11 +524,17 @@ class BayesianWorkingMemory():
         self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0
         #Adding noise
         if self.noise:
-            self.p_s = self.p_s + np.random.beta(self.noise, 5, self.p_s.shape)
+            #self.p_s = self.p_s + np.random.beta(self.noise, 5, self.p_s.shape)
+            #self.p_s = self.p_s + np.abs(np.random.normal(0, self.noise, self.p_s.shape))
+            self.p_s = self.p_s + self.noise
             self.p_s[0:self.n_element] = self.p_s[0:self.n_element]/np.sum(self.p_s[0:self.n_element], axis = 1, keepdims = True)
-            self.p_a_s = self.p_a_s + np.random.beta(self.noise, 5, self.p_a_s.shape)
+            #self.p_a_s = self.p_a_s + np.random.beta(self.noise, 5, self.p_a_s.shape)            
+            #self.p_a_s = self.p_a_s + np.abs(np.random.normal(0, self.noise, self.p_a_s.shape))
+            self.p_a_s = self.p_a_s + self.noise
             self.p_a_s[0:self.n_element] = self.p_a_s[0:self.n_element]/np.sum(self.p_a_s[0:self.n_element], axis = 2, keepdims = True)
-            self.p_r_as = self.p_r_as + np.random.beta(self.noise, 5, self.p_r_as.shape)
+            #self.p_r_as = self.p_r_as + np.random.beta(self.noise, 5, self.p_r_as.shape)
+            #self.p_r_as = self.p_r_as + np.abs(np.random.normal(0, self.noise, self.p_r_as.shape))
+            self.p_r_as = self.p_r_as + self.noise
             self.p_r_as[0:self.n_element] = self.p_r_as[0:self.n_element]/np.sum(self.p_r_as[0:self.n_element], axis = 3, keepdims = True)            
 
     def updatePartialValue(self, state, action, reward):

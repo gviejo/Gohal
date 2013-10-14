@@ -72,7 +72,8 @@ models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gam
                        BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise, threshold),
                        sigma)})
 
-bww = models['bmw']
+bww = models['kalman']
+
 opt.set(bww, 'S9')
 opt.searchStimOrder()
 ll = list()
@@ -80,8 +81,8 @@ psampled = list()
 
 for i in xrange(1000):
 	print i
-	t = np.random.uniform(0.01, 2.0)
-	ll.append(opt.computeLikelihood(np.array([t, length_memory, noise])))
+	t = np.random.uniform(0.001, 0.99)
+	ll.append(opt.computeLikelihood(np.array([2.0, t])))
 	psampled.append(t)
 
 ll = np.array(ll)
@@ -90,6 +91,7 @@ psampled = np.array(psampled)
 # ---------------------------------
 # Plot
 # ---------------------------------
+ion()
 fig = plt.figure()
 plot(psampled, ll, 'o')
 

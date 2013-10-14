@@ -28,12 +28,12 @@ from Sweep import Likelihood
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
-#if not sys.argv[1:]:
-#    sys.stdout.write("Sorry: you must specify at least 1 argument")
-#    sys.stdout.write("More help avalaible with -h or --help option")
-#    sys.exit(0)
+if not sys.argv[1:]:
+   sys.stdout.write("Sorry: you must specify at least 1 argument")
+   sys.stdout.write("More help avalaible with -h or --help option")
+   sys.exit(0)
 parser = OptionParser()
-parser.add_option("-i", "--input", action="store", help="The name of the directory to load", default=False)
+parser.add_option("-m", "--model", action="store", help="The name of the model to optimize", default=False)
 (options, args) = parser.parse_args() 
 # -----------------------------------
 
@@ -59,25 +59,31 @@ init_cov = 10           # initialisation of covariance matrice
 kappa = 0.1             # unscentered transform parameters
 beta = 5.5              # temperature for kalman soft-max
 noise = 0.000           # variance of white noise for working memory
-length_memory = 10     # size of working memory
+length_memory = 10      # size of working memory
 threshold = 0.2         # inference threshold
 sigma = 0.00002         # updating rate of the average reward
+#########################
+#optimization parameters
+n_search = 100
+maxiter = 1000
+maxfun = 1000
+xtol = 0.0001
+ftol = 0.0001
+disp = True
+#########################
 
 cats = CATS(0)
 
-opt = Likelihood(human, 1)
+opt = Likelihood(human, n_search, maxiter, maxfun, xtol, ftol, disp)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-               'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise, threshold),
+               'bwm':BayesianWorkingMemory('bwm', cats.states, cats.actions, length_memory, noise, threshold),
 			   'ksel':KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-                       BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise, threshold),
+                       BayesianWorkingMemory('bwm', cats.states, cats.actions, length_memory, noise, threshold),
                        sigma)})
 
-bww = models['bmw']
-kalman = models['kalman']
 
-p_opt, p_start = opt.optimize(bww)
-#p_opt, p_start = opt.optimize(kalman)
+p_opt, p_start = opt.optimize(models[options.model])
 
 opt2 = []
 start2 = []
@@ -94,11 +100,14 @@ data = dict({'start':start2,
 			 'opt':opt2,
 			 'p_order':opt.p_order,
 			 'subject':opt.subject,
-			 'parameters':opt.p})
+			 'parameters':opt.p,
+			 'search':10})
 
-output = open("data_bwm_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
+output = open("../../../Dropbox/ISIR/Brovelli/SubjectParameters/data_"+options.model+"_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
 pickle.dump(data, output)
 output.close()
+
+
 # ---------------------------------
 # Plot
 # ---------------------------------
