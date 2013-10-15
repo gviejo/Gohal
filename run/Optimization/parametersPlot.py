@@ -5,7 +5,7 @@ parametersOptimization.py
 
 scripts to load and plot parameters
 
-run parameterTest.py -i data_kalman_date
+run parameterTest.py -i data_model_date -m 'model'
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -29,12 +29,13 @@ import matplotlib.pyplot as plt
 # ARGUMENT MANAGER
 # -----------------------------------
 if not sys.argv[1:]:
-   sys.stdout.write("Sorry: you must specify at least 1 argument")
-   sys.stdout.write("More help avalaible with -h or --help option")
-   sys.exit(0)
+    sys.stdout.write("Sorry: you must specify at least 1 argument")
+    sys.stdout.write("More help avalaible with -h or --help option")
+    sys.exit(0)
 parser = OptionParser()
 parser.add_option("-i", "--input", action="store", help="The name of the directory to load", default=False)
 parser.add_option("-m", "--model", action="store", help="The name of the model to test", default=False)
+
 (options, args) = parser.parse_args() 
 # -----------------------------------
 
@@ -98,16 +99,29 @@ data = dict()
 n_search = p['search']
 subject = p['subject']
 n_parameters = len(p['p_order'])
+fname = p['fname']
 X = p['opt']
-X = np.reshape(X, (len(subject), n_search, n_parameters))
-
+if fname == 'minimize':
+    tmp = np.zeros((len(subject), n_search, n_parameters))
+    fun = np.zeros((len(subject), n_search))
+    X = np.reshape(X, (len(subject), n_search))
+    for i in xrange(len(X)):
+        for j in xrange(len(X[i])):
+            if X[i][j].success == True:
+                tmp[i][j] = X[i][j].x
+                fun[i][j] = -X[i][j].fun        
+    X = tmp
+elif fname == 'fmin':
+    X = np.reshape(X, (len(subject), n_search, n_parameters))
+else:
+    print "scipy function not specified\n"
+    sys.exit()
 # -----------------------------------
 
 
 # -----------------------------------
 # Plot
 # -----------------------------------
-fig = figure(figsize = (9,4))
 params = {'backend':'pdf',
           'axes.labelsize':10,
           'text.fontsize':10,
@@ -116,6 +130,16 @@ params = {'backend':'pdf',
           'ytick.labelsize':8,
           'text.usetex':False}          
 
+if fname == 'minimize':
+    fig = figure(figsize = (9,4))
+    ax = fig.add_subplot(111, projection='3d')
+    for i in xrange(len(X)):
+        c = np.random.rand(3,)
+        ax.scatter(X[i,:,0], X[i,:,1], fun[0], marker='o', color = c)
+        ax.set_xlabel(p['p_order'][0])
+        ax.set_ylabel(p['p_order'][1])
+
+figure()
 if n_parameters == 2:
   for i in xrange(len(X)):
     c = np.random.rand(3,)

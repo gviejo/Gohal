@@ -361,21 +361,20 @@ class Likelihood():
             self.current_subject = s            
             for i in xrange(self.n_run):                
                 p_start = self.generateStart()                
-                # new_p = scipy.optimize.minimize(fun=self.computeLikelihood,
-                #                                 x0=p_start,
-                #                                 method='L-BFGS-B',
-                #                                 jac=None,
-                #                                 hess=None,
-                #                                 hessp=None,
-                #                                 bounds=self.ranges)
-                new_p = scipy.optimize.fmin(func=self.computeLikelihood,
-                                            x0=p_start,
-                                            maxiter=self.maxiter,
-                                            maxfun=self.maxfun,
-                                            xtol=self.xtol,
-                                            ftol=self.ftol,
-                                            disp=self.disp)
-                                            #retall=True)                
+                new_p = scipy.optimize.minimize(fun=self.computeLikelihood,
+                                                x0=p_start,
+                                                method='TNC',
+                                                jac=None,
+                                                hess=None,
+                                                hessp=None,
+                                                bounds=self.ranges)
+                # new_p = scipy.optimize.fmin(func=self.computeLikelihood,
+                #                             x0=p_start,
+                #                             maxiter=self.maxiter,
+                #                             maxfun=self.maxfun,
+                #                             xtol=self.xtol,
+                #                             ftol=self.ftol,
+                #                             disp=self.disp)                                            
                 # new_p = scipy.optimize.anneal(func=self.computeLikelihood,
                 #                               x0=p_start,
                 #                               schedule='fast',

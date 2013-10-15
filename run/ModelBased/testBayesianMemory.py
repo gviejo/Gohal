@@ -52,10 +52,11 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 noise = 0.00001
 length_memory = 9
-threshold = 1.2
+#threshold = 1.2
+threshold = 1
 
 nb_trials = 42
-nb_blocs = 200
+nb_blocs = 50
 cats = CATS(nb_trials)
 
 bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
@@ -185,6 +186,6 @@ ax1.set_title('B')
 
 
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
-savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testBWM.pdf', bbox_inches='tight')
+#savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testBWM.pdf', bbox_inches='tight')
 
-#show()
+show()

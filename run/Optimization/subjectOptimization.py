@@ -101,7 +101,7 @@ data = dict({'start':start2,
 			 'p_order':opt.p_order,
 			 'subject':opt.subject,
 			 'parameters':opt.p,
-			 'search':10})
+			 'search':n_search})
 
 output = open("../../../Dropbox/ISIR/Brovelli/SubjectParameters/data_"+options.model+"_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
 pickle.dump(data, output)

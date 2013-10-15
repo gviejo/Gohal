@@ -103,7 +103,7 @@ class KalmanQLearning():
 
     def getAllParameters(self):        
         return dict({'gamma':[0.01,self.gamma,0.99],
-                     'beta':[1,self.beta,5]})                     
+                     'beta':[1,self.beta,10]})                     
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -379,6 +379,7 @@ class BayesianWorkingMemory():
         self.initial_entropy = -np.log2(1./self.n_action)
         self.entropy = self.initial_entropy
         self.n_element = 0
+        self.p_decision = 0.0
         # Optimization init
         self.p_s = np.zeros((self.lenght_memory, self.n_state))
         self.p_a_s = np.zeros((self.lenght_memory, self.n_state, self.n_action))
@@ -478,6 +479,9 @@ class BayesianWorkingMemory():
         self.values = self.values/np.sum(self.values)        
         self.entropy = -np.sum(self.values*np.log2(self.values))
 
+    def decisionModule(self):
+        self.p_decision = np.exp(-self.threshold*self.entropy*(self.n_element-self.nb_inferences))
+
     def computeValue(self, state):        
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
@@ -494,9 +498,12 @@ class BayesianWorkingMemory():
         self.p = self.uniform[:,:,:]
         self.entropy = self.initial_entropy
         self.nb_inferences = 0        
-        while self.entropy > self.threshold and self.nb_inferences < self.n_element:
+        #while self.entropy > self.threshold and self.nb_inferences < self.n_element:        
+        self.decisionModule()        
+        while np.random.uniform(0,1) > self.p_decision:
             self.inferenceModule()
             self.evaluationModule()
+            self.decisionModule()            
         self.current_action = self.sample(self.values)            
         self.value[-1].append(self.values)        
         self.action[-1].append(self.actions[self.current_action])
