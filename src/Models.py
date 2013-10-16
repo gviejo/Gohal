@@ -379,7 +379,7 @@ class BayesianWorkingMemory():
         self.initial_entropy = -np.log2(1./self.n_action)
         self.entropy = self.initial_entropy
         self.n_element = 0
-        self.p_decision = 0.0
+        self.p_choice = 0.0
         # Optimization init
         self.p_s = np.zeros((self.lenght_memory, self.n_state))
         self.p_a_s = np.zeros((self.lenght_memory, self.n_state, self.n_action))
@@ -395,7 +395,10 @@ class BayesianWorkingMemory():
         self.reaction=list()
         self.value=list()
         self.entropies=list()
-        
+        self.choice=list()
+        self.sampleChoice=list()
+        self.sampleEntropy=list()
+
     def getAllParameters(self):        
         return dict({'lenght':[5, self.lenght_memory,15],
                      'noise':[0.0,self.noise,0.001],
@@ -447,7 +450,10 @@ class BayesianWorkingMemory():
         self.reaction.append([])
         self.value.append([])
         self.entropies.append([])
-        
+        self.choice.append([])
+        self.sampleChoice.append([])
+        self.sampleEntropy.append([])
+
     def initializeList(self):
         self.n_element = 0
         self.p_s = np.zeros((self.lenght_memory, self.n_state))
@@ -460,6 +466,9 @@ class BayesianWorkingMemory():
         self.reaction=list()
         self.value=list()
         self.entropies=list()
+        self.choice=list()
+        self.sampleChoice=list()
+        self.sampleEntropy=list()
         
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -479,8 +488,10 @@ class BayesianWorkingMemory():
         self.values = self.values/np.sum(self.values)        
         self.entropy = -np.sum(self.values*np.log2(self.values))
 
-    def decisionModule(self):
-        self.p_decision = np.exp(-self.threshold*self.entropy*(self.n_element-self.nb_inferences))
+    def decisionModule(self):                
+        self.p_choice = np.exp(-self.threshold*self.entropy)        
+        self.sampleChoice[-1][-1].append(self.p_choice)
+        self.sampleEntropy[-1][-1].append(self.entropy.copy())
 
     def computeValue(self, state):        
         self.current_state = convertStimulus(state)-1
@@ -494,17 +505,21 @@ class BayesianWorkingMemory():
 
     def chooseAction(self, state):
         self.state[-1].append(state)
+        self.sampleChoice[-1].append([])
+        self.sampleEntropy[-1].append([])
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
         self.entropy = self.initial_entropy
         self.nb_inferences = 0        
         #while self.entropy > self.threshold and self.nb_inferences < self.n_element:        
         self.decisionModule()        
-        while np.random.uniform(0,1) > self.p_decision:
+        #while np.random.uniform(0,1) > self.p_choice and self.nb_inferences < self.n_element:
+        for i in xrange(self.n_element):
             self.inferenceModule()
             self.evaluationModule()
-            self.decisionModule()            
+            self.decisionModule()     
         self.current_action = self.sample(self.values)            
+        self.choice[-1].append(self.p_choice)
         self.value[-1].append(self.values)        
         self.action[-1].append(self.actions[self.current_action])
         self.reaction[-1].append(self.nb_inferences)
@@ -532,16 +547,16 @@ class BayesianWorkingMemory():
         #Adding noise
         if self.noise:
             #self.p_s = self.p_s + np.random.beta(self.noise, 5, self.p_s.shape)
-            #self.p_s = self.p_s + np.abs(np.random.normal(0, self.noise, self.p_s.shape))
-            self.p_s = self.p_s + self.noise
+            self.p_s = self.p_s + np.abs(np.random.normal(0, self.noise, self.p_s.shape))
+            #self.p_s = self.p_s + self.noise
             self.p_s[0:self.n_element] = self.p_s[0:self.n_element]/np.sum(self.p_s[0:self.n_element], axis = 1, keepdims = True)
             #self.p_a_s = self.p_a_s + np.random.beta(self.noise, 5, self.p_a_s.shape)            
-            #self.p_a_s = self.p_a_s + np.abs(np.random.normal(0, self.noise, self.p_a_s.shape))
-            self.p_a_s = self.p_a_s + self.noise
+            self.p_a_s = self.p_a_s + np.abs(np.random.normal(0, self.noise, self.p_a_s.shape))
+            #self.p_a_s = self.p_a_s + self.noise
             self.p_a_s[0:self.n_element] = self.p_a_s[0:self.n_element]/np.sum(self.p_a_s[0:self.n_element], axis = 2, keepdims = True)
             #self.p_r_as = self.p_r_as + np.random.beta(self.noise, 5, self.p_r_as.shape)
-            #self.p_r_as = self.p_r_as + np.abs(np.random.normal(0, self.noise, self.p_r_as.shape))
-            self.p_r_as = self.p_r_as + self.noise
+            self.p_r_as = self.p_r_as + np.abs(np.random.normal(0, self.noise, self.p_r_as.shape))
+            #self.p_r_as = self.p_r_as + self.noise
             self.p_r_as[0:self.n_element] = self.p_r_as[0:self.n_element]/np.sum(self.p_r_as[0:self.n_element], axis = 3, keepdims = True)            
 
     def updatePartialValue(self, state, action, reward):

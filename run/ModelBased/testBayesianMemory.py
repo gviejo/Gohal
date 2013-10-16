@@ -17,7 +17,7 @@ from matplotlib import *
 from pylab import *
 from HumanLearning import HLearning
 from time import time
-from sklearn.decomposition import PCA
+
 
 # -----------------------------------
 # FONCTIONS
@@ -33,11 +33,13 @@ def testModel():
             action = bww.chooseAction(state)
             reward = cats.getOutcome(state, action)
             bww.updateValue(reward)
+
     bww.state = convertStimulus(np.array(bww.state))
     bww.action = convertAction(np.array(bww.action))
     bww.responses = np.array(bww.responses)
     bww.reaction = np.array(bww.reaction)
     bww.entropies = np.array(bww.entropies)    
+    bww.choice = np.array(bww.choice)
 # -----------------------------------
 
 # -----------------------------------
@@ -50,13 +52,13 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.00001
-length_memory = 9
+noise = 0.0
+length_memory = 10
 #threshold = 1.2
-threshold = 1
+threshold = 1.8
 
 nb_trials = 42
-nb_blocs = 50
+nb_blocs = 200
 cats = CATS(nb_trials)
 
 bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
@@ -84,32 +86,19 @@ print t2-t1
 pcr = extractStimulusPresentation(bww.responses, bww.state, bww.action, bww.responses)
 pcr_human = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 
-#ratio = ((np.max(human.reaction['meg'])-np.min(human.reaction['meg']))/(np.max(bww.reaction)-np.min(bww.reaction)))
-#bww.reaction = bww.reaction*(0.1*ratio)
-
-#bww.reaction = bww.reaction + 0.45
-#bww.reaction = bww.reaction*0.008
-
 step, indice = getRepresentativeSteps(bww.reaction, bww.state, bww.action, bww.responses)
 rt = computeMeanRepresentativeSteps(step)
 
 step, indice = getRepresentativeSteps(human.reaction['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 rt_human = computeMeanRepresentativeSteps(step) 
-#rt = list(rt)
-#rt[0] = rt[0]*0.01
-#rt[1] = rt[1]*0.01
-#rt[0] = rt[0] - (np.min(rt[0])-np.min(rt_human[0]))
-#rt = tuple(rt)  
 
 step, indice = getRepresentativeSteps(bww.entropies, bww.state, bww.action, bww.responses)
 ent = computeMeanRepresentativeSteps(step)
 
-# X = np.transpose(human.reaction['meg'])
-# pca = PCA(n_components = 42)
-# Y = pca.fit_transform(X)
-# Y = np.transpose(Y)
-# step, indice = getRepresentativeSteps(Y, human.stimulus['meg'], human.action['meg'], human.responses['meg'])
-# rt_pca = computeMeanRepresentativeSteps(step) 
+cho2 = extractStimulusPresentation(bww.choice, bww.state, bww.action, bww.responses)
+step, indice = getRepresentativeSteps(bww.entropies, bww.state, bww.action, bww.responses)
+cho = computeMeanRepresentativeSteps(step)
+
 
 # -----------------------------------
 
@@ -119,7 +108,7 @@ ent = computeMeanRepresentativeSteps(step)
 # -----------------------------------
 
 # Probability of correct responses
-figure(figsize = (9,4))
+figure(figsize = (11,8))
 params = {'backend':'pdf',
           'axes.labelsize':10,
           'text.fontsize':10,
@@ -129,7 +118,7 @@ params = {'backend':'pdf',
           'text.usetex':False}          
 #rcParams.update(params)                  
 colors = ['blue', 'red', 'green']
-subplot(1,2,1)
+subplot(2,2,1)
 for i in xrange(3):
     plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
     errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
@@ -146,7 +135,7 @@ for i in xrange(3):
     grid()
 
 
-ax1 = plt.subplot(1,2,2)
+ax1 = plt.subplot(2,2,2)
 ax1.plot(range(1, len(rt_human[0])+1), rt_human[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.6)
 ax1.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.6)
 
@@ -183,9 +172,26 @@ ax1.set_yticks([0.46, 0.50, 0.54])
 ax1.set_ylim(0.43, 0.56)
 ax1.set_title('B')
 
+subplot(2,2,3)
+plot(range(1, len(cho[0])+1), cho[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.6)
+errorbar(range(1, len(cho[0])+1), cho[0], cho[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.6)
+subplot(2,2,4)
+for i in xrange(3):
+    plot(range(1, len(cho2['mean'][i])+1), cho2['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+    errorbar(range(1, len(cho2['mean'][i])+1), cho2['mean'][i], cho2['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])    
+    legend(loc = 'lower right')
+    xticks(range(2,11,2))
+    xlabel("Trial")
+    xlim(0.8, 10.2)
+    ylim(-0.05, 1.05)
+    yticks(np.arange(0, 1.2, 0.2))
+    title('A')
+    grid()
 
 
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
-#savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testBWM.pdf', bbox_inches='tight')
+savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testBWM3.pdf', bbox_inches='tight')
+
+
 
 show()
