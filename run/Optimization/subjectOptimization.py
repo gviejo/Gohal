@@ -64,6 +64,7 @@ threshold = 0.2         # inference threshold
 sigma = 0.00002         # updating rate of the average reward
 #########################
 #optimization parameters
+fname = 'minimize'
 n_search = 100
 maxiter = 1000
 maxfun = 1000
@@ -74,7 +75,7 @@ disp = True
 
 cats = CATS(0)
 
-opt = Likelihood(human, n_search, maxiter, maxfun, xtol, ftol, disp)
+opt = Likelihood(human, fname, n_search, maxiter, maxfun, xtol, ftol, disp)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bwm':BayesianWorkingMemory('bwm', cats.states, cats.actions, length_memory, noise, threshold),
@@ -101,7 +102,8 @@ data = dict({'start':start2,
 			 'p_order':opt.p_order,
 			 'subject':opt.subject,
 			 'parameters':opt.p,
-			 'search':n_search})
+			 'search':n_search,
+			 'fname':opt.fname})
 
 output = open("../../../Dropbox/ISIR/Brovelli/SubjectParameters/data_"+options.model+"_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
 pickle.dump(data, output)

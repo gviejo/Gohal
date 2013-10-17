@@ -172,9 +172,12 @@ ax1.set_yticks([0.46, 0.50, 0.54])
 ax1.set_ylim(0.43, 0.56)
 ax1.set_title('B')
 
+################
 subplot(2,2,3)
 plot(range(1, len(cho[0])+1), cho[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.6)
 errorbar(range(1, len(cho[0])+1), cho[0], cho[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.6)
+
+################
 subplot(2,2,4)
 for i in xrange(3):
     plot(range(1, len(cho2['mean'][i])+1), cho2['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    

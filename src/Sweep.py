@@ -262,8 +262,9 @@ class Likelihood():
     Optimization with scipy.optimize.fmin
     See : Trial-by-trial data analysis using computational models, Daw, 2009
     """
-    def __init__(self, human, n_run, maxiter, maxfun, xtol, ftol, disp):
+    def __init__(self, human, fname, n_run, maxiter, maxfun, xtol, ftol, disp):
         self.X = human.subject['meg']
+        self.fname = fname
         self.maxiter = maxiter
         self.maxfun = maxfun
         self.xtol = xtol
@@ -360,32 +361,39 @@ class Likelihood():
         for s in self.subject:
             self.current_subject = s            
             for i in xrange(self.n_run):                
-                p_start = self.generateStart()                
-                new_p = scipy.optimize.minimize(fun=self.computeLikelihood,
+                p_start = self.generateStart()
+                if self.fname == 'minimize':
+                    new_p = scipy.optimize.minimize(fun=self.computeLikelihood,
+                                                    x0=p_start,
+                                                    method='TNC',
+                                                    jac=None,
+                                                    hess=None,
+                                                    hessp=None,
+                                                    bounds=self.ranges)
+                elif self.fname == 'fmin':
+                    new_p = scipy.optimize.fmin(func=self.computeLikelihood,
                                                 x0=p_start,
-                                                method='TNC',
-                                                jac=None,
-                                                hess=None,
-                                                hessp=None,
-                                                bounds=self.ranges)
-                # new_p = scipy.optimize.fmin(func=self.computeLikelihood,
-                #                             x0=p_start,
-                #                             maxiter=self.maxiter,
-                #                             maxfun=self.maxfun,
-                #                             xtol=self.xtol,
-                #                             ftol=self.ftol,
-                #                             disp=self.disp)                                            
-                # new_p = scipy.optimize.anneal(func=self.computeLikelihood,
-                #                               x0=p_start,
-                #                               schedule='fast',
-                #                               lower=self.lower,
-                #                               upper=self.upper,
-                #                               disp=True)
-                # new_p = scipy.optimize.brute(func=self.computeLikelihood,
-                #                              ranges=self.ranges,
-                #                              disp=True,
-                #                              Ns=20,
-                #                              full_output=False)
+                                                maxiter=self.maxiter,
+                                                maxfun=self.maxfun,
+                                                xtol=self.xtol,
+                                                ftol=self.ftol,
+                                                disp=self.disp)                                            
+                elif self.fname == 'anneal':                    
+                    new_p = scipy.optimize.anneal(func=self.computeLikelihood,
+                                                  x0=p_start,
+                                                  schedule='fast',
+                                                  lower=self.lower,
+                                                  upper=self.upper,
+                                                  disp=True)
+                elif self.fname == 'brute':
+                    new_p = scipy.optimize.brute(func=self.computeLikelihood,
+                                                 ranges=self.ranges,
+                                                 disp=True,
+                                                 Ns=20,
+                                                 full_output=False)
+                else:
+                    print "Function not found"
+                    sys.exit()
                 self.best_parameters[s].append(new_p)
                 self.start_parameters[s].append(p_start)
             self.best_parameters[s] = np.array(self.best_parameters[s])

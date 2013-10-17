@@ -22,8 +22,6 @@ from HumanLearning import HLearning
 from Models import *
 from matplotlib import *
 from pylab import *
-from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
 
 # -----------------------------------
 # ARGUMENT MANAGER
