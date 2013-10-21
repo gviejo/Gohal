@@ -494,13 +494,16 @@ class BayesianWorkingMemory():
         self.sampleEntropy[-1][-1].append(self.entropy.copy())
 
     def computeValue(self, state):        
+        self.state[-1].append(state)
+        self.sampleChoice[-1].append([])
+        self.sampleEntropy[-1].append([])
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
         self.entropy = self.initial_entropy
         self.nb_inferences = 0     
         self.decisionModule()   
-        #while self.entropy > self.threshold and self.nb_inferences < self.n_element:
-        while np.random.uniform(0,1) > self.p_choice and self.nb_inferences < self.n_element:
+        while self.entropy > self.threshold and self.nb_inferences < self.n_element:
+        #while np.random.uniform(0,1) > self.p_choice and self.nb_inferences < self.n_element:
             self.inferenceModule()
             self.evaluationModule()        
             self.decisionModule()

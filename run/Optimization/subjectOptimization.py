@@ -65,7 +65,7 @@ sigma = 0.00002         # updating rate of the average reward
 #########################
 #optimization parameters
 fname = 'minimize'
-n_search = 1000
+n_run = 1000
 maxiter = 10000
 maxfun = 1000
 xtol = 0.0001
@@ -75,7 +75,7 @@ disp = True
 
 cats = CATS(0)
 
-opt = Likelihood(human, fname, n_search, maxiter, maxfun, xtol, ftol, disp)
+opt = Likelihood(human, fname, n_run, maxiter, maxfun, xtol, ftol, disp)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bwm':BayesianWorkingMemory('bwm', cats.states, cats.actions, length_memory, noise, threshold),
@@ -102,7 +102,7 @@ data = dict({'start':start2,
 			 'p_order':opt.p_order,
 			 'subject':opt.subject,
 			 'parameters':opt.p,
-			 'search':n_search,
+			 'search':n_run,
 			 'fname':opt.fname})
 
 output = open("../../../Dropbox/ISIR/Brovelli/SubjectParameters/data_"+options.model+"_"+str(datetime.datetime.now()).replace(" ", "_"), 'wb')
