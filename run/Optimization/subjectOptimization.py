@@ -65,8 +65,8 @@ sigma = 0.00002         # updating rate of the average reward
 #########################
 #optimization parameters
 fname = 'minimize'
-n_search = 100
-maxiter = 1000
+n_search = 1000
+maxiter = 10000
 maxfun = 1000
 xtol = 0.0001
 ftol = 0.0001
@@ -79,9 +79,9 @@ opt = Likelihood(human, fname, n_search, maxiter, maxfun, xtol, ftol, disp)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bwm':BayesianWorkingMemory('bwm', cats.states, cats.actions, length_memory, noise, threshold),
-			   'ksel':KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-                       BayesianWorkingMemory('bwm', cats.states, cats.actions, length_memory, noise, threshold),
-                       sigma)})
+               'ksel':KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
+                                 BayesianWorkingMemory('bwm', cats.states, cats.actions, length_memory, noise, threshold),
+                                 sigma)})
 
 
 p_opt, p_start = opt.optimize(models[options.model])

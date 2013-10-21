@@ -408,7 +408,7 @@ class BayesianWorkingMemory():
         for i in dict_p.iterkeys():
             self.setParameter(i,dict_p[i][1])
 
-    def setParameter(self, name, value):
+    def setParameter(self, name, value):        
         if name == 'lenght':
             if value < 5:
                 self.lenght_memory = 5
@@ -424,8 +424,8 @@ class BayesianWorkingMemory():
             else:
                 self.noise = value
         elif name == 'threshold':
-            if value < 0.1:
-                self.threshold = 0.1
+            if value < 0.01:
+                self.threshold = 0.01
             elif value > 2.0:
                 self.threshold = 2.0
             else:                

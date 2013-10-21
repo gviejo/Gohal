@@ -369,7 +369,9 @@ class Likelihood():
                                                     jac=None,
                                                     hess=None,
                                                     hessp=None,
-                                                    bounds=self.ranges)
+                                                    bounds=self.ranges,
+                                                    options={'maxiter':self.maxiter,
+                                                             'disp':self.disp})
                 elif self.fname == 'fmin':
                     new_p = scipy.optimize.fmin(func=self.computeLikelihood,
                                                 x0=p_start,
