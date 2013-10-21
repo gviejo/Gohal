@@ -3,7 +3,7 @@
 """
 parametersOptimization.py
 
-scripts to load and plot parameters
+to extract best parameters from scipy optimize
 
 run parameterTest.py -i data_model_date -m 'model'
 
@@ -97,7 +97,7 @@ for i in xrange(len(p['subject'])):
     best = X[i][fun[i] == np.max(fun[i])]
     l = round(np.max(fun[i]), 2)
      
-    line = p['subject'][i]+":(likelihood:"+str(l)+","
+    line = p['subject'][i]+" (likelihood:"+str(l)+","
     for j in xrange(len(p['p_order'])):
         line = line+p['p_order'][j]+":"+str(round(best[0][j], 2))+","    
     line = line[0:-1] + ")\n"

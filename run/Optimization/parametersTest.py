@@ -5,7 +5,7 @@ parametersOptimization.py
 
 scripts to load and test parameters
 
-run parameterTest.py -i data_kalman_date
+run parameterTest.py -m model -i subjectParametersmodel.txt
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -42,7 +42,23 @@ parser.add_option("-m", "--model", action="store", help="The name of the model t
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def testModel():    
+def loadParameters():
+    p = dict()
+    f = open(options.input, 'r')
+    for i in f.xreadlines():
+        if i[0] != "#":
+            s = i.split(" ")[0]
+            p[s] = dict()
+            line = i.split(" ")[1].replace("(", "").replace(")\n", "").split(",")
+            p[s]['p'] = dict()
+            for j in line:
+                if "likelihood" in j.split(":")[0]:
+                    p[s][j.split(":")[0]] = float(j.split(":")[1])
+                else:
+                    p[s]['p'][j.split(":")[0]] = float(j.split(":")[1])
+    return p
+
+def testModel(nb_blocs = 4):    
     for i in xrange(nb_blocs):
         sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                    
         cats.reinitialize()
@@ -88,25 +104,21 @@ model = models[options.model]
 # -----------------------------------
 # PARAMETERS Loading
 # -----------------------------------
-f = open(options.input, 'rb')
-p = pickle.load(f)
+p = loadParameters()
 # -----------------------------------
 
 # -----------------------------------
 # PARAMETERS Testing
 # -----------------------------------
 model.initializeList()
-for i in p['opt']:
-    for j in xrange(len(p['p_order'])):
-        model.setParameter(p['p_order'][j], i[j])    
+for i in p.iterkeys():
+    for j in p[i]['p'].iterkeys():
+        model.setParameter(j, p[i]['p'][j])    
     testModel()    
 
 model.state = convertStimulus(np.array(model.state))
 model.action = convertAction(np.array(model.action))
 model.responses = np.array(model.responses)
-model.reaction = np.array(model.reaction)
-if model.name == 'bwm':
-    model.entropies = np.array(model.entropies)
 
 
 # -----------------------------------

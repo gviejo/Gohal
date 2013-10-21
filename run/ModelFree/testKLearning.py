@@ -52,7 +52,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
-gamma = 0.5   # discount factor
+gamma = 0.6   # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 beta = 1.7
@@ -103,7 +103,7 @@ params = {'backend':'pdf',
           'text.usetex':False}          
 #rcParams.update(params)                  
 colors = ['blue', 'red', 'green']
-subplot(1,1,1)
+subplot(1,2,1)
 for i in xrange(3):
     plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
     errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
@@ -118,5 +118,9 @@ for i in xrange(3):
     yticks(np.arange(0, 1.2, 0.2))
     title('A')
     grid()
+
+subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
+
+savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testKQL.pdf', bbox_inches='tight')
 
 show()
