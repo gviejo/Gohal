@@ -167,7 +167,8 @@ class KalmanQLearning():
         self.current_state = convertStimulus(state)-1        
         self.covariance['noise'] = self.covariance['cov']*self.eta
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']        
-        return SoftMaxValues(self.values[self.current_state], self.beta)
+        self.value[-1].append(SoftMaxValues(self.values[self.current_state], self.beta))
+        return self.value[-1][-1]
 
     def chooseAction(self, state):
         self.state[-1].append(state)

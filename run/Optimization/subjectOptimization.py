@@ -65,7 +65,7 @@ sigma = 0.00002         # updating rate of the average reward
 #########################
 #optimization parameters
 fname = 'minimize'
-n_run = 1000
+n_search = 1000
 maxiter = 10000
 maxfun = 1000
 xtol = 0.0001
