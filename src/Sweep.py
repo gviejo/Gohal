@@ -15,6 +15,10 @@ from fonctions import *
 from scipy.stats import chi2_contingency
 from scipy.stats import norm
 import scipy.optimize
+from multiprocessing import Pool, Process
+
+def unwrap_self_multiOptimize(arg, **kwarg):
+    return Likelihood.multiOptimize(*arg, **kwarg)
 
 class Sweep_performances():
     """
@@ -262,8 +266,9 @@ class Likelihood():
     Optimization with scipy.optimize.fmin
     See : Trial-by-trial data analysis using computational models, Daw, 2009
     """
-    def __init__(self, human, fname, n_run, maxiter, maxfun, xtol, ftol, disp):
+    def __init__(self, human, ptr_model, fname, n_run, maxiter, maxfun, xtol, ftol, disp):
         self.X = human.subject['meg']
+        self.model = ptr_model
         self.fname = fname
         self.maxiter = maxiter
         self.maxfun = maxfun
@@ -273,17 +278,21 @@ class Likelihood():
         self.subject = self.X.keys()
         self.n_run = n_run
         self.best_parameters = None
-        self.start_parameters = None
-        self.p = None
-        self.p_order = None        
-        self.model = None
+        self.start_parameters = None        
+        self.p = self.model.getAllParameters()
+        self.p_order = self.p.keys()        
         self.current_subject = None
         self.cvt = dict({i:'s'+str(i) for i in [1,2,3]})
-        self.lower = None
-        self.upper = None
-        self.ranges = None
+        self.lower = np.array([self.p[i][0] for i in self.p_order])
+        self.upper = np.array([self.p[i][2] for i in self.p_order])
+        self.ranges = tuple(map(tuple, np.array([self.lower, self.upper]).transpose()))        
+        self.searchStimOrder()
+        self.data = None
 
     def searchStimOrder(self):
+        """ Done for all bloc 
+            for one subject
+        """
         for s in self.subject:            
             for b in self.X[s].iterkeys():                
                 sar = self.X[s][b]['sar']
@@ -339,17 +348,7 @@ class Likelihood():
             for trial in self.X[self.current_subject][bloc]['sar']:
                 print 1
 
-    def set(self, ptr_m, subject):
-        self.model = ptr_m
-        self.current_subject = subject
-        self.p = self.model.getAllParameters()
-        self.p_order = self.p.keys()
-        self.lower = np.array([self.p[i][0] for i in self.p_order])
-        self.upper = np.array([self.p[i][2] for i in self.p_order])
-        self.ranges = tuple(map(tuple, np.array([self.lower, self.upper]).transpose()))
-
-    def optimize(self, ptr_m):
-        self.searchStimOrder()
+    def optimize(self, ptr_m):                
         self.best_parameters = dict({s:list() for s in self.subject})
         self.start_parameters = dict({s:list() for s in self.subject})
         self.model = ptr_m                
@@ -405,3 +404,75 @@ class Likelihood():
     def generateStart(self):
         return [np.random.uniform(self.p[i][0], self.p[i][2]) for i in self.p_order]
 
+    def set(self, ptr_m, subject):
+        self.model = ptr_m
+        self.current_subject = subject
+        self.p = self.model.getAllParameters()
+        self.p_order = self.p.keys()
+        self.lower = np.array([self.p[i][0] for i in self.p_order])
+        self.upper = np.array([self.p[i][2] for i in self.p_order])
+        self.ranges = tuple(map(tuple, np.array([self.lower, self.upper]).transpose()))
+
+    def multiOptimize(self, subject):
+        self.current_subject = subject
+        self.best_parameters = list()
+        self.start_parameters = list()              
+        max_likelihood = list()
+        for i in xrange(self.n_run):
+            p_start = self.generateStart()
+            if self.fname == 'minimize':
+                tmp = scipy.optimize.minimize(fun=self.computeLikelihood,
+                                                x0=p_start,
+                                                method='TNC',
+                                                jac=None,
+                                                hess=None,
+                                                hessp=None,
+                                                bounds=self.ranges,
+                                                options={'maxiter':self.maxiter,
+                                                         'disp':self.disp})
+            else:
+                print "Function not found"
+                sys.exit()
+            self.best_parameters.append(tmp.x)
+            max_likelihood.append(-tmp.fun)
+            self.start_parameters.append(p_start)
+        self.best_parameters = np.array(self.best_parameters)
+        self.start_parameters = np.array(self.start_parameters)
+        max_likelihood = np.array(max_likelihood)
+        return dict({self.current_subject:dict({'start':self.start_parameters,
+                                                'best':self.best_parameters, 
+                                                'max':max_likelihood})})
+
+    def run(self):        
+        subject = ['S1', 'S9']
+        pool = Pool(len(subject))
+        self.data = pool.map(unwrap_self_multiOptimize, zip([self]*len(subject), subject))                
+
+    def save(self, output_file):
+        opt = []
+        start = []
+        fun = []
+        subject = []
+        for i in self.subject:
+            for j in self.data:
+                if j.keys()[0] == i:
+                    opt.append(j[i]['best'])
+                    start.append(j[i]['start'])
+                    fun.append(j[i]['max'])
+                    subject.append(i)
+        opt = np.array(opt)
+        start = np.array(start)
+        fun = np.array(fun)
+        data = dict({'start':start,
+                     'opt':opt,
+                     'max':fun,
+                     'p_order':self.p_order,
+                     'subject':subject,
+                     'parameters':self.p,
+                     'search':self.n_run,
+                     'fname':self.fname})
+        output = open(output_file, 'wb')
+        pickle.dump(data, output)
+        output.close()
+
+        
