@@ -381,6 +381,7 @@ class BayesianWorkingMemory():
         self.entropy = self.initial_entropy
         self.n_element = 0
         self.p_choice = 0.0
+        self.bounds = dict({"lenght":[5, 15], "threshold":[0, 10], "noise":[0.0, 0.001]})
         # Optimization init
         self.p_s = np.zeros((self.lenght_memory, self.n_state))
         self.p_a_s = np.zeros((self.lenght_memory, self.n_state, self.n_action))
@@ -402,8 +403,8 @@ class BayesianWorkingMemory():
 
     def getAllParameters(self):        
         return dict({'lenght':[5, self.lenght_memory,15],
-                     'noise':[0.0,self.noise,0.001],
-                     'threshold':[0.1, self.threshold, 1.5]})
+                     #'noise':[0.0,self.noise,0.001],
+                     'threshold':[0.000001, self.threshold, 10]})
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -425,10 +426,10 @@ class BayesianWorkingMemory():
             else:
                 self.noise = value
         elif name == 'threshold':
-            if value < 0.01:
-                self.threshold = 0.01
-            elif value > 2.0:
-                self.threshold = 2.0
+            if value < 0.000001:
+                self.threshold = 0.000001
+            elif value > 10.0:
+                self.threshold = 10.0
             else:                
                 self.threshold = value
         else:
@@ -503,8 +504,8 @@ class BayesianWorkingMemory():
         self.entropy = self.initial_entropy
         self.nb_inferences = 0     
         self.decisionModule()   
-        while self.entropy > self.threshold and self.nb_inferences < self.n_element:
-        #while np.random.uniform(0,1) > self.p_choice and self.nb_inferences < self.n_element:
+        #while self.entropy > self.threshold and self.nb_inferences < self.n_element:
+        while np.random.uniform(0,1) > self.p_choice and self.nb_inferences < self.n_element:
             self.inferenceModule()
             self.evaluationModule()        
             self.decisionModule()
@@ -519,9 +520,9 @@ class BayesianWorkingMemory():
         self.entropy = self.initial_entropy
         self.nb_inferences = 0                 
         self.decisionModule()        
-        while self.entropy > self.threshold and self.nb_inferences < self.n_element:        
-        #while np.random.uniform(0,1) > self.p_choice and self.nb_inferences < self.n_element:
-        #for i in xrange(self.n_element):
+        #while self.entropy > self.threshold and self.nb_inferences < self.n_element:
+        for i in xrange(self.n_element):
+        #while np.random.uniform(0,1) > self.p_choice and self.nb_inferences < self.n_element:        
             self.inferenceModule()
             self.evaluationModule()
             self.decisionModule()     

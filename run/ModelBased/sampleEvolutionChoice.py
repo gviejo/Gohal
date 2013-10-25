@@ -76,7 +76,7 @@ def modelTest(stimuli_list):
 # -----------------------------------
 length_memory = 100
 noise_width = 0.0
-threshold = 1.8
+threshold = 5.0
 
 nb_trials = 42
 nb_blocs = 1

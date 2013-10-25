@@ -35,7 +35,7 @@ if not sys.argv[1:]:
 parser = OptionParser()
 parser.add_option("-i", "--input", action="store", help="The name of the directory to load", default=False)
 parser.add_option("-m", "--model", action="store", help="The name of the model to test", default=False)
-
+parser.add_option("-s", "--subject", action="store", help="Which subject to plot \n Ex : -s S1", default=False)
 (options, args) = parser.parse_args() 
 # -----------------------------------
 
@@ -95,22 +95,15 @@ p = pickle.load(f)
 # -----------------------------------
 #order data
 # -----------------------------------
-data = dict()
+parameters = p['p_order']
 n_search = p['search']
 subject = p['subject']
-n_parameters = len(p['p_order'])
+n_parameters = len(parameters)
 fname = p['fname']
 X = p['opt']
+
 if fname == 'minimize':
-    tmp = np.zeros((len(subject), n_search, n_parameters))
-    fun = np.zeros((len(subject), n_search))
-    X = np.reshape(X, (len(subject), n_search))
-    for i in xrange(len(X)):
-        for j in xrange(len(X[i])):
-            if X[i][j].success == True:
-                tmp[i][j] = X[i][j].x
-                fun[i][j] = -X[i][j].fun        
-    X = tmp
+    fun = p['max']        
 elif fname == 'fmin':
     X = np.reshape(X, (len(subject), n_search, n_parameters))
 else:
@@ -130,28 +123,27 @@ params = {'backend':'pdf',
           'ytick.labelsize':8,
           'text.usetex':False}          
 
-if fname == 'minimize':
-    fig = figure(figsize = (9,4))
-    ax = fig.add_subplot(111, projection='3d')
-    for i in xrange(len(X)):
-        c = np.random.rand(3,)
-        ax.scatter(X[i,:,0], X[i,:,1], fun[0], marker='o', color = c)
-        ax.set_xlabel(p['p_order'][0])
-        ax.set_ylabel(p['p_order'][1])
 
-figure()
-if n_parameters == 2:
-  for i in xrange(len(X)):
-    c = np.random.rand(3,)
-    plot(X[i,:,0], X[i,:,1], 'o', color = c, markersize = i+3)
-  grid()
-elif n_parameters == 3:
-  ax = fig.add_subplot(111, projection='3d')
-  for i in xrange(len(X)):
-    c = np.random.rand(3,)
-    ax.scatter(X[i,:,0], X[i,:,1], X[i,:,2], marker ='o', alpha = 1, color = c)
-  
+figure(figsize = (14, 9))
+ion()
+for i in xrange(n_parameters):
+    subplot(n_parameters, 1, i+1)
+    if options.subject:
+        ind = subject.index(options.subject)
+        plot(X[ind][:,i], fun[ind], 'o')        
+    else :
+        for j in xrange(len(subject)):
+            c = np.random.rand(3,)
+            plot(X[j,:,i], fun[j], 'o', color = c, markersize = 5)
+    xlabel(parameters[i])      
+    xlim(p['parameters'][parameters[i]][0], p['parameters'][parameters[i]][2])
+    ylabel("Likelihood")
+    grid()
+
+subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
+
+show()        
 
 
-show()
+
 

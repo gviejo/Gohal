@@ -63,6 +63,30 @@ def loadParameters():
                     p[s]['p'][j.split(":")[0]] = float(j.split(":")[1])
     return p
 
+def searchStimOrder(sar):    
+    # search for order
+    incorrect = dict()
+    for j in [1,2,3]:
+        if len(np.where((sar[:,2] == 1) & (sar[:,0] == j))[0]):
+            correct = np.where((sar[:,2] == 1) & (sar[:,0] == j))[0][0]
+            t = len(np.where((sar[0:correct,2] == 0) & (sar[0:correct,0] == j))[0])
+            incorrect[t] = j    
+    if 1 in incorrect.keys() and 3 in incorrect.keys() and 4 in incorrect.keys():
+        first = incorrect[1]
+        second = incorrect[3]
+        third = incorrect[4]
+    elif len(incorrect.keys()) == 3:
+        first = incorrect[incorrect.keys()[0]]
+        second = incorrect[incorrect.keys()[1]]
+        third = incorrect[incorrect.keys()[2]]
+    elif len(incorrect.keys()) == 2:
+        first = incorrect[incorrect.keys()[0]]
+        second = incorrect[incorrect.keys()[1]]
+        third = (set([1,2,3]) - set([first, second])).pop()
+    else:
+        print "You are screwed"
+    return [first, second, third]
+
 def testModel(subject):  
     model.initializeList()  
     for bloc in X[subject].iterkeys():        
@@ -125,19 +149,22 @@ cvt = dict({i:'s'+str(i) for i in [1,2,3]})
 X = human.subject['meg']
 
 for i in X.iterkeys():
-    print i    
+    
     filename = options.output+i+"/"+options.model+".mat"
     parameter = p[i]['p']
     for j in parameter.iterkeys():
         model.setParameter(j, parameter[j])    
     testModel(i)
-    #x = np.zeros(len(model.value)+2, dtype = [('p_a', 'O')])
-    #x = types[options.model]
     x = np.zeros(len(model.value)+2, dtype = types[options.model])
-    for i in xrange(len(model.value)):
-        for j in fields:
-            if j == 'p_a':
-                x[i+1][j] = np.matrix(model.value[i])        
+
+    for j in xrange(len(model.value)):
+        print i , j
+        for k in fields:
+            if k == 'p_a':
+                tmp = np.matrix(model.value[j])
+                order2 = searchStimOrder(X[i][j+1]['sar'])
+                tmp = np.array([np.matrix(tmp[X[i][j+1]['sar'][:,0] == s]) for s in order2])
+                x[j+1][k] = tmp                
     scipy.io.savemat(filename, {options.model:x})
     
 # -----------------------------------

@@ -11,3 +11,6 @@ fMRI/
 .gohal.sublime-workspace
 plot/
 data*
+submit_job.sh
+*.e*
+*.out

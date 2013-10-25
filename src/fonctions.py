@@ -4,11 +4,11 @@ from prettytable import PrettyTable
 from copy import deepcopy
 import cPickle as pickle
 
-
 from scipy import stats
 from scipy.stats import binom, sem
 from scipy.stats import chi2_contingency
 
+from sklearn.decomposition import PCA
 
 def displayQValues(states, actions, values, ind = 0):
     foo = PrettyTable()
@@ -454,4 +454,10 @@ def computeSpecialKullbackLeibler(p, q):
 	    if q[i] <> 0.0 and p[i] <> 0.0:
 		tmp+=p[i]*np.log2(p[i]/q[i])
         return tmp
+
+
+
+
+
+
 

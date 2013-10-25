@@ -291,7 +291,7 @@ class Likelihood():
 
     def searchStimOrder(self):
         """ Done for all bloc 
-            for one subject
+            for all subject
         """
         for s in self.subject:            
             for b in self.X[s].iterkeys():                

@@ -139,7 +139,28 @@ class HLearning():
                      'Isd':Isd})
     
 
+    def computePCA(self, case, step, indice, size = 15):
+        tmp = np.zeros((len(indice), size))
+        bad = []
+        for i in xrange(len(indice)):
+            for j in xrange(size):
+                if len(self.reaction[case][i][indice[i] == j+1]):
+                    tmp[i, j] = np.mean(self.reaction[case][i][indice[i] == j+1])                    
+                else:
+                    bad.append(i)
+        return np.delete(tmp, np.unique(bad), 0)
 
 
-
-
+    def extractRTSteps(self, case, step, indice, size = 15, keep_bad = True):
+        tmp = np.zeros((len(indice), size))
+        bad = []
+        for i in xrange(len(indice)):
+            for j in xrange(size):
+                if len(self.reaction[case][i][indice[i] == j+1]):
+                    tmp[i, j] = np.mean(self.reaction[case][i][indice[i] == j+1])                    
+                else:
+                    bad.append(i)
+        if keep_bad:
+            return tmp
+        else:            
+            return np.delete(tmp, np.unique(bad), 0)        
