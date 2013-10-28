@@ -318,12 +318,12 @@ def getRepresentativeSteps(data, stimulus, action, responses):
 
         #indicing for correct first from 6 to ...
         for k in [first, second, third]:
-            tmp = 6
+            tmp = 7
             for j in np.where((stimulus[i] == k) & (indice[i] == 0))[0]:
                 indice[i,j] = tmp; tmp += 1
 
         # for k in [first, second, third]:
-        #     tmp = 6
+        #     tmp = 7
         #     for j in np.where((stimulus[i] == k) & (responses[i] == 1) & (indice[i] == 0))[0]:
         #         indice[i,j] = tmp; tmp += 1
 

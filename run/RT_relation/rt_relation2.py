@@ -8,7 +8,7 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 
 import sys
 import numpy as np
-sys.path.append("../src")
+sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
 from Models import BayesianWorkingMemory
@@ -78,7 +78,7 @@ testModel()
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI',39)}))
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 
 

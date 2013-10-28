@@ -8,15 +8,14 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 
 import sys
 import numpy as np
-sys.path.append("../src")
+sys.path.append("../../src")
 from fonctions import *
-from ColorAssociationTasks import CATS
-from Models import BayesianWorkingMemory
+
 from matplotlib import *
 from pylab import *
 from HumanLearning import HLearning
 from time import time
-
+from sklearn.decomposition import PCA
 
 # -----------------------------------
 # FONCTIONS
@@ -30,6 +29,14 @@ def computeDistanceMatrix():
                 distance[i,j] = j-np.where(state[i,0:j] == state[i,j])[0][-1]
 
     return distance
+
+def computePCA():
+    m, n = indice.shape
+    tmp = np.zeros((m, 15))
+    for i in xrange(m):
+        for j in xrange(15):
+            tmp[i, j] = np.mean(reaction[i][indice[i] == j+1])
+    return tmp
 # -----------------------------------
 # -----------------------------------
 # Parameters
@@ -40,7 +47,7 @@ case = 'meg'
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI',39)}))
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 state = human.stimulus[case]
 action = human.action[case]
@@ -61,7 +68,7 @@ distance = computeDistanceMatrix()
 # -----------------------------------
 # Plot
 # -----------------------------------
-figure(figsize = (8, 4))
+figure(figsize = (12, 8))
 ion()
 ######################################
 # Plot 1 : mean RT vs distance between correct
@@ -100,29 +107,40 @@ grid()
 xlim(0, np.max(distance)+2)
 ylim(0.3, 1.0)
 xlabel("Distance")
-ylabel("Reaction time (ms)")
+ylabel("Reaction time")
 legend()
 
 #######################################
 # Plot 3 : RT vs position for each distances
+pca = PCA(n_components=1)
 data = []
 plot3 = []
-var3 = []
+plot3_pca = []
+
 for i in xrange(1, 6 ):
     data.append([])
     plot3.append([])    
+    plot3_pca.append([])
     for j in xrange(5, 18):
         data[-1].append(reaction[np.where((distance == i) & (indice == j))])
         if len(reaction[np.where((distance == i) & (indice == j))]):
+            tmp = pca.fit_transform(np.vstack(reaction[np.where((distance == i) & (indice == j))]))
+            plot3_pca[-1].append([j, np.mean(tmp), np.var(tmp)])
             plot3[-1].append([j, np.mean(reaction[np.where((distance == i) & (indice == j))]), np.var(reaction[np.where((distance == i) & (indice == j))])])
+
     plot3[-1] = np.array(plot3[-1])
+    plot3_pca[-1] = np.array(plot3_pca[-1])
     
 
 subplot(2,2,3)
 for i in xrange(len(plot3)):
-    plot(plot3[i][:,0], plot3[i][:,1], '-', linewidth = 3, label = "D : "+str(i+1))
-    errorbar(plot3[i][:,0], plot3[i][:,1], plot3[i][:,2], linestyle = '-', linewidth = 3)
+    c = np.random.rand(3,)
+    plot(plot3[i][:,0], plot3[i][:,1], '-', linewidth = 3, label = "D : "+str(i+1), color = c)
+    errorbar(plot3[i][:,0], plot3[i][:,1], plot3[i][:,2], linestyle = '-', linewidth = 3, color = c)
 legend()
+grid()
+ylabel("Reaction time")
+xlabel("Representative Steps")
 show()
 
 
