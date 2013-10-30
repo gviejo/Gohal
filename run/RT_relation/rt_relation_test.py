@@ -16,6 +16,7 @@ from pylab import *
 from HumanLearning import HLearning
 from time import time
 from sklearn.decomposition import PCA
+from scipy import stats
 
 # -----------------------------------
 # FONCTIONS
@@ -56,10 +57,9 @@ def testRelation(data):
     P_discret[np.triu_indices(n)] = 0
     return P, P_discret
 
-def plotStars(data):
+def plotStars(data, pos):
     n = len(data)
-    #pos = [0.6, 0.68, 0.75, 0.82, 0.97]
-    pos = np.arange(0.6, 5, 0.08)
+    #pos = [0.6, 0.68, 0.75, 0.82, 0.97]    
     d = -0.001
     # side by side 
     for i, j in zip(xrange(1, n), xrange(n-1)):
@@ -84,14 +84,15 @@ def plotStars(data):
             ax.text(j+3*width+0.15, pos[4]+d, "*"*data[i,j])
     #
     for i,j in zip(xrange(4, n), xrange(n-4)):
-        if data[i,j] != 0 and j%2 != 0:
+        if data[i,j] != 0 and j%2 == 0:
             ax.plot([j+width-0.15, i+0.15], [pos[5], pos[5]], linewidth = 2, color = 'black')
             ax.text(j+4*width+0.15, pos[5]+d, "*"*data[i,j])
-        elif data[i,j] != 0 and j%2 == 0:
+        elif data[i,j] != 0 and j%2 != 0:
             ax.plot([j+width-0.15, i+0.15], [pos[6], pos[6]], linewidth = 2, color = 'black')
             ax.text(j+4*width+0.15, pos[6]+d, "*"*data[i,j])
-# -----------------------------------
 
+
+# -----------------------------------
 # -----------------------------------
 # Parameters
 # -----------------------------------
@@ -116,90 +117,82 @@ step, indice = getRepresentativeSteps(reaction, state, action, responses)
 rt_human = computeMeanRepresentativeSteps(step) 
 
 distance = computeDistanceMatrix()
-# -----------------------------------
-
-
-
 
 
 # -----------------------------------
-# Plot 2
-# -----------------------------------
-stim1 = []
-for i in [2,6]:
-    stim1.append([])
-    for j in xrange(1, int(np.max(distance[np.where((state==1)&(indice==i))]))+1):
-        ind = np.where((distance == j)&(indice == i)&(state == 1))
-        stim1[-1].append([j, np.mean(reaction[ind]), sem(reaction[ind])])
-    stim1[-1] = np.array(stim1[-1])
-stim2 = []
-for i in [2,3,4,6]:
-    stim2.append([])
-    for j in xrange(1, int(np.max(distance[np.where((state==2)&(indice==i))]))+1):
-        ind = np.where((distance == j)&(indice == i)&(state == 2))
-        stim2[-1].append([j, np.mean(reaction[ind]), sem(reaction[ind])])
-    stim2[-1] = np.array(stim2[-1])
-stim3 = []
-for i in [2,3,4,5,6]:    
-    stim3.append([])
-    for j in xrange(1, int(np.max(distance[np.where((state==3)&(indice==i))]))+1):
-        ind = np.where((distance == j)&(indice == i)&(state == 3))
-        stim3[-1].append([j, np.mean(reaction[ind]), sem(reaction[ind])])
-    stim3[-1] = np.array(stim3[-1])
+tmp = np.array([reaction[np.where((distance == i) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
+mean_plot1 = np.array([np.mean(reaction[np.where((distance == i) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+var_plot1 = np.array([sem(reaction[np.where((distance == i) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
 
-figure(figsize = (12, 8))
-ion()
-width = 1/7.
-colors = dict({1:'b', 2:'r', 3:'g', 4:'m', 5:'y', 6:'k'})
-#bar_kwargs = {'linewidth':2,'zorder':5}
+pvalue, stars = testRelation(tmp)
+# -----------------------------------
+# Plot
+# -----------------------------------
+ind = np.arange(len(mean_plot1))
+width = 0.5
+labels = range(1,8)
+
+bar_kwargs = {'width':width,'color':'y','linewidth':2,'zorder':5}
 err_kwargs = {'zorder':0,'fmt':None,'lw':2,'ecolor':'k'}
-ax1 = subplot(3,1,1)
-for i,j in zip(xrange(len(stim1)), [2,6]):
-    ind = np.arange(len(stim1[i]))+width*i
-    labels = range(1, len(stim1[i])+1)    
-    bar(ind, stim1[i][:,1], width = width, linewidth = 2, zorder = 5, color = colors[j], label = "Step "+str(j))
-    errorbar(ind+(width/2), stim1[i][:,1], yerr=stim1[i][:,2], **err_kwargs)
-    xticks(ind+width/2, labels, color = 'k')
-legend()
-title("One error")
-ylim(0.3, 1.0)
-xlim(0, 7.5)
-xlabel("Distance")
-ylabel("Reaction time")
+
+fig = figure(figsize = (10, 4))
+ion()
+ax = subplot(1,2,2)
+
+ax.p1 = bar(ind, mean_plot1, **bar_kwargs)
+ax.errs = errorbar(ind+width/2, mean_plot1, yerr=var_plot1, **err_kwargs)
+if case == 'meg':
+    plotStars(stars, pos = np.arange(0.6, 5, 0.06))
+else:
+    plotStars(stars, pos = np.arange(1, 5, 0.09))
 grid()
-
-ax2 = subplot(3,1,2)
-for i,j in zip(xrange(len(stim2)), [2,3,4,6]):
-    ind = np.arange(len(stim2[i]))+width*i
-    labels = range(1, len(stim2[i])+1)    
-    bar(ind, stim2[i][:,1], width = width, linewidth = 2, zorder = 5, color = colors[j], label = "Step "+str(j))
-    errorbar(ind+width/2, stim2[i][:,1], yerr=stim2[i][:,2], **err_kwargs)
-    xticks(ind+width/2, labels, color = 'k')    
-legend()
-title("Three error")
-ylim(0.3, 1.0)
-xlim(0, 7.5)
 xlabel("Distance")
-ylabel("Reaction time")
+ylabel("Reaction time (ms)")
+xticks(ind+width/2, labels, color = 'k')
+if case == 'meg':   
+    ylim(0, 0.95)
+else:
+    ylim(0, 1.6)
+title("Consolidation")
+
+# -----------------------------------
+# Plot 2 First step
+# -----------------------------------
+
+tmp = np.array([reaction[np.where((distance == i) & (1 < indice) & (indice < 6))] for i in xrange(1, int(np.max(distance))+1)])
+mean_plot1 = np.array([np.mean(reaction[np.where((distance == i) & (1 < indice) & (indice < 6))]) for i in xrange(1, int(np.max(distance))+1)])
+var_plot1 = np.array([sem(reaction[np.where((distance == i) & (1 < indice) & (indice < 6))]) for i in xrange(1, int(np.max(distance))+1)])
+
+pvalue, stars = testRelation(tmp)
+
+ind = np.arange(len(mean_plot1))
+width = 0.5
+labels = range(1,8)
+
+bar_kwargs = {'width':width,'color':'y','linewidth':2,'zorder':5}
+err_kwargs = {'zorder':0,'fmt':None,'lw':2,'ecolor':'k'}
+
+
+ion()
+ax = subplot(1,2,1)
+
+ax.p1 = bar(ind, mean_plot1, **bar_kwargs)
+ax.errs = errorbar(ind+width/2, mean_plot1, yerr=var_plot1, **err_kwargs)
+if case == 'meg':
+    plotStars(stars, pos = np.ones(10)*0.6)
+else:
+    plotStars(stars, pos = np.arange(1, 5, 0.09))
 grid()
-
-
-subplot(3,1,3)
-for i,j in zip(xrange(len(stim3)), [2,3,4,5,6]):
-    ind = np.arange(len(stim3[i]))+width*i
-    labels = range(1, len(stim3[i])+1)    
-    bar(ind, stim3[i][:,1], width = width, linewidth = 2, zorder = 5, color = colors[j], label = "Step "+str(j))
-    errorbar(ind+width/2, stim3[i][:,1], yerr=stim3[i][:,2], **err_kwargs)
-    xticks(ind+width/2, labels, color = 'k')        
-legend()
-title("Four error")
-ylim(0.3, 1.0)
-xlim(0, 7.5)
 xlabel("Distance")
-ylabel("Reaction time")
-grid()
+ylabel("Reaction time (ms)")
+xticks(ind+width/2, labels, color = 'k')
+if case == 'meg':
+    ylim(0, 0.95)
+else:
+    ylim(0, 1.6)
+title("Acquisition")
 
-subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.45, right = 0.86)
 
 show()
+
 
