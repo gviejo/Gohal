@@ -207,7 +207,7 @@ def searchStimOrder(s, a, r):
             correct = np.where((r == 1) & (s == j))[0][0]
             t = len(np.where((r[0:correct] == 0) & (s[0:correct] == j))[0])
             incorrect[t] = j
-            tmp[np.where(st == j)[0][0]] = t
+            tmp[np.where(st == j)[0][0]] = t    
     if len(np.unique(tmp)) == 3:
         return tuple(st[np.argsort(tmp)])        
     elif (len(np.unique(tmp)) == 2) and (np.sum(tmp == np.min(tmp)) == 1):
@@ -216,8 +216,13 @@ def searchStimOrder(s, a, r):
         rest = st[tmp != np.min(tmp)]
         if np.where((s == rest[0]) & (r == 1))[0][0] < np.where((s == rest[1]) & (r == 1))[0][0]:
             return tuple((first, rest[0], rest[1]))
-        else:
+        else:            
             return tuple((first, rest[1], rest[0]))  
+    elif (len(np.unique(tmp)) == 2) and (np.sum(tmp == np.min(tmp)) == 2):
+        if np.where(s == st[tmp == np.min(tmp)][0])[0][0] < np.where(s == st[tmp == np.min(tmp)][1])[0][0]:
+            return tuple((st[tmp == np.min(tmp)][0], st[tmp == np.min(tmp)][1], st[tmp == np.max(tmp)]))
+        else:
+            return tuple((st[tmp == np.min(tmp)][1], st[tmp == np.min(tmp)][0], st[tmp == np.max(tmp)]))
 
 def computeMeanReactionTime(data, case = None, ind = 40):
     tmp = []

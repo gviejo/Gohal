@@ -18,26 +18,40 @@ class QLearning():
     """
     
     def __init__(self, name, states, actions, gamma, alpha, beta):
+        # State action space
+        self.states=states
+        self.actions=actions
+        #Parameters
         self.name = name
         self.gamma=gamma;self.alpha=alpha;self.beta=beta
-        self.values = createQValuesDict(states, actions)
-        self.responses = list()
-        self.states = states
-        self.actions = actions
-        self.action = list()
+        self.n_action=len(actions)
+        self.n_state=len(states)
+        #Values Initialization
+        self.values = np.zeros((self.n_state, self.n_action))        
+        #Valrious Init
+        self.current_state = None
+        self.current_action = None
+        # List Init
         self.state = list()
-        self.reaction = list()
-    
-    def initializeList(self):
-        self.responses = list()
-        self.values = createQValuesDict(self.states, self.actions)
         self.action = list()
-        self.state = list()
+        self.responses = list()
         self.reaction = list()
+        self.value = list()
+
+    def getAllParameters(self):
+        return dict({"alpha":[0,001, self.alpha, 1.0],
+                    "beta":[1, self.beta, 10],
+                    "gamma":[0.001,self.gamma, 1.0]})
+
+    def setAllParameters(self):
+        for i in dict_p.iterkeys():
+            self.setParameter(i, dict_p[i][1])
 
     def getParameter(self, name):
         if name == 'alpha':
             return self.alpha
+        elif name == 'beta':
+            return self.beta
         elif name == 'gamma':
             return self.gamma
         else:
@@ -46,30 +60,68 @@ class QLearning():
 
     def setParameter(self, name, value):
         if name == 'alpha':
-            self.alpha = value
-        elif name == 'gamma':
-            self.gamma = value
+            if value < 0.01:
+                self.alpha = 0.01
+            elif value > 0.99:
+                self.alpha = 0.99
+            else:
+                self.alpha = value
+        if name == 'gamma':
+            if value < 0.01:
+                self.gamma = 0.01
+            elif value > 0.99:
+                self.gamma = 0.99
+            else:
+                self.gamma = value                
+        elif name == 'beta':
+            if value < 1:
+                self.beta = 1
+            elif value > 5:
+                self.beta = 5
+            else :
+                self.beta = value        
         else:
-            print "Unknow parameter"
-            sys.exit(0)
+            print "Parameters not found"
+            sys.exit(0)  
     
+    def initializeList(self):
+        self.responses = list()
+        self.values = np.zeros((self.n_state, self.n_action))
+        self.action = list()
+        self.state = list()
+        self.reaction = list()
+
     def initialize(self):
         self.responses.append([])
-        self.values = createQValuesDict(self.states, self.actions)
+        self.values = np.zeros((self.n_state, self.n_action))
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
-        
-    def chooseAction(self, state):
-        self.state[-1].append(state)         
-        self.action[-1].append(getBestActionSoftMax(state, self.values, self.beta))
-        self.reaction[-1].append(computeEntropy(self.values[0][self.values[state]], self.beta))
+
+    def sampleSoftMax(self, values):
+        tmp = np.exp(values*float(self.beta))
+        tmp = tmp/float(np.sum(tmp))
+        tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
+        return np.sum(np.array(tmp) < np.random.rand())-1        
+
+    def computeValue(self, state):
+        self.current_state = convertStimulus(state)-1
+        self.value[-1].append(SoftMaxValues(self.values[self.current_state], self.beta))
+        return self.value[-1][-1]
+
+    def chooseAction(self, state):        
+        self.state[-1].append(state)
+        self.current_state = convertStimulus(state)-1
+        self.current_action = self.sampleSoftMax(self.values[self.current_state])
+        self.action[-1].append(self.actions[self.current_action])
+        self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.beta))
         return self.action[-1][-1]
     
     def updateValue(self, reward):
-        self.responses[-1].append((reward==1)*1)
-        delta = reward+self.gamma*np.max(self.values[0][self.values[self.state[-1][-1]]])-self.values[0][self.values[(self.state[-1][-1],self.action[-1][-1])]]
-        self.values[0][self.values[(self.state[-1][-1],self.action[-1][-1])]] = self.values[0][self.values[(self.state[-1][-1],self.action[-1][-1])]]+self.alpha*delta
+        r = int((reward==1)*1)
+        self.responses[-1].append(r)
+        delta = reward+self.gamma*np.max(self.values[self.current_state])-self.values[self.current_state, self.current_state]
+        self.values[self.current_state, self.current_action] = self.values[self.current_state, self.current_action]+self.alpha*delta
     
 
 class KalmanQLearning():
