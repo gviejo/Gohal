@@ -3,12 +3,12 @@ from scipy.stats import norm
 from prettytable import PrettyTable
 from copy import deepcopy
 import cPickle as pickle
-
+import sys
 from scipy import stats
-from scipy.stats import binom, sem
-from scipy.stats import chi2_contingency
 
-from sklearn.decomposition import PCA
+from scipy.stats import chi2_contingency, sem
+
+
 
 def displayQValues(states, actions, values, ind = 0):
     foo = PrettyTable()
@@ -88,7 +88,7 @@ def SoftMaxValues(values, beta):
     return  tmp/float(np.sum(tmp))
 
 def computeEntropy(values, beta):
-    if np.sum(values) == 1:
+    if np.sum(values) == 1 and np.min(values) > 0.0:
         return -np.sum(values*np.log2(values))
     else:
         tmp = np.exp(values*float(beta))

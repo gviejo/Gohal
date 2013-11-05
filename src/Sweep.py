@@ -444,7 +444,7 @@ class Likelihood():
                                                 'max':max_likelihood})})
 
     def run(self):        
-        subject = ['S1', 'S9']
+        subject = ['S1', 'S9', 'S8', 'S3', 'S12']
         pool = Pool(len(subject))
         self.data = pool.map(unwrap_self_multiOptimize, zip([self]*len(subject), subject))                
 

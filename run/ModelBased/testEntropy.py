@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
-Test for QLearning :
-Plot probability of correct responses and reaction time
+Test for Bayesian Memory entropy
+
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -12,32 +12,36 @@ import numpy as np
 sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
-from HumanLearning import HLearning
-from Models import QLearning
+from Models import BayesianWorkingMemory
 from matplotlib import *
 from pylab import *
+from HumanLearning import HLearning
 from time import time
+
 
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def testModel():    
-    model.initializeList()
+def testModel():
+    bww.initializeList()
     for i in xrange(nb_blocs):
         sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                    
         cats.reinitialize()
-        model.initialize()
+        bww.initialize()
         entropy.append([])
         for j in xrange(nb_trials):
             state = cats.getStimulus(j)
-            action = model.chooseAction(state)
+            action = bww.chooseAction(state)
             reward = cats.getOutcome(state, action)
-            model.updateValue(reward)            
-    model.state = convertStimulus(np.array(model.state))
-    model.action = convertAction(np.array(model.action))
-    model.responses = np.array(model.responses)
-    model.reaction = np.array(model.reaction)
-    model.value = np.array(model.value)
+            bww.updateValue(reward)
+            entropy[-1].append(bww.computeInformationGain())
+    bww.state = convertStimulus(np.array(bww.state))
+    bww.action = convertAction(np.array(bww.action))
+    bww.responses = np.array(bww.responses)
+    bww.reaction = np.array(bww.reaction)
+    bww.entropies = np.array(bww.entropies)    
+    bww.choice = np.array(bww.choice)
+
 
 # -----------------------------------
 
@@ -51,38 +55,40 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-alpha = 0.9
-gamma = 0.1  # discount factor
-beta = 2
+noise = 0.0
+length_memory = 10
+#threshold = 1.2
+threshold = 1.0
 
 nb_trials = 42
-nb_blocs = 400
-cats = CATS()
+nb_blocs = 100
+cats = CATS(nb_trials)
 
-model = QLearning('k', cats.states, cats.actions, gamma, alpha, beta)
-
+bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
 
 # -----------------------------------
 
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
+
 entropy = []
 
 testModel()
 
-
+entropy = np.array(entropy)
+entropy = (computeEntropy(np.ones(5)*0.2, beta) - entropy)/computeEntropy(np.ones(5)*0.2, beta)
 # -----------------------------------
 
 
 # -----------------------------------
 #order data
 # -----------------------------------
-pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
+pcr = extractStimulusPresentation(bww.responses, bww.state, bww.action, bww.responses)
 pcr_human = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 
-model.reaction = (computeEntropy(np.ones(5)*0.2, beta) - model.reaction)/computeEntropy(np.ones(5)*0.2, beta)
-entropy = extractStimulusPresentation(model.reaction, model.state, model.action, model.responses)
+#bww.reaction = (computeEntropy(np.ones(5)*0.2, beta) - bww.reaction)/computeEntropy(np.ones(5)*0.2, beta)
+ent = extractStimulusPresentation(entropy, bww.state, bww.action, bww.responses)
 
 # -----------------------------------
 
@@ -118,8 +124,8 @@ for i in xrange(3):
 
 subplot(1,2,2)
 for i in xrange(3):
-    plot(range(1, len(entropy['mean'][i])+1), entropy['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
-    errorbar(range(1, len(entropy['mean'][i])+1), entropy['mean'][i], entropy['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+    plot(range(1, len(ent['mean'][i])+1), ent['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+    errorbar(range(1, len(ent['mean'][i])+1), ent['mean'][i], ent['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
     ylabel("Information")
     #legend(loc = 'lower right')
     xticks(range(2,11,2))
@@ -136,3 +142,4 @@ subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
 #savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testKQL.pdf', bbox_inches='tight')
 
 show()
+

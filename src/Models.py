@@ -9,7 +9,6 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
-import os
 import numpy as np
 from fonctions import *
 
@@ -66,7 +65,7 @@ class QLearning():
                 self.alpha = 0.99
             else:
                 self.alpha = value
-        if name == 'gamma':
+        elif name == 'gamma':
             if value < 0.01:
                 self.gamma = 0.01
             elif value > 0.99:
@@ -90,6 +89,7 @@ class QLearning():
         self.action = list()
         self.state = list()
         self.reaction = list()
+        self.value = list()
 
     def initialize(self):
         self.responses.append([])
@@ -97,6 +97,7 @@ class QLearning():
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
+        self.value.append([])
 
     def sampleSoftMax(self, values):
         tmp = np.exp(values*float(self.beta))
@@ -115,6 +116,7 @@ class QLearning():
         self.current_action = self.sampleSoftMax(self.values[self.current_state])
         self.action[-1].append(self.actions[self.current_action])
         self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.beta))
+        self.value[-1].append(self.values[self.current_state])
         return self.action[-1][-1]
     
     def updateValue(self, reward):
@@ -545,7 +547,7 @@ class BayesianWorkingMemory():
     def decisionModule(self):                
         self.p_choice = np.exp(-self.threshold*self.entropy)        
         self.sampleChoice[-1][-1].append(self.p_choice)
-        self.sampleEntropy[-1][-1].append(self.entropy.copy())
+        self.sampleEntropy[-1][-1].append(self.entropy.copy())    
 
     def computeValue(self, state):        
         self.state[-1].append(state)
@@ -649,3 +651,16 @@ class BayesianWorkingMemory():
             self.p_a_s = self.p_a_s/np.sum(self.p_a_s, axis = 2, keepdims = True)
             self.p_r_as = self.p_r_as + np.random.beta(self.noise, 5, self.p_r_as.shape)
             self.p_r_as = self.p_r_as/np.sum(self.p_r_as, axis = 3, keepdims = True)  
+
+    def computeInformationGain(self):
+        tmp = self.p_a_s[0] * np.vstack(self.p_s[0])
+        self.p = self.p + self.p_r_as[0] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[0].shape)
+        tmp = self.p/np.sum(self.p)
+        p_ra_s = tmp[self.current_state]/np.sum(tmp[self.current_state])
+        p_r_s = np.sum(p_ra_s, axis = 0)
+        p_a_rs = p_ra_s/p_r_s
+        values = p_a_rs[:,1]/p_a_rs[:,0]
+        values = values/np.sum(values)        
+        return -np.sum(values*np.log2(values))
+
+

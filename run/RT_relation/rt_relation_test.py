@@ -46,7 +46,7 @@ def testRelation(data):
     for i in xrange(n):
         for j in xrange(n):
             if j < i:
-                KS, p = stats.ks_2samp(tmp[j], tmp[i])
+                KS, p = stats.ks_2samp(data[j], data[i])
                 #KS, p = stats.kruskal(tmp[j], tmp[i])
                 #KS, p = stats.mannwhitneyu(tmp[j], tmp[i])
                 P[i, j] = p
@@ -55,6 +55,20 @@ def testRelation(data):
     P_discret[(P > 0.05)*(P < 0.1)] = 1
     P_discret[P > 0.1] = 0
     P_discret[np.triu_indices(n)] = 0
+    return P, P_discret
+
+def testRelationAcquiConso():
+    P = np.zeros(len(acqui))
+    P_discret = np.zeros(len(acqui))
+    for i in xrange(len(acqui)):
+        KS, p = stats.ks_2samp(acqui[i], conso[i])
+        #KS, p = stats.kruskal(acqui[i], conso[i])
+        #KS, p = stats.mannwhitneyu(acqui[i], conso[i])
+        P[i] = p
+    P_discret[P < 0.01] = 3
+    P_discret[(P > 0.01)*(P < 0.05)] = 2
+    P_discret[(P > 0.05)*(P < 0.1)] = 1
+    P_discret[P > 0.1] = 0
     return P, P_discret
 
 def plotStars(data, pos):
@@ -120,26 +134,26 @@ distance = computeDistanceMatrix()
 
 
 # -----------------------------------
-tmp = np.array([reaction[np.where((distance == i) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
+conso = np.array([reaction[np.where((distance == i) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
 mean_plot1 = np.array([np.mean(reaction[np.where((distance == i) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
 var_plot1 = np.array([sem(reaction[np.where((distance == i) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
 
-pvalue, stars = testRelation(tmp)
+pvalue, stars = testRelation(conso)
 # -----------------------------------
-# Plot
+# Plot Consolidation
 # -----------------------------------
 ind = np.arange(len(mean_plot1))
 width = 0.5
 labels = range(1,8)
 
-bar_kwargs = {'width':width,'color':'y','linewidth':2,'zorder':5}
+bar_kwargs = {'width':width,'linewidth':2,'zorder':5}
 err_kwargs = {'zorder':0,'fmt':None,'lw':2,'ecolor':'k'}
 
-fig = figure(figsize = (10, 4))
+fig = figure(figsize = (12, 8))
 ion()
-ax = subplot(1,2,2)
+ax = subplot(2,2,2)
 
-ax.p1 = bar(ind, mean_plot1, **bar_kwargs)
+ax.p1 = bar(ind, mean_plot1, color = 'y', **bar_kwargs)
 ax.errs = errorbar(ind+width/2, mean_plot1, yerr=var_plot1, **err_kwargs)
 if case == 'meg':
     plotStars(stars, pos = np.arange(0.6, 5, 0.06))
@@ -156,28 +170,28 @@ else:
 title("Consolidation")
 
 # -----------------------------------
-# Plot 2 First step
+# Plot ACquisition
 # -----------------------------------
 
-tmp = np.array([reaction[np.where((distance == i) & (1 < indice) & (indice < 6))] for i in xrange(1, int(np.max(distance))+1)])
-mean_plot1 = np.array([np.mean(reaction[np.where((distance == i) & (1 < indice) & (indice < 6))]) for i in xrange(1, int(np.max(distance))+1)])
-var_plot1 = np.array([sem(reaction[np.where((distance == i) & (1 < indice) & (indice < 6))]) for i in xrange(1, int(np.max(distance))+1)])
+acqui = np.array([reaction[np.where((distance == i) & (1 < indice) & (indice < 6))] for i in xrange(1, int(np.max(distance))+1)])
+mean_plot2 = np.array([np.mean(reaction[np.where((distance == i) & (1 < indice) & (indice < 6))]) for i in xrange(1, int(np.max(distance))+1)])
+var_plot2 = np.array([sem(reaction[np.where((distance == i) & (1 < indice) & (indice < 6))]) for i in xrange(1, int(np.max(distance))+1)])
 
-pvalue, stars = testRelation(tmp)
+pvalue, stars = testRelation(acqui)
 
-ind = np.arange(len(mean_plot1))
+ind = np.arange(len(mean_plot2))
 width = 0.5
 labels = range(1,8)
 
-bar_kwargs = {'width':width,'color':'y','linewidth':2,'zorder':5}
+bar_kwargs = {'width':width,'linewidth':2,'zorder':5}
 err_kwargs = {'zorder':0,'fmt':None,'lw':2,'ecolor':'k'}
 
 
 ion()
-ax = subplot(1,2,1)
+ax = subplot(2,2,1)
 
-ax.p1 = bar(ind, mean_plot1, **bar_kwargs)
-ax.errs = errorbar(ind+width/2, mean_plot1, yerr=var_plot1, **err_kwargs)
+ax.p1 = bar(ind, mean_plot2, color = 'green', **bar_kwargs)
+ax.errs = errorbar(ind+width/2, mean_plot2, yerr=var_plot2, **err_kwargs)
 if case == 'meg':
     plotStars(stars, pos = np.ones(10)*0.6)
 else:
@@ -191,6 +205,40 @@ if case == 'meg':
 else:
     ylim(0, 1.6)
 title("Acquisition")
+
+# -----------------------------------
+# Plot Acquisition vs Consolidation
+# -----------------------------------
+
+P, P_discret = testRelationAcquiConso()
+
+ax = subplot(2,2,3)
+ind = np.arange(len(mean_plot1))
+labels = range(1, len(mean_plot1)+1)
+width = 0.4
+bar_kwargs = {'width':width,'linewidth':2,'zorder':5}
+err_kwargs = {'zorder':0,'fmt':None,'lw':2,'ecolor':'k'}
+ax.p1 = bar(ind, mean_plot2, color = 'green', **bar_kwargs)
+ax.errorbar(ind+width/2, mean_plot2, yerr=var_plot2, **err_kwargs)
+ax.p2 = bar(ind+width, mean_plot1, color = 'y', **bar_kwargs)
+ax.errorbar(ind+3*width/2, mean_plot1, yerr=var_plot1, **err_kwargs)
+d = -0.001; top = 0.8
+for i in xrange(len(P_discret)):
+    if P_discret[i] == 1:
+        ax.plot([i+0.15, i+width+0.15], [top, top], linewidth = 2, color = 'black')
+        ax.text(i+0.25, top+d, "*"*P_discret[i])
+    elif P_discret[i] == 2:
+        ax.plot([i+0.15, i+width+0.15], [top, top], linewidth = 2, color = 'black')
+        ax.text(i+0.22, top+d, "*"*P_discret[i])
+    elif P_discret[i] == 3:
+        ax.plot([i+0.15, i+width+0.15], [top, top], linewidth = 2, color = 'black')
+        ax.text(i+0.20, top+d, "*"*P_discret[i])
+grid()
+xlim(0, np.max(distance))
+ylim(0.0, 1.0)
+xlabel("Distance")
+ylabel("Reaction time")
+xticks(ind+width/2, labels, color = 'k')
 
 
 show()

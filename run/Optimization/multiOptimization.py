@@ -13,7 +13,7 @@ from optparse import OptionParser
 sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
-from Models import BayesianWorkingMemory
+from Models import *
 from matplotlib import *
 from pylab import *
 from HumanLearning import HLearning
@@ -67,9 +67,9 @@ threshold = 1.8
 #########################
 #optimization parameters
 fname = 'minimize'
-n_run = 5
-maxiter = 100
-maxfun = 100
+n_run = 1000
+maxiter = 1000
+maxfun = 1000
 xtol = 0.001
 ftol = 0.001
 disp = False
@@ -78,7 +78,8 @@ nb_trials = 42
 #nb_blocs = 400
 #########################
 cats = CATS(nb_trials)
-bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
+#bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
+bww = QLearning("test", cats.states, cats.actions, 0.5, 0.5, 1.0)
 opt = Likelihood(human, bww, fname, n_run, maxiter, maxfun, xtol, ftol, disp)
 #########################
 # -----------------------------------
