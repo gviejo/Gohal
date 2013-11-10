@@ -421,8 +421,8 @@ class BayesianWorkingMemory():
         self.lenght_memory = lenght_memory
         self.threshold = threshold
         self.noise = noise
-        self.n_action=float(len(actions))
-        self.n_state=float(len(states))
+        self.n_action=int(len(actions))
+        self.n_state=int(len(states))
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))        
         self.values = np.ones(self.n_action)*(1./self.n_action)

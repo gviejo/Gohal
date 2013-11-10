@@ -153,32 +153,32 @@ width = 1/7.
 colors = dict({1:'b', 2:'r', 3:'g', 4:'m', 5:'y', 6:'k'})
 #bar_kwargs = {'linewidth':2,'zorder':5}
 err_kwargs = {'zorder':0,'fmt':None,'lw':2,'ecolor':'k'}
+labels = range(1, 6)
+
 ax1 = subplot(3,1,1)
 for i,j in zip(xrange(len(stim1)), [2,6]):
-    ind = np.arange(len(stim1[i]))+width*i
-    labels = range(1, len(stim1[i])+1)    
-    bar(ind, stim1[i][:,1], width = width, linewidth = 2, zorder = 5, color = colors[j], label = "Step "+str(j))
-    errorbar(ind+(width/2), stim1[i][:,1], yerr=stim1[i][:,2], **err_kwargs)
+    ind = np.arange(5)+width*(j-2)
+    bar(ind, stim1[i][0:5,1], width = width, linewidth = 2, zorder = 5, color = colors[j], label = "Step "+str(j))
+    errorbar(ind+(width/2), stim1[i][0:5,1], yerr=stim1[i][0:5,2], **err_kwargs)
     xticks(ind+width/2, labels, color = 'k')
 legend()
 title("One error")
-ylim(0.3, 1.0)
-xlim(0, 7.5)
+ylim(0.0, 1.0)
+xlim(0, 5.8)
 xlabel("Distance")
 ylabel("Reaction time")
 grid()
 
 ax2 = subplot(3,1,2)
 for i,j in zip(xrange(len(stim2)), [2,3,4,6]):
-    ind = np.arange(len(stim2[i]))+width*i
-    labels = range(1, len(stim2[i])+1)    
-    bar(ind, stim2[i][:,1], width = width, linewidth = 2, zorder = 5, color = colors[j], label = "Step "+str(j))
-    errorbar(ind+width/2, stim2[i][:,1], yerr=stim2[i][:,2], **err_kwargs)
+    ind = np.arange(5)+width*(j-2)    
+    bar(ind, stim2[i][0:5,1], width = width, linewidth = 2, zorder = 5, color = colors[j], label = "Step "+str(j))
+    errorbar(ind+width/2, stim2[i][0:5,1], yerr=stim2[i][0:5,2], **err_kwargs)
     xticks(ind+width/2, labels, color = 'k')    
 legend()
 title("Three error")
-ylim(0.3, 1.0)
-xlim(0, 7.5)
+ylim(0.0, 1.0)
+xlim(0, 5.8)
 xlabel("Distance")
 ylabel("Reaction time")
 grid()
@@ -186,20 +186,20 @@ grid()
 
 subplot(3,1,3)
 for i,j in zip(xrange(len(stim3)), [2,3,4,5,6]):
-    ind = np.arange(len(stim3[i]))+width*i
-    labels = range(1, len(stim3[i])+1)    
-    bar(ind, stim3[i][:,1], width = width, linewidth = 2, zorder = 5, color = colors[j], label = "Step "+str(j))
-    errorbar(ind+width/2, stim3[i][:,1], yerr=stim3[i][:,2], **err_kwargs)
+    ind = np.arange(5)+width*(j-2)    
+    ind = ind[0:len(stim3[i][0:5, 1])]
+    bar(ind, stim3[i][0:5,1], width = width, linewidth = 2, zorder = 5, color = colors[j], label = "Step "+str(j))
+    errorbar(ind+width/2, stim3[i][0:5,1], yerr=stim3[i][0:5,2], **err_kwargs)
     xticks(ind+width/2, labels, color = 'k')        
 legend()
 title("Four error")
-ylim(0.3, 1.0)
-xlim(0, 7.5)
+ylim(0.0, 1.0)
+xlim(0, 5.8)
 xlabel("Distance")
 ylabel("Reaction time")
 grid()
 
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.45, right = 0.86)
-
+savefig('rt_relation_first.pdf', bbox_inches='tight')
 show()
 

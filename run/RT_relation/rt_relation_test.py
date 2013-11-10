@@ -240,6 +240,7 @@ xlabel("Distance")
 ylabel("Reaction time")
 xticks(ind+width/2, labels, color = 'k')
 
+savefig('rt_relation_test.pdf', bbox_inches='tight')
 
 show()
 

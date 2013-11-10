@@ -143,33 +143,76 @@ xticks(ind+width/2, labels, color = 'k')
 # Plot 3 : RT vs position for each distances
 pca = PCA(n_components=1)
 data = []
-plot3 = []
-plot3_pca = []
+plot3 = dict()
+plot3_pca = dict()
+#d = [1,5]
+d = xrange(1, 6)
 
-for i in xrange(1, 6 ):
+for i in d:
     data.append([])
-    plot3.append([])    
-    plot3_pca.append([])
-    for j in xrange(5, 18):
+    plot3[i] = list()
+    plot3_pca[i] = list()
+    for j in xrange(1, 18):
         data[-1].append(reaction[np.where((distance == i) & (indice == j))])
         if len(reaction[np.where((distance == i) & (indice == j))]):
             tmp = pca.fit_transform(np.vstack(reaction[np.where((distance == i) & (indice == j))]))
-            plot3_pca[-1].append([j, np.mean(tmp), np.var(tmp)])
-            plot3[-1].append([j, np.mean(reaction[np.where((distance == i) & (indice == j))]), np.var(reaction[np.where((distance == i) & (indice == j))])])
+            plot3_pca[i].append([j, np.mean(tmp), np.var(tmp)])
+            plot3[i].append([j, np.mean(reaction[np.where((distance == i) & (indice == j))]), np.var(reaction[np.where((distance == i) & (indice == j))])])
 
-    plot3[-1] = np.array(plot3[-1])
-    plot3_pca[-1] = np.array(plot3_pca[-1])
+    plot3[i] = np.array(plot3[i])
+    plot3_pca[i] = np.array(plot3_pca[i])
     
 
-subplot(2,2,3)
-for i in xrange(len(plot3)):
+ax1 = subplot(2,2,3)
+for i in d:
     c = np.random.rand(3,)
-    plot(plot3[i][:,0], plot3[i][:,1], '-', linewidth = 3, label = "D : "+str(i+1), color = c)
+    plot(plot3[i][:,0], plot3[i][:,1], '-', linewidth = 3, label = "D : "+str(i), color = c)
     errorbar(plot3[i][:,0], plot3[i][:,1], plot3[i][:,2], linestyle = '-', linewidth = 3, color = c)
+
 legend()
 grid()
 ylabel("Reaction time")
 xlabel("Representative Steps")
+
+msize = 8.0
+mwidth = 2.5
+ax1.plot(1, 0.455, 'x', color = 'blue', markersize=msize, markeredgewidth=mwidth)
+ax1.plot(1, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(1, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(2, 0.455, 'o', color = 'blue', markersize=msize)
+ax1.plot(2, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(2, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(3, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(3, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(4, 0.4445, 'o', color = 'red', markersize=msize)
+ax1.plot(4, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(5, 0.435, 'o', color = 'green', markersize=msize)
+for i in xrange(6,16,1):
+    ax1.plot(i, 0.455, 'o', color = 'blue', markersize=msize)
+    ax1.plot(i, 0.4445, 'o', color = 'red', markersize=msize)
+    ax1.plot(i, 0.435, 'o', color = 'green', markersize=msize)
+
+
+#######################################
+# Plot 4 : fifth representative steps
+fifth = []
+for i in xrange(1,6):
+    ind = np.where((indice == 5)&(distance == i))
+    fifth.append([i, np.mean(reaction[ind]), np.var(reaction[ind])])
+fifth = np.array(fifth)
+width = 0.5
+colors = dict({1:'b', 2:'r', 3:'g', 4:'m', 5:'y', 6:'k'})
+#bar_kwargs = {'linewidth':2,'zorder':5}
+err_kwargs = {'zorder':0,'fmt':None,'lw':2,'ecolor':'k'}
+labels = range(1, 6)
+
+subplot(2,2,4)
+bar(fifth[:,0], fifth[:,1], width = width, linewidth = 2, zorder = 5, color = colors[5])
+errorbar(fifth[:,0]+width/2, fifth[:,1], yerr = fifth[:,2],  **err_kwargs)
+xticks(fifth[:,0]+width/2, labels, color = 'k')
+
+savefig('rt_relation.pdf', bbox_inches='tight')
+
 show()
 
 

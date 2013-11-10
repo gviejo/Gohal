@@ -158,5 +158,5 @@ for i in xrange(m/4):
 grid()
 xlabel("Distance")
 ylabel("Reaction time (ms)")
-
+savefig('rt_relation_subject.pdf', bbox_inches='tight')
 show()
