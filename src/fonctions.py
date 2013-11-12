@@ -375,16 +375,26 @@ def extractStimulusPresentation(data, stimulus, action, responses):
 
     for i in xrange(m):
         first, second, third = searchStimOrder(stimulus[i], action[i], responses[i])
-        tmp[1].append(data[i,stimulus[i] == first][0:10])
-        tmp[2].append(data[i,stimulus[i] == second][0:10])
-        tmp[3].append(data[i,stimulus[i] == third][0:10])
+        tmp[1].append(data[i,stimulus[i] == first][0:n/3])
+        tmp[2].append(data[i,stimulus[i] == second][0:n/3])
+        tmp[3].append(data[i,stimulus[i] == third][0:n/3])
 
     final = dict({'mean':[],'sem':[]})
 
     for i in tmp.keys():
-        tmp[i] = np.array(tmp[i])
-        final['mean'].append(np.mean(tmp[i], 0))
-        final['sem'].append(sem(tmp[i], 0))
+        tmp2 = np.zeros(n/3)
+        tmp3 = np.zeros(n/3)
+        for k in xrange(len(tmp2)):
+            var = []
+            for j in xrange(len(tmp[i])):
+                if k < len(tmp[i][j]):
+                    var.append(tmp[i][j][k])
+            tmp2[k] = np.mean(var)
+            tmp3[k] = sem(var)                
+        final['mean'].append(tmp2)
+        final['sem'].append(tmp3)
+        #final['mean'].append(np.mean(tmp[i], 0))
+        #final['sem'].append(sem(tmp[i], 0))
     final['mean'] = np.array(final['mean'])
     final['sem'] = np.array(final['sem'])
 
@@ -401,19 +411,28 @@ def extractStimulusPresentation2(data, stimulus, action, responses):
     dict[2] = 0/1 for three-error stimulus
     dict[3] = 0/1 for four-error stimulus
     """
-    tmp = dict({1:[],2:[],3:[]})
     m, n = responses.shape
     assert(stimulus.shape == responses.shape == action.shape == data.shape)
-    bad_trials = 0
-    incorrect_trials = 0
+    
+    length = np.zeros((m, 3))
+    order = np.zeros((m, 3))
     for i in xrange(m):
         first, second, third = searchStimOrder(stimulus[i], action[i], responses[i])
+        order[i, 0] = first
+        order[i, 1] = second
+        order[i, 2] = third
+        length[i, 0] = len(data[i, stimulus[i] == first][0:n/3])
+        length[i, 1] = len(data[i, stimulus[i] == second][0:n/3])
+        length[i, 2] = len(data[i, stimulus[i] == third][0:n/3])
+        
+    l = np.min(length)
+    tmp = dict()
+    for j in xrange(3):
+        tmp[j+1] = np.zeros((m, l))
+    for i in xrange(m):
+        for j in xrange(3):
+            tmp[j+1][i] = data[i, stimulus[i] == order[i, j]][0:l]
 
-        tmp[1].append(data[i,stimulus[i] == first][0:10])
-        tmp[2].append(data[i,stimulus[i] == second][0:10])
-        tmp[3].append(data[i,stimulus[i] == third][0:10])
-    for i in tmp.keys():
-        tmp[i] = np.array(tmp[i])
     return tmp
 
     
