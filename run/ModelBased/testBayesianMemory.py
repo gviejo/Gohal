@@ -72,7 +72,7 @@ bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, no
 # -----------------------------------
 bww.initializeList()
 bww.initialize()
-#sys.exit()
+#ys.exit()
 t1 = time()
 testModel()
 t2 = time()
