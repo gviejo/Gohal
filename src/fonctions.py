@@ -208,7 +208,9 @@ def searchStimOrder(s, a, r):
             t = len(np.where((r[0:correct] == 0) & (s[0:correct] == j))[0])
             incorrect[t] = j
             tmp[np.where(st == j)[0][0]] = t    
-    if len(np.unique(tmp)) == 3:
+    if np.sum(tmp == 0) == 1 and len(np.unique(tmp)) == 3:
+        return tuple((st[tmp == np.min(tmp[tmp!=0])][0], st[tmp == np.max(tmp[tmp!=0])][0] ,st[tmp == 0][0]))
+    elif len(np.unique(tmp)) == 3:
         return tuple(st[np.argsort(tmp)])        
     elif (len(np.unique(tmp)) == 2) and (np.sum(tmp == np.min(tmp)) == 1):
         #find the first one who got the solution        
@@ -249,16 +251,23 @@ def getRepresentativeSteps(data, stimulus, action, responses):
         # first
         first_correct_position = np.where((stimulus[i] == first) & (responses[i] == 1))[0][0]        
         indice[i, first_correct_position] = 2
-        second_correct_position = np.where((stimulus[i] == first) & (responses[i] == 1))[0][1]
-        indice[i, second_correct_position] = 6
-        first_wrong_position = np.where((stimulus[i, 0:first_correct_position] == first) & (responses[i,0:first_correct_position] == 0))[0][0]
-        indice[i, first_wrong_position] = 1
+        #second_correct_position = np.where((stimulus[i] == first) & (responses[i] == 1))[0][1]
+        #indice[i, second_correct_position] = 6
+        #first_wrong_position = np.where((stimulus[i, 0:first_correct_position] == first) & (responses[i,0:first_correct_position] == 0))[0][0]
+        #indice[i, first_wrong_position] = 1
+        first_wrong_position = np.where((stimulus[i,0:first_correct_position] == first) & (responses[i,0:first_correct_position] == 0))[0]
+        indice[i][first_wrong_position] = 1
+        second_position = np.where((stimulus[i] == first)&(indice[i] == 0))[0][0]
+        indice[i][second_position] = 6
+        tmp = 7
+        for j in np.where((stimulus[i] == first) & (indice[i] == 0))[0]:
+                indice[i,j] = tmp; tmp += 1
 
         #second 
         first_correct_position = np.where((stimulus[i] == second) & (responses[i] == 1))[0][0]        
         indice[i, first_correct_position] = 4
-        second_correct_position = np.where((stimulus[i] == second) & (responses[i] == 1))[0][1]
-        indice[i, second_correct_position] = 6
+        #second_correct_position = np.where((stimulus[i] == second) & (responses[i] == 1))[0][1]
+        #indice[i, second_correct_position] = 6
         wrong_positions = np.where((stimulus[i,0:first_correct_position] == second) & (responses[i, 0:first_correct_position] == 0))[0]
         first_wrong_action = action[i][wrong_positions[0]]
         indice[i, np.where((stimulus[i,0:first_correct_position] == second) & (action[i,0:first_correct_position] == first_wrong_action))[0]] = 1
@@ -269,6 +278,11 @@ def getRepresentativeSteps(data, stimulus, action, responses):
                                                 & (action[i, 0:first_correct_position] != first_wrong_action)
                                                 & (action[i, 0:first_correct_position] != second_wrong_action))[0][0]]
         indice[i, np.where((stimulus[i,0:first_correct_position] == second) & (action[i,0:first_correct_position] == third_wrong_action))[0]] = 3
+        second_position = np.where((stimulus[i] == second)&(indice[i] == 0))[0][0]
+        indice[i][second_position] = 6
+        tmp = 7
+        for j in np.where((stimulus[i] == second) & (indice[i] == 0))[0]:
+                indice[i,j] = tmp; tmp += 1
 
         #third
         if len(np.where((stimulus[i] == third) & (responses[i] == 1))[0]):
@@ -287,9 +301,15 @@ def getRepresentativeSteps(data, stimulus, action, responses):
             if len(np.unique(action[i, np.where((stimulus[i,0:first_correct_position] == third))])) == 4:
                 fourth_wrong_action = list(set([1,2,3,4,5]) - set([first_wrong_action, second_wrong_action, third_wrong_action, action[i, first_correct_position]]))[0]
                 indice[i, np.where((stimulus[i,0:first_correct_position] == third) & (action[i,0:first_correct_position] == fourth_wrong_action))[0]] = 4
-        if len(np.where((stimulus[i] == third) & (responses[i] == 1))[0]) > 1:            
-            second_correct_position = np.where((stimulus[i] == third) & (responses[i] == 1))[0][1]
-            indice[i, second_correct_position] = 6
+            if len(np.where((stimulus[i] == third)&(indice[i] == 0))[0]):
+                second_position = np.where((stimulus[i] == third)&(indice[i] == 0))[0][0]
+                indice[i][second_position] = 6
+                tmp = 7
+                for j in np.where((stimulus[i] == second) & (indice[i] == 0))[0]:
+                    indice[i,j] = tmp; tmp += 1
+        #if len(np.where((stimulus[i] == third) & (responses[i] == 1))[0]) > 1:            
+        #    second_correct_position = np.where((stimulus[i] == third) & (responses[i] == 1))[0][1]
+        #    indice[i, second_correct_position] = 6
 
         
         # #extracting first wrongs
@@ -319,13 +339,6 @@ def getRepresentativeSteps(data, stimulus, action, responses):
 
         #fifth step
         # indice[i, np.where((stimulus[i] == third) & (responses[i] == 1) & (indice[i] == 0))[0][0]] = 5
-
-
-        #indicing for correct first from 6 to ...
-        for k in [first, second, third]:
-            tmp = 7
-            for j in np.where((stimulus[i] == k) & (indice[i] == 0))[0]:
-                indice[i,j] = tmp; tmp += 1
 
         # for k in [first, second, third]:
         #     tmp = 7
@@ -505,8 +518,15 @@ def computeSpecialKullbackLeibler(p, q):
         return tmp
 
 
+def computeDistanceMatrix(state, indice):
+    m, n = indice.shape    
+    distance = np.zeros((m,n))
+    for i in xrange(m):        
+        for j in xrange(n):
+            if indice[i, j] > 1:
+                distance[i,j] = j-np.where(state[i,0:j] == state[i,j])[0][-1]
 
-
+    return distance
 
 
 

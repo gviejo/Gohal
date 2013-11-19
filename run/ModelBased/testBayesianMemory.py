@@ -47,20 +47,20 @@ def testModel():
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.0
-length_memory = 10
+noise = 0.001
+length_memory = 8
 #threshold = 1.2
-threshold = 1.0
+threshold = 1.2
 
-nb_trials = 42
-nb_blocs = 200
+nb_trials = 48
+nb_blocs = 300
 cats = CATS(nb_trials)
 
 bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
@@ -90,17 +90,29 @@ pcr_human = extractStimulusPresentation(human.responses['meg'], human.stimulus['
 
 step, indice = getRepresentativeSteps(bww.reaction, bww.state, bww.action, bww.responses)
 rt = computeMeanRepresentativeSteps(step)
+step, indice = getRepresentativeSteps(bww.responses, bww.state, bww.action, bww.responses)
+y = computeMeanRepresentativeSteps(step)
+distance = computeDistanceMatrix(bww.state, indice)
+
+correct = np.array([bww.reaction[np.where((distance == i) & (bww.responses == 1) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
+incorrect = np.array([bww.reaction[np.where((distance == i) & (bww.responses  == 0) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
+mean_correct = np.array([np.mean(bww.reaction[np.where((distance == i) & (bww.responses  == 1) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+var_correct = np.array([sem(bww.reaction[np.where((distance == i) & (bww.responses  == 1) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+mean_incorrect = np.array([np.mean(bww.reaction[np.where((distance == i) & (bww.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+var_incorrect = np.array([sem(bww.reaction[np.where((distance == i) & (bww.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
 
 step, indice = getRepresentativeSteps(human.reaction['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+rt_meg = computeMeanRepresentativeSteps(step) 
+step, indice = getRepresentativeSteps(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+indice_meg = indice
+y_meg = computeMeanRepresentativeSteps(step)
+distance_meg = computeDistanceMatrix(human.stimulus['meg'], indice)
 
-rt_human = computeMeanRepresentativeSteps(step) 
+step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+rt_fmri = computeMeanRepresentativeSteps(step) 
+step, indice = getRepresentativeSteps(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+y_fmri = computeMeanRepresentativeSteps(step)
 
-step, indice = getRepresentativeSteps(bww.entropies, bww.state, bww.action, bww.responses)
-ent = computeMeanRepresentativeSteps(step)
-
-cho2 = extractStimulusPresentation(bww.choice, bww.state, bww.action, bww.responses)
-step, indice = getRepresentativeSteps(bww.entropies, bww.state, bww.action, bww.responses)
-cho = computeMeanRepresentativeSteps(step)
 
 
 # -----------------------------------
@@ -130,9 +142,9 @@ for i in xrange(3):
     #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
     ylabel("Probability correct responses")
     legend(loc = 'lower right')
-    xticks(range(2,11,2))
+    xticks(range(2,len(pcr['mean'][i])+1,2))
     xlabel("Trial")
-    xlim(0.8, 10.2)
+    xlim(0.8, len(pcr['mean'][i])+1.02)
     ylim(-0.05, 1.05)
     yticks(np.arange(0, 1.2, 0.2))
     title('A')
@@ -140,14 +152,14 @@ for i in xrange(3):
 
 
 ax1 = plt.subplot(2,2,2)
-ax1.plot(range(1, len(rt_human[0])+1), rt_human[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.6)
-ax1.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.6)
+ax1.plot(range(1, len(rt_meg[0])+1), rt_meg[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+ax1.errorbar(range(1, len(rt_meg[0])+1), rt_meg[0], rt_meg[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
 
 ax2 = ax1.twinx()
 ax2.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
 ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
 ax2.set_ylabel("Inference Level")
-ax2.set_ylim(-1, 11)
+ax2.set_ylim(-5, 10)
 ##
 msize = 8.0
 mwidth = 2.5
@@ -168,7 +180,7 @@ for i in xrange(6,16,1):
     ax1.plot(i, 0.435, 'o', color = 'green', markersize=msize)
 
 ##
-ax1.set_ylabel("Reaction time (ms)")
+ax1.set_ylabel("Reaction time (s)")
 ax1.grid()
 ax1.set_xlabel("Representative steps")
 ax1.set_xticks([1,5,10,15])
@@ -177,41 +189,77 @@ ax1.set_ylim(0.43, 0.56)
 ax1.set_title('B')
 
 ################
-subplot(2,2,3)
-for i in xrange(3):
-    plot(range(1, len(cho2['mean'][i])+1), cho2['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
-    errorbar(range(1, len(cho2['mean'][i])+1), cho2['mean'][i], cho2['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])    
-    legend(loc = 'lower right')
-    xticks(range(2,11,2))
-    xlabel("Trial")
-    ylabel("$P(Choice)^{Decision}$")
-    xlim(0.8, 10.2)
-    ylim(-0.05, 1.05)
-    yticks(np.arange(0, 1.2, 0.2))
-    title('A')
-    grid()
+
+ind = np.arange(1, len(rt[0])+1)
+ax5 = subplot(2,2,3)
+for i,j,k,l,m in zip([y, y_meg, y_fmri], 
+                   ['blue', 'grey', 'grey'], 
+                   ['BWW', 'MEG', 'FMRI'],
+                   [1.0, 0.9, 0.9], 
+                   ['-', '--', ':']):
+    ax5.plot(ind, i[0], linewidth = 2, color = j, label = k, alpha = l, linestyle = m)
+    ax5.errorbar(ind, i[0], i[1], linewidth = 2, color = j, alpha = l, linestyle = m)
+
+ax5.grid()
+ax5.set_ylabel("PCR %")    
+ax5.set_yticks(np.arange(0, 1.2, 0.2))
+ax5.set_xticks(range(2, 15, 2))
+ax5.set_ylim(-0.05, 1.05)
+ax5.legend(loc = 'lower right')
+
+        
+################
+ax6 = subplot(4,2,6)
+ind = np.arange(len(mean_correct))
+labels = range(1, len(mean_correct)+1)
+width = 0.4
+bar_kwargs = {'width':width,'linewidth':2,'zorder':5}
+err_kwargs = {'zorder':0,'fmt':None,'lw':2,'ecolor':'k'}
+ax6.p1 = bar(ind, mean_correct, color = 'green', **bar_kwargs)
+ax6.errorbar(ind+width/2, mean_correct, yerr=var_correct, **err_kwargs)
+ax6.p2 = bar(ind+width, mean_incorrect, color = 'red', **bar_kwargs)
+ax6.errorbar(ind+3*width/2, mean_incorrect, yerr=var_incorrect, **err_kwargs)
+
+grid()
+xlim(0, np.max(distance))
+#ylim(0.0, 2.0)
+#xlabel("Distance")
+ylabel("Inference Level")
+xticks(ind+width/2, labels, color = 'k')
+title("BWM")
+
+###############
+
+correct = np.array([human.reaction['meg'][np.where((distance_meg == i) & (human.responses['meg'] == 1) & (indice_meg > 5))] for i in xrange(1, int(np.max(distance_meg))+1)])
+incorrect = np.array([human.reaction['meg'][np.where((distance_meg == i) & (human.responses['meg'] == 0) & (indice_meg > 5))] for i in xrange(1, int(np.max(distance_meg))+1)])
+mean_correct = np.array([np.mean(human.reaction['meg'][np.where((distance_meg == i) & (human.responses['meg'] == 1) & (indice_meg > 5))]) for i in xrange(1, int(np.max(distance_meg))+1)])
+var_correct = np.array([sem(human.reaction['meg'][np.where((distance_meg == i) & (human.responses['meg'] == 1) & (indice_meg > 5))]) for i in xrange(1, int(np.max(distance_meg))+1)])
+mean_incorrect = np.array([np.mean(human.reaction['meg'][np.where((distance_meg == i) & (human.responses['meg'] == 0) & (indice_meg > 5))]) for i in xrange(1, int(np.max(distance_meg))+1)])
+var_incorrect = np.array([sem(human.reaction['meg'][np.where((distance_meg == i) & (human.responses['meg'] == 0) & (indice_meg > 5))]) for i in xrange(1, int(np.max(distance_meg))+1)])
+
+ax = subplot(4,2,8)
+ind = np.arange(len(mean_correct))
+labels = range(1, len(mean_correct)+1)
+width = 0.4
+bar_kwargs = {'width':width,'linewidth':2,'zorder':5, 'alpha':0.8}
+err_kwargs = {'zorder':0,'fmt':None,'lw':2,'ecolor':'k'}
+ax.p1 = bar(ind, mean_correct, color = 'green', **bar_kwargs)
+ax.errorbar(ind+width/2, mean_correct, yerr=var_correct, **err_kwargs)
+ax.p2 = bar(ind+width, mean_incorrect, color = 'red', **bar_kwargs)
+ax.errorbar(ind+3*width/2, mean_incorrect, yerr=var_incorrect, **err_kwargs)
+
+grid()
+xlim(0, np.max(distance_meg))
+ylim(0.0, 1.0)
+xlabel("Distance")
+ylabel("Reaction time")
+xticks(ind+width/2, labels, color = 'k')
+title("MEG")
+
 
 ################
-subplot(2,2,4)
-plot(range(1, len(cho[0])+1), cho[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.6)
-errorbar(range(1, len(cho[0])+1), cho[0], cho[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.6)
-
-
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
 #savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testBWM3.pdf', bbox_inches='tight')
 
-
-
-# figure(figsize = (11,8))
-
-# step, indice = getRepresentativeSteps(human.reaction['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
-# rt = human.extractRTSteps('meg', step, indice)
-# tmp = np.reshape(rt, (12, 4, 15))
-# for i in xrange(12):
-#     subplot(3,4,i+1)
-#     plot(range(1, 16), np.transpose(tmp[i]), 'o-', linewidth = 1.4)
-#     axvline(5, 0, 1, linewidth =2)
-#     grid()
-#     ylim(0, 1)
 
 show()
