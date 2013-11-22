@@ -330,7 +330,7 @@ class Likelihood():
                 state = self.cvt[trial[0]]                
                 true_action = trial[1]-1
                 values = self.model.computeValue(state)
-                llh = llh + np.log(values[true_action])*trial[3]
+                llh = llh + np.log(values[true_action])
                 self.model.current_action = true_action
                 self.model.updateValue(trial[2])                        
         return llh

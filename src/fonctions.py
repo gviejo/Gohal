@@ -305,7 +305,7 @@ def getRepresentativeSteps(data, stimulus, action, responses):
                 second_position = np.where((stimulus[i] == third)&(indice[i] == 0))[0][0]
                 indice[i][second_position] = 6
                 tmp = 7
-                for j in np.where((stimulus[i] == second) & (indice[i] == 0))[0]:
+                for j in np.where((stimulus[i] == third) & (indice[i] == 0))[0]:
                     indice[i,j] = tmp; tmp += 1
         #if len(np.where((stimulus[i] == third) & (responses[i] == 1))[0]) > 1:            
         #    second_correct_position = np.where((stimulus[i] == third) & (responses[i] == 1))[0][1]

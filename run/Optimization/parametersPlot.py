@@ -79,8 +79,9 @@ nb_blocs = 40
 cats = CATS()
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-               'bwm':BayesianWorkingMemory('bwm', cats.states, cats.actions, length_memory, noise, threshold)})
-
+               'bmw_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
+               'bmw_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold)
+               })
 model = models[options.model]
 
 # -----------------------------------
@@ -140,7 +141,12 @@ for i in xrange(n_parameters):
     ylabel("Likelihood")
     grid()
 
+figure(figsize = (14,9))
+ion()
+
+
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
+
 
 show()        
 

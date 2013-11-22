@@ -222,7 +222,7 @@ perf = extractStimulusPresentation(responses, state, action, responses)
 # PCA for reaction time
 rt = extractStimulusPresentation(reaction, state, action, responses)
 
-
+show()
 
 colors = ['blue', 'red', 'green']
 figure(figsize = (8, 8))
@@ -264,7 +264,7 @@ ax1.set_xlabel("Trial")
 #     for j in xrange(len(third_wrong[i])):
 #         mean_third_wrong[j] = mean_third_wrong[j]+third_wrong[i][j]
 #         count[j] = count[j]+1
-        
+
 # mean_third_wrong = mean_third_wrong/count
 
 

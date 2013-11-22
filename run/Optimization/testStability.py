@@ -59,7 +59,7 @@ init_cov = 10           # initialisation of covariance matrice
 kappa = 0.1             # unscentered transform parameters
 beta = 5.5              # temperature for kalman soft-max
 noise = 0.000           # variance of white noise for working memory
-length_memory = 10      # size of working memory
+length_memory = 7      # size of working memory
 threshold = 1           # inference threshold
 sigma = 0.00002         # updating rate of the average reward
 #########################
@@ -75,7 +75,8 @@ disp = False
 cats = CATS(0)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-               'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise, threshold),
+               'bmw_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
+               'bmw_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
 			   'ksel':KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                        BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise, threshold),
                        sigma)})
@@ -91,11 +92,11 @@ psampled = list()
 
 cst = np.array([opt.p[i][1] for i in opt.p_order], dtype = 'f64')
 
-for i in xrange(500):	
-	print i, cst
-	cst[0] =  np.random.uniform(opt.ranges[0][0], opt.ranges[0][1])
+for i in xrange(500):		
+	cst[2] =  np.random.uniform(opt.ranges[2][0], opt.ranges[2][1])
 	ll.append(opt.computeLikelihood(cst))
-	psampled.append(cst[0])
+	print i, cst
+	psampled.append(cst[2])
 
 ll = np.array(ll)
 psampled = np.array(psampled)

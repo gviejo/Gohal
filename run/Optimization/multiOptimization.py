@@ -61,9 +61,9 @@ X = human.subject['meg']
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
 noise = 0.0001
-length_memory = 15
+length_memory = 7
 #threshold = 1.2
-threshold = 1.8
+threshold = 1.0
 #########################
 #optimization parameters
 fname = 'minimize'
@@ -78,8 +78,8 @@ nb_trials = 42
 #nb_blocs = 400
 #########################
 cats = CATS(nb_trials)
-#bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
-bww = QLearning("test", cats.states, cats.actions, 0.5, 0.5, 1.0)
+bww = BayesianWorkingMemory("v2", cats.states, cats.actions, length_memory, noise, threshold)
+#bww = QLearning("test", cats.states, cats.actions, 0.5, 0.5, 1.0)
 opt = Likelihood(human, bww, fname, n_run, maxiter, maxfun, xtol, ftol, disp)
 #########################
 # -----------------------------------

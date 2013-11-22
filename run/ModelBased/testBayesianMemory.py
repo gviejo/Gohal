@@ -54,16 +54,16 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.001
-length_memory = 8
+noise = 0.0001
+length_memory = 7
 #threshold = 1.2
-threshold = 1.2
+threshold = 1.0
 
 nb_trials = 48
 nb_blocs = 300
 cats = CATS(nb_trials)
 
-bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, noise, threshold)
+bww = BayesianWorkingMemory("v2", cats.states, cats.actions, length_memory, noise, threshold)
 
 # -----------------------------------
 
@@ -72,7 +72,7 @@ bww = BayesianWorkingMemory("test", cats.states, cats.actions, length_memory, no
 # -----------------------------------
 bww.initializeList()
 bww.initialize()
-#ys.exit()
+#sys.exit()
 t1 = time()
 testModel()
 t2 = time()
