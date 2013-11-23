@@ -25,6 +25,7 @@ class QLearning():
         self.gamma=gamma;self.alpha=alpha;self.beta=beta
         self.n_action=len(actions)
         self.n_state=len(states)
+        self.bounds = dict({"gamma":[0.0, 1.0], "beta":[1.0, 10.0], "alpha":[0.0, 1.0]})
         #Values Initialization
         self.values = np.zeros((self.n_state, self.n_action))        
         #Valrious Init
@@ -38,9 +39,9 @@ class QLearning():
         self.value = list()
 
     def getAllParameters(self):
-        return dict({"alpha":[0,001, self.alpha, 1.0],
-                    "beta":[1, self.beta, 10],
-                    "gamma":[0.001,self.gamma, 1.0]})
+        return dict({'gamma':[self.bounds['gamma'][0],self.gamma,self.bounds['gamma'][1]],
+                     'beta':[self.bounds['beta'][0],self.beta,self.bounds['beta'][1]],
+                     'alpha':[self.bounds['alpha'][0],self.beta,self.bounds['alpha'][1]]})   
 
     def setAllParameters(self):
         for i in dict_p.iterkeys():
@@ -58,30 +59,31 @@ class QLearning():
             sys.exit(0)
 
     def setParameter(self, name, value):
-        if name == 'alpha':
-            if value < 0.01:
-                self.alpha = 0.01
-            elif value > 0.99:
-                self.alpha = 0.99
-            else:
-                self.alpha = value
-        elif name == 'gamma':
-            if value < 0.01:
-                self.gamma = 0.01
-            elif value > 0.99:
-                self.gamma = 0.99
+        if name == 'gamma':
+            if value < self.bounds['gamma'][0]:
+                self.gamma = self.bounds['gamma'][0]
+            elif value > self.bounds['gamma'][1]:
+                self.gamma = self.bounds['gamma'][1]
             else:
                 self.gamma = value                
         elif name == 'beta':
-            if value < 1:
-                self.beta = 1
-            elif value > 5:
-                self.beta = 5
+            if value < self.bounds['beta'][0]:
+                self.beta = self.bounds['beta'][0]
+            elif value > self.bounds['beta'][1]:
+                self.beta = self.bounds['beta'][1]
             else :
                 self.beta = value        
+        elif name == 'alpha':
+            if value < self.bounds['alpha'][0]:
+                self.alpha = self.bounds['alpha'][0]
+            elif value > self.bounds['alpha'][1]:
+                self.alpha = self.bounds['alpha'][1]
+            else:
+                self.alpha = value
         else:
             print "Parameters not found"
-            sys.exit(0)  
+            sys.exit(0)    
+
     
     def initializeList(self):
         self.responses = list()
@@ -157,8 +159,9 @@ class KalmanQLearning():
         self.value = list()        
 
     def getAllParameters(self):        
-        return dict({'gamma':[0.01,self.gamma,0.99],
-                     'beta':[1,self.beta,10]})                     
+        return dict({'gamma':[self.bounds['gamma'][0],self.gamma,self.bounds['gamma'][1]],
+                     'beta':[self.bounds['beta'][0],self.beta,self.bounds['beta'][1]],
+                     'eta':[self.bounds['eta'][0],self.beta,self.bounds['eta'][1]]})                
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -177,19 +180,26 @@ class KalmanQLearning():
 
     def setParameter(self, name, value):
         if name == 'gamma':
-            if value < 0.01:
-                self.gamma = 0.01
-            elif value > 0.99:
-                self.gamma = 0.99
+            if value < self.bounds['gamma'][0]:
+                self.gamma = self.bounds['gamma'][0]
+            elif value > self.bounds['gamma'][1]:
+                self.gamma = self.bounds['gamma'][1]
             else:
                 self.gamma = value                
         elif name == 'beta':
-            if value < 1:
-                self.beta = 1
-            elif value > 5:
-                self.beta = 5
+            if value < self.bounds['beta'][0]:
+                self.beta = self.bounds['beta'][0]
+            elif value > self.bounds['beta'][1]:
+                self.beta = self.bounds['beta'][1]
             else :
                 self.beta = value        
+        elif name == 'eta':
+            if value < self.bounds['eta'][0]:
+                self.eta = self.bounds['eta'][0]
+            elif value > self.bounds['eta'][1]:
+                self.eta = self.bounds['eta'][1]
+            else:
+                self.eta = value
         else:
             print "Parameters not found"
             sys.exit(0)    
