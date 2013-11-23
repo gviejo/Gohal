@@ -140,12 +140,17 @@ for i in xrange(n_parameters):
     xlim(p['parameters'][parameters[i]][0], p['parameters'][parameters[i]][2])
     ylabel("Likelihood")
     grid()
-
-figure(figsize = (14,9))
-ion()
-
-
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
+
+fig = figure(figsize = (14, 9))
+ax = fig.add_subplot(111, projection = '3d')
+if options.subject:
+    ind = subject.index(options.subject)
+    ax.scatter(X[ind][:,0], X[ind][:,1], X[ind][:,2], c = fun[ind])
+    ax.set_xlabel(parameters[0])
+    ax.set_ylabel(parameters[1])
+    ax.set_zlabel(parameters[2])
+
 
 
 show()        

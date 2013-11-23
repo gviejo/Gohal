@@ -140,6 +140,7 @@ class KalmanQLearning():
         self.gamma=gamma;self.beta=beta;self.eta=eta;self.var_obs=var_obs;self.init_cov=init_cov;self.kappa=kappa
         self.n_action=len(actions)
         self.n_state=len(states)
+        self.bounds = dict({"gamma":[0.0, 1.0], "beta":[1.0, 10.0], "eta":[0.001, 0.00001]})
         #Values Initialization                
         self.values = np.zeros((self.n_state,self.n_action))
         self.covariance = createCovarianceDict(len(states)*len(actions), self.init_cov, self.eta)

@@ -20,9 +20,9 @@ from HumanLearning import HLearning
 # FONCTIONS
 # -----------------------------------
 def testRelation(var1, var2):
-    KS, p = stats.ks_2samp(var1, var2)
-    #KS, p = stats.kruskal(tmp[j], tmp[i])
-    #KS, p = stats.mannwhitneyu(tmp[j], tmp[i])
+    #KS, p = stats.ks_2samp(var1, var2)    
+    #KS, p = stats.kruskal(var1, var2)
+    KS, p = stats.mannwhitneyu(var1, var2)
     return p
 
 # -----------------------------------
