@@ -10,7 +10,8 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 import sys
 import numpy as np
 from optparse import OptionParser
-sys.path.append("../../src")
+#sys.path.append("../../src")
+sys.path.append("Gohal/src")
 from fonctions import *
 from ColorAssociationTasks import CATS
 from Models import *
@@ -30,6 +31,7 @@ if not sys.argv[1:]:
 parser = OptionParser()
 parser.add_option("-m", "--model", action="store", help="The name of the model to optimize", default=False)
 parser.add_option("-o", "--output", action="store", help="Output directory", default=False)
+parser.add_option("-f", "--fonction", action="store", help="Scipy function", default=False)
 (options, args) = parser.parse_args() 
 # -----------------------------------
 
@@ -37,50 +39,47 @@ parser.add_option("-o", "--output", action="store", help="Output directory", def
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def testModel(arg):    
-    for i in xrange(arg):
-        #sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                    
-        cats.reinitialize()
-        bww.initialize()
-        for j in xrange(nb_trials):
-            state = cats.getStimulus(j)
-            action = bww.chooseAction(state)
-            reward = cats.getOutcome(state, action)
-            bww.updateValue(reward)
-    return np.array(bww.state)
 # ------------------------------------
 
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
-X = human.subject['meg']
+human = HLearning(dict({'meg':('Beh/MEG/Beh_Model/',48), 'fmri':('Beh/fMRI',39)}))
+
 # -----------------------------------
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.0001
-length_memory = 7
-#threshold = 1.2
-threshold = 1.0
+eta = 0.0001            # variance of evolution noise v
+var_obs = 0.05          # variance of observation noise n
+gamma = 0.95            # discount factor
+init_cov = 10           # initialisation of covariance matrice
+kappa = 0.1             # unscentered transform parameters
+beta = 5.5              # temperature for kalman soft-max
+noise = 0.000           # variance of white noise for working memory
+length_memory = 7       # size of working memory
+threshold = 1           # inference threshold
+sigma = 0.00002         # updating rate of the average reward
+alpha = 0.5 
 #########################
 #optimization parameters
-fname = 'minimize'
-n_run = 1000
-maxiter = 1000
-maxfun = 1000
-xtol = 0.001
-ftol = 0.001
+n_run = 5000
+maxiter = 10000
+maxfun = 10000
+xtol = 0.01
+ftol = 0.01
 disp = False
 #########################
-nb_trials = 42
-#nb_blocs = 400
-#########################
-cats = CATS(nb_trials)
-bww = BayesianWorkingMemory("v2", cats.states, cats.actions, length_memory, noise, threshold)
-#bww = QLearning("test", cats.states, cats.actions, 0.5, 0.5, 1.0)
-opt = Likelihood(human, bww, fname, n_run, maxiter, maxfun, xtol, ftol, disp)
+cats = CATS(0)
+
+models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
+               'bwm_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
+               'bwm_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
+               'qlearning':QLearning('q', cats.states, cats.actions, alpha, beta, gamma)
+              })
+
+opt = Likelihood(human, models[options.model], options.fonction, n_run, maxiter, maxfun, xtol, ftol, disp)
 #########################
 # -----------------------------------
 

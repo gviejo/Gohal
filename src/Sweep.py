@@ -279,6 +279,7 @@ class Likelihood():
         self.n_run = n_run
         self.best_parameters = None
         self.start_parameters = None        
+        self.brute_grid = None
         self.p = self.model.getAllParameters()
         self.p_order = self.p.keys()        
         self.current_subject = None
@@ -417,34 +418,90 @@ class Likelihood():
         self.current_subject = subject
         self.best_parameters = list()
         self.start_parameters = list()              
-        max_likelihood = list()
-        for i in xrange(self.n_run):
-            p_start = self.generateStart()
-            if self.fname == 'minimize':
+        max_likelihood = list()        
+        self.brute_grid = list()
+
+        if self.fname == 'minimize':
+            for i in xrange(self.n_run):
+                p_start = self.generateStart()                
                 tmp = scipy.optimize.minimize(fun=self.computeLikelihood,
-                                                x0=p_start,
-                                                method='TNC',
-                                                jac=None,
-                                                hess=None,
-                                                hessp=None,
-                                                bounds=self.ranges,
-                                                options={'maxiter':self.maxiter,
-                                                         'disp':self.disp})
-            else:
-                print "Function not found"
-                sys.exit()
-            self.best_parameters.append(tmp.x)
-            max_likelihood.append(-tmp.fun)
-            self.start_parameters.append(p_start)
-        self.best_parameters = np.array(self.best_parameters)
-        self.start_parameters = np.array(self.start_parameters)
-        max_likelihood = np.array(max_likelihood)
-        return dict({self.current_subject:dict({'start':self.start_parameters,
-                                                'best':self.best_parameters, 
-                                                'max':max_likelihood})})
+                                              x0=p_start,
+                                              method='TNC',
+                                              jac=None,
+                                              hess=None,
+                                              hessp=None,
+                                              bounds=self.ranges,
+                                              options={'maxiter':self.maxiter,
+                                                       'disp':self.disp})
+                self.best_parameters.append(tmp.x)
+                max_likelihood.append(-tmp.fun)
+                self.start_parameters.append(p_start)
+            self.best_parameters = np.array(self.best_parameters)
+            self.start_parameters = np.array(self.start_parameters)
+            max_likelihood = np.array(max_likelihood)
+            return dict({self.current_subject:dict({'start':self.start_parameters,
+                                                    'best':self.best_parameters, 
+                                                    'max':max_likelihood})})
+        elif self.fname == 'fmin':
+            for i in xrange(self.n_run):
+                p_start = self.generateStart()
+                tmp = scipy.optimize.fmin(func=self.computeLikelihood,
+                                            x0=p_start,
+                                            maxiter=self.maxiter,
+                                            maxfun=self.maxfun,
+                                            xtol=self.xtol,
+                                            ftol=self.ftol,
+                                            disp=self.disp)
+                self.best_parameters.append(tmp.x)
+                max_likelihood.append(-tmp.fun)
+                self.start_parameters.append(p_start)
+            self.best_parameters = np.array(self.best_parameters)
+            self.start_parameters = np.array(self.start_parameters)
+            max_likelihood = np.array(max_likelihood)
+            return dict({self.current_subject:dict({'start':self.start_parameters,
+                                                    'best':self.best_parameters, 
+                                                    'max':max_likelihood})})
+        elif self.fname == 'anneal':                    
+            for i in xrange(self.n_run):
+                p_start = self.generateStart()
+                tmp = scipy.optimize.anneal(func=self.computeLikelihood,
+                                            x0=p_start,
+                                            schedule='fast',
+                                            lower=self.lower,
+                                            upper=self.upper,
+                                            disp=self.disp)
+                self.best_parameters.append(tmp.x)
+                max_likelihood.append(-tmp.fun)
+                self.start_parameters.append(p_start)
+            self.best_parameters = np.array(self.best_parameters)
+            self.start_parameters = np.array(self.start_parameters)
+            max_likelihood = np.array(max_likelihood)
+            return dict({self.current_subject:dict({'start':self.start_parameters,
+                                                    'best':self.best_parameters, 
+                                                    'max':max_likelihood})})
+
+        elif self.fname == 'brute':
+            rranges = tuple([slice(i[0],i[1],0.01) for i in self.ranges])
+            tmp = scipy.optimize.brute(func=self.computeLikelihood,
+                                       ranges=rranges,
+                                       disp=self.disp,
+                                       Ns=100,
+                                       full_output=True)
+            self.best_parameters = tmp[0]
+            max_likelihood = tmp[1]
+            self.brute_grid = tuple(tmp[2], tmp[3])
+            return dict({self.current_subject:dict({'best':tmp[0],
+                                                    'grid':tmp[2],
+                                                    'grid_f':tmp[3],
+                                                    'max':tmp[1]})})
+
+        else:
+            print "Function not found"
+            sys.exit()
 
     def run(self):        
-        subject = ['S1', 'S9', 'S8', 'S3', 'S12']
+        #subject = ['S1', 'S9', 'S8', 'S3', 'S12']
+        subject = self.subject
         pool = Pool(len(subject))
         self.data = pool.map(unwrap_self_multiOptimize, zip([self]*len(subject), subject))                
 
@@ -453,19 +510,31 @@ class Likelihood():
         start = []
         fun = []
         subject = []
+        grid = []
+        grid_fun = []
         for i in self.subject:
             for j in self.data:
-                if j.keys()[0] == i:
+                if j.keys()[0] == i and self.fname != 'brute':
                     opt.append(j[i]['best'])
                     start.append(j[i]['start'])
+                    fun.append(j[i]['max'])
+                    subject.append(i)
+                elif j.keys()[0] == i and self.fname == 'brute':
+                    opt.append(j[i]['best'])
+                    grid.append(j[i]['grid'])
+                    grid_fun.append(j[i]['grid_f'])
                     fun.append(j[i]['max'])
                     subject.append(i)
         opt = np.array(opt)
         start = np.array(start)
         fun = np.array(fun)
+        grid = np.array(grid)
+        grid_fun = np.array(grid_fun)
         data = dict({'start':start,
                      'opt':opt,
                      'max':fun,
+                     'grid':grid,
+                     'grid_fun':grid_fun,
                      'p_order':self.p_order,
                      'subject':subject,
                      'parameters':self.p,
