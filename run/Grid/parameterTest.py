@@ -11,14 +11,12 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
-import os
 from optparse import OptionParser
 import numpy as np
 import cPickle as pickle
 sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
-from ColorAssociationTasks import CATS_MODELS
 from HumanLearning import HLearning
 from Models import *
 from matplotlib import *
@@ -29,12 +27,14 @@ from sklearn.cluster import KMeans
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
-#if not sys.argv[1:]:
-#    sys.stdout.write("Sorry: you must specify at least 1 argument")
-#    sys.stdout.write("More help avalaible with -h or --help option")
-#    sys.exit(0)
+if not sys.argv[1:]:
+    sys.stdout.write("Sorry: you must specify at least 1 argument")
+    sys.stdout.write("More help avalaible with -h or --help option")
+    sys.exit(0)
 parser = OptionParser()
 parser.add_option("-i", "--input", action="store", help="The name of the directory to load", default=False)
+parser.add_option("-m", "--model", action="store", help="The name of the model to test", default=False)
+parser.add_option("-s", "--subject", action="store", help="Which subject to plot \n Ex : -s S1", default=False)
 (options, args) = parser.parse_args() 
 # -----------------------------------
 
@@ -90,13 +90,16 @@ correlation = "diff"
 length_memory = 15
 
 nb_trials = human.responses['meg'].shape[1]
-#nb_blocs = human.responses['meg'].shape[0]
+nb_blocs = human.responses['meg'].shape[0]
 nb_blocs = 46
 
 cats = CATS()
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-               'bmw':BayesianWorkingMemory('bmw', cats.states, cats.actions, 11, 0.0106, 1.0)})
+               'bwm_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
+               'bwm_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
+               'qlearning':QLearning('q', cats.states, cats.actions, alpha, beta, gamma)
+              })
 
 # -----------------------------------
 

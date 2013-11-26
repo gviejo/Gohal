@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.stats import norm
+
 from prettytable import PrettyTable
 from copy import deepcopy
 import cPickle as pickle

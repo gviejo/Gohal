@@ -142,7 +142,7 @@ class KalmanQLearning():
         self.gamma=gamma;self.beta=beta;self.eta=eta;self.var_obs=var_obs;self.init_cov=init_cov;self.kappa=kappa
         self.n_action=len(actions)
         self.n_state=len(states)
-        self.bounds = dict({"gamma":[0.0, 1.0], "beta":[1.0, 10.0], "eta":[0.00001, 0.001]})
+        self.bounds = dict({"gamma":[0.0, 1.0], "beta":[1.0, 100.0], "eta":[0.00001, 0.001]})
         #Values Initialization                
         self.values = np.zeros((self.n_state,self.n_action))
         self.covariance = createCovarianceDict(len(states)*len(actions), self.init_cov, self.eta)
@@ -161,7 +161,7 @@ class KalmanQLearning():
     def getAllParameters(self):        
         return dict({'gamma':[self.bounds['gamma'][0],self.gamma,self.bounds['gamma'][1]],
                      'beta':[self.bounds['beta'][0],self.beta,self.bounds['beta'][1]],
-                     'eta':[self.bounds['eta'][0],self.beta,self.bounds['eta'][1]]})                
+                     'eta':[self.bounds['eta'][0],self.eta,self.bounds['eta'][1]]})                
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -372,7 +372,7 @@ class TreeConstruction():
 
     def updateTrees(self, state, reward):        
         self.responses[-1].append((reward==1)*1)
-        if reward <> 1:
+        if reward != 1:
             self.extendTrees(self.mental_path, self.mental_path, self.g[state])
         elif reward == 1:
             self.reinforceTrees(self.mental_path, self.mental_path, self.g[state])

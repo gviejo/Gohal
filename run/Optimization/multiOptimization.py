@@ -10,8 +10,7 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 import sys
 import numpy as np
 from optparse import OptionParser
-#sys.path.append("../../src")
-sys.path.append("Gohal/src")
+sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
 from Models import *
@@ -39,13 +38,12 @@ parser.add_option("-f", "--fonction", action="store", help="Scipy function", def
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-# ------------------------------------
+# -----------------------------------
 
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('Beh/MEG/Beh_Model/',48), 'fmri':('Beh/fMRI',39)}))
-
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 
 # -----------------------------------
@@ -89,6 +87,7 @@ opt = Likelihood(human, models[options.model], options.fonction, n_run, maxiter,
 t1 = time()
 
 opt.run()
+#opt.optimize(["S9"])
 data = opt.save(options.output+"data_"+options.model+"_"+str(datetime.datetime.now()).replace(" ", "_"))
 
 t2 = time()

@@ -79,8 +79,8 @@ nb_blocs = 40
 cats = CATS()
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-               'bmw_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
-               'bmw_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold)
+               'bwm_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
+               'bwm_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold)
                })
 model = models[options.model]
 
@@ -107,6 +107,17 @@ if fname == 'minimize':
     fun = p['max']        
 elif fname == 'fmin':
     X = np.reshape(X, (len(subject), n_search, n_parameters))
+elif fname == 'brute':
+    X = []
+    fun = []
+    for s in xrange(len(subject)):
+        grid_ = np.transpose(np.reshape(p['grid'][s], (3, p['grid'][s].shape[1]**3)))
+        llh = p['grid_fun'][s].flatten()
+        threshold = np.min(llh)+0.3*(np.max(llh)-np.min(llh))/2        
+        X.append(grid_[llh<threshold])
+        fun.append(llh[llh<threshold])
+    X = np.array(X)
+    fun = np.array(fun)
 else:
     print "scipy function not specified\n"
     sys.exit()
@@ -135,7 +146,7 @@ for i in xrange(n_parameters):
     else :
         for j in xrange(len(subject)):
             c = np.random.rand(3,)
-            plot(X[j,:,i], fun[j], 'o', color = c, markersize = 5)
+            plot(X[j,:,i], fun[j], 'o', color = fun[j], markersize = 5)
     xlabel(parameters[i])      
     xlim(p['parameters'][parameters[i]][0], p['parameters'][parameters[i]][2])
     ylabel("Likelihood")
@@ -146,12 +157,20 @@ fig = figure(figsize = (14, 9))
 ax = fig.add_subplot(111, projection = '3d')
 if options.subject:
     ind = subject.index(options.subject)
+    ax.scatter(X[ind][:,0], X[ind][:,1], X[ind][:,2], c = -fun[ind])
+    ax.set_xlabel(parameters[0])
+    ax.set_ylabel(parameters[1])
+    ax.set_zlabel(parameters[2])
+    if fname == 'brute':
+        ax.scatter(p['opt'][ind][0], p['opt'][ind][1], p['opt'][ind][2], s = 40, color = 'black')
+        ax.set_xlim(np.min(p['grid'][ind][0]),np.max(p['grid'][ind][0]))
+        ax.set_ylim(np.min(p['grid'][ind][1]),np.max(p['grid'][ind][1]))
+        ax.set_zlim(np.min(p['grid'][ind][2]),np.max(p['grid'][ind][2]))        
+else:
     ax.scatter(X[ind][:,0], X[ind][:,1], X[ind][:,2], c = fun[ind])
     ax.set_xlabel(parameters[0])
     ax.set_ylabel(parameters[1])
     ax.set_zlabel(parameters[2])
-
-
 
 show()        
 
