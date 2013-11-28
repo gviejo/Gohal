@@ -210,6 +210,10 @@ def searchStimOrder(s, a, r):
             tmp[np.where(st == j)[0][0]] = t    
     if np.sum(tmp == 0) == 1 and len(np.unique(tmp)) == 3:
         return tuple((st[tmp == np.min(tmp[tmp!=0])][0], st[tmp == np.max(tmp[tmp!=0])][0] ,st[tmp == 0][0]))
+    elif np.sum(tmp == 0) == 2:
+        return tuple((st[tmp != 0][0], st[tmp == 0][0], st[tmp == 0][1]))
+    elif (len(np.unique(tmp)) == 2) and (np.sum(tmp == 0) == 1):
+        return tuple((st[tmp != 0][0], st[tmp != 0][1], st[tmp == 0][0]))
     elif len(np.unique(tmp)) == 3:
         return tuple(st[np.argsort(tmp)])        
     elif (len(np.unique(tmp)) == 2) and (np.sum(tmp == np.min(tmp)) == 1):
@@ -218,13 +222,13 @@ def searchStimOrder(s, a, r):
         rest = st[tmp != np.min(tmp)]
         if np.where((s == rest[0]) & (r == 1))[0][0] < np.where((s == rest[1]) & (r == 1))[0][0]:
             return tuple((first, rest[0], rest[1]))
-        else:            
+        else:       
             return tuple((first, rest[1], rest[0]))  
-    elif (len(np.unique(tmp)) == 2) and (np.sum(tmp == np.min(tmp)) == 2):
-        if np.where(s == st[tmp == np.min(tmp)][0])[0][0] < np.where(s == st[tmp == np.min(tmp)][1])[0][0]:
-            return tuple((st[tmp == np.min(tmp)][0], st[tmp == np.min(tmp)][1], st[tmp == np.max(tmp)]))
-        else:
-            return tuple((st[tmp == np.min(tmp)][1], st[tmp == np.min(tmp)][0], st[tmp == np.max(tmp)]))
+    elif (len(np.unique(tmp)) == 2) and (np.sum(tmp == np.min(tmp)) == 2):        
+        if np.where(s == st[tmp == np.min(tmp)][0])[0][0] < np.where(s == st[tmp == np.min(tmp)][1])[0][0]:            
+            return tuple((st[tmp == np.min(tmp)][0], st[tmp == np.min(tmp)][1], st[tmp == np.max(tmp)][0]))
+        else:            
+            return tuple((st[tmp == np.min(tmp)][1], st[tmp == np.min(tmp)][0], st[tmp == np.max(tmp)][0]))
 
 def computeMeanReactionTime(data, case = None, ind = 40):
     tmp = []
@@ -246,8 +250,7 @@ def getRepresentativeSteps(data, stimulus, action, responses):
     indice = np.zeros((m,n))
 
     for i in xrange(m):
-        first, second, third = searchStimOrder(stimulus[i], action[i], responses[i])
-        
+        first, second, third = searchStimOrder(stimulus[i], action[i], responses[i])        
         # first
         first_correct_position = np.where((stimulus[i] == first) & (responses[i] == 1))[0][0]        
         indice[i, first_correct_position] = 2
@@ -264,25 +267,28 @@ def getRepresentativeSteps(data, stimulus, action, responses):
                 indice[i,j] = tmp; tmp += 1
 
         #second 
-        first_correct_position = np.where((stimulus[i] == second) & (responses[i] == 1))[0][0]        
-        indice[i, first_correct_position] = 4
-        #second_correct_position = np.where((stimulus[i] == second) & (responses[i] == 1))[0][1]
-        #indice[i, second_correct_position] = 6
-        wrong_positions = np.where((stimulus[i,0:first_correct_position] == second) & (responses[i, 0:first_correct_position] == 0))[0]
-        first_wrong_action = action[i][wrong_positions[0]]
-        indice[i, np.where((stimulus[i,0:first_correct_position] == second) & (action[i,0:first_correct_position] == first_wrong_action))[0]] = 1
-        second_wrong_action = action[i][np.where((stimulus[i, 0:first_correct_position] == second)             
-                                                & (action[i, 0:first_correct_position] != first_wrong_action))[0][0]]
-        indice[i, np.where((stimulus[i,0:first_correct_position] == second) & (action[i,0:first_correct_position] == second_wrong_action))[0]] = 2
-        third_wrong_action = action[i][np.where((stimulus[i, 0:first_correct_position] == second) 
-                                                & (action[i, 0:first_correct_position] != first_wrong_action)
-                                                & (action[i, 0:first_correct_position] != second_wrong_action))[0][0]]
-        indice[i, np.where((stimulus[i,0:first_correct_position] == second) & (action[i,0:first_correct_position] == third_wrong_action))[0]] = 3
-        second_position = np.where((stimulus[i] == second)&(indice[i] == 0))[0][0]
-        indice[i][second_position] = 6
-        tmp = 7
-        for j in np.where((stimulus[i] == second) & (indice[i] == 0))[0]:
-                indice[i,j] = tmp; tmp += 1
+        if len(np.where((stimulus[i] == second) & (responses[i] == 1))[0]):
+            first_correct_position = np.where((stimulus[i] == second) & (responses[i] == 1))[0][0]        
+            indice[i, first_correct_position] = 4
+            #second_correct_position = np.where((stimulus[i] == second) & (responses[i] == 1))[0][1]
+            #indice[i, second_correct_position] = 6
+            wrong_positions = np.where((stimulus[i,0:first_correct_position] == second) & (responses[i, 0:first_correct_position] == 0))[0]
+            first_wrong_action = action[i][wrong_positions[0]]
+            indice[i, np.where((stimulus[i,0:first_correct_position] == second) & (action[i,0:first_correct_position] == first_wrong_action))[0]] = 1
+            if len(np.where((stimulus[i, 0:first_correct_position] == second) & (action[i, 0:first_correct_position] != first_wrong_action))[0]):
+                second_wrong_action = action[i][np.where((stimulus[i, 0:first_correct_position] == second)             
+                                                        & (action[i, 0:first_correct_position] != first_wrong_action))[0][0]]
+                indice[i, np.where((stimulus[i,0:first_correct_position] == second) & (action[i,0:first_correct_position] == second_wrong_action))[0]] = 2
+                third_wrong_action = action[i][np.where((stimulus[i, 0:first_correct_position] == second) 
+                                                        & (action[i, 0:first_correct_position] != first_wrong_action)
+                                                        & (action[i, 0:first_correct_position] != second_wrong_action))[0][0]]
+                indice[i, np.where((stimulus[i,0:first_correct_position] == second) & (action[i,0:first_correct_position] == third_wrong_action))[0]] = 3
+                if len(np.where((stimulus[i] == second)&(indice[i] == 0))[0]):  
+                    second_position = np.where((stimulus[i] == second)&(indice[i] == 0))[0][0]
+                    indice[i][second_position] = 6
+                    tmp = 7
+                    for j in np.where((stimulus[i] == second) & (indice[i] == 0))[0]:
+                            indice[i,j] = tmp; tmp += 1
 
         #third
         if len(np.where((stimulus[i] == third) & (responses[i] == 1))[0]):

@@ -111,11 +111,13 @@ elif fname == 'brute':
     X = []
     fun = []
     for s in xrange(len(subject)):
-        grid_ = np.transpose(np.reshape(p['grid'][s], (3, p['grid'][s].shape[1]**3)))
+        grid_ = np.transpose(np.reshape(p['grid'][s], (3, p['grid'][s].shape[1]*p['grid'][s].shape[2]*p['grid'][s].shape[3])))
         llh = p['grid_fun'][s].flatten()
-        threshold = np.min(llh)+0.3*(np.max(llh)-np.min(llh))/2        
+        threshold = np.min(llh)+0.1*(np.max(llh)-np.min(llh))/2                        
         X.append(grid_[llh<threshold])
         fun.append(llh[llh<threshold])
+        #X.append(grid_)
+        #fun.append(llh)
     X = np.array(X)
     fun = np.array(fun)
 else:
@@ -171,6 +173,8 @@ else:
     ax.set_xlabel(parameters[0])
     ax.set_ylabel(parameters[1])
     ax.set_zlabel(parameters[2])
+
+print p['opt'][ind]
 
 show()        
 

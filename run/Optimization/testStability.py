@@ -66,6 +66,7 @@ sigma = 0.00002         # updating rate of the average reward
 #optimization parameters
 fname = 'minimize'
 n_run = 5
+n_grid = 10
 maxiter = 100
 maxfun = 100
 xtol = 0.001
@@ -81,7 +82,7 @@ models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gam
                        BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise, threshold),
                        sigma)})
 model = models[options.model]
-opt = Likelihood(human, model, fname, n_run, maxiter, maxfun, xtol, ftol, disp)
+opt = Likelihood(human, model, fname, n_run, n_grid, maxiter, maxfun, xtol, ftol, disp)
 
 
 opt.set(model, 'S9')
@@ -89,14 +90,15 @@ opt.set(model, 'S9')
 ll = list()
 psampled = list()
 
+moving_p = 0
 
-cst = np.array([opt.p[i][1] for i in opt.p_order], dtype = 'f64')
+cst = np.array([opt.p[i][1] for i in opt.p_order])
 
-for i in xrange(500):		
-	cst[2] =  np.random.uniform(opt.ranges[2][0], opt.ranges[2][1])
+for i in xrange(200):		
+	cst[moving_p] =  np.random.uniform(opt.ranges[moving_p][0], opt.ranges[moving_p][1])
 	ll.append(opt.computeLikelihood(cst))
 	print i, cst
-	psampled.append(cst[2])
+	psampled.append(cst[moving_p])
 
 ll = np.array(ll)
 psampled = np.array(psampled)

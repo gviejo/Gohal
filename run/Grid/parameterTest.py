@@ -68,9 +68,9 @@ def omegaFunc(cible, freq1, freq2):
         else:
             return w
 
-# -----------------------------------
+# ----------------------------------000000-
 
-# -----------------------------------
+#0<23 -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
@@ -91,6 +91,7 @@ length_memory = 15
 
 nb_trials = human.responses['meg'].shape[1]
 nb_blocs = human.responses['meg'].shape[0]
+
 nb_blocs = 46
 
 cats = CATS()

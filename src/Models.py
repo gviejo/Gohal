@@ -142,7 +142,7 @@ class KalmanQLearning():
         self.gamma=gamma;self.beta=beta;self.eta=eta;self.var_obs=var_obs;self.init_cov=init_cov;self.kappa=kappa
         self.n_action=len(actions)
         self.n_state=len(states)
-        self.bounds = dict({"gamma":[0.0, 1.0], "beta":[1.0, 100.0], "eta":[0.00001, 0.001]})
+        self.bounds = dict({"gamma":[0.0, 1.0], "beta":[0.1, 10.0], "eta":[0.00001, 0.001]})
         #Values Initialization                
         self.values = np.zeros((self.n_state,self.n_action))
         self.covariance = createCovarianceDict(len(states)*len(actions), self.init_cov, self.eta)
@@ -247,6 +247,7 @@ class KalmanQLearning():
         return self.action[-1][-1]
 
     def updateValue(self, reward):
+        #r = int((reward==0)*-1+(reward==1)*1)        
         r = int((reward==1)*1)
         self.responses[-1].append(r)                
         self.computeSigmaPoints()                
@@ -256,7 +257,7 @@ class KalmanQLearning():
         cov_values_rewards = np.sum(self.weights*(self.point-self.values.flatten())*(rewards_predicted-reward_predicted), 0)
         cov_rewards = np.sum(self.weights*(rewards_predicted-reward_predicted)**2) + self.var_obs
         kalman_gain = cov_values_rewards/cov_rewards
-        self.values = (self.values.flatten() + kalman_gain*(reward-reward_predicted)).reshape(self.n_state, self.n_action)
+        self.values = (self.values.flatten() + kalman_gain*(r-reward_predicted)).reshape(self.n_state, self.n_action)
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] - (kalman_gain.reshape(len(kalman_gain), 1)*cov_rewards)*kalman_gain
 
     def computeSigmaPoints(self):
@@ -451,7 +452,7 @@ class BayesianWorkingMemory():
         self.entropy = self.initial_entropy        
         self.n_element = 0
         self.p_choice = 0.0
-        self.bounds = dict({"lenght":[5, 10], "threshold":[0, 2.5], "noise":[0.0, 0.1]})
+        self.bounds = dict({"lenght":[5, 100], "threshold":[0.0, 2.5], "noise":[0.0, 0.1]})
         # Optimization init
         self.p_s = np.zeros((self.lenght_memory, self.n_state))
         self.p_a_s = np.zeros((self.lenght_memory, self.n_state, self.n_action))

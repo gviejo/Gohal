@@ -266,7 +266,7 @@ class Likelihood():
     Optimization with scipy.optimize.fmin
     See : Trial-by-trial data analysis using computational models, Daw, 2009
     """
-    def __init__(self, human, ptr_model, fname, n_run, maxiter, maxfun, xtol, ftol, disp):
+    def __init__(self, human, ptr_model, fname, n_run, n_grid, maxiter, maxfun, xtol, ftol, disp):
         self.X = human.subject['meg']
         self.model = ptr_model
         self.fname = fname
@@ -277,6 +277,7 @@ class Likelihood():
         self.disp = disp
         self.subject = self.X.keys()
         self.n_run = n_run
+        self.n_grid = n_grid
         self.best_parameters = None
         self.start_parameters = None        
         self.brute_grid = None
@@ -333,8 +334,17 @@ class Likelihood():
                 values = self.model.computeValue(state)
                 llh = llh + np.log(values[true_action])
                 self.model.current_action = true_action
-                self.model.updateValue(trial[2])                        
-        return llh
+                # print 'bloc',bloc
+                # print 'trial',trial
+                # print 'state',state
+                # print 'action', true_action
+                # print 'values', values
+                # print np.log(values[true_action])
+                # print llh                
+                # sys.stdin.readline()
+                self.model.updateValue(trial[2])                                        
+                
+        return -llh
 
     def computeLikelihoodAll(self, p):
         """ Maximize log-likelihood based on 
@@ -413,13 +423,12 @@ class Likelihood():
             return dict({self.current_subject:dict({'start':self.start_parameters,
                                                     'best':self.best_parameters, 
                                                     'max':max_likelihood})})
-        elif self.fname == 'brute':
-            ngrid = 5
-            rranges = tuple([slice(i[0],i[1],(i[1]-i[0])/ngrid) for i in self.ranges])
+        elif self.fname == 'brute':            
+            rranges = tuple([slice(i[0],i[1],(i[1]-i[0])/self.n_grid) for i in self.ranges])
             tmp = scipy.optimize.brute(func=self.computeLikelihood,
                                        ranges=rranges,
                                        disp=self.disp,
-                                       Ns=ngrid,
+                                       Ns=self.n_grid,
                                        full_output=True)
             self.best_parameters = tmp[0]
             max_likelihood = tmp[1]
@@ -437,7 +446,7 @@ class Likelihood():
                                               approx_grad=0,
                                               bounds=list(self.ranges),
                                               disp=4)
-                
+
                                               
                 self.best_parameters.append(tmp.x)
                 self.start_parameters.append(p_start)
@@ -535,7 +544,7 @@ class Likelihood():
             tmp = scipy.optimize.brute(func=self.computeLikelihood,
                                        ranges=rranges,
                                        disp=self.disp,
-                                       Ns=100,
+                                       Ns=self.n_grid,
                                        full_output=True)
             self.best_parameters = tmp[0]
             max_likelihood = tmp[1]
