@@ -12,7 +12,7 @@ import sys
 import os
 import numpy as np
 from fonctions import *
-from scipy.stats import chi2_contingency
+#from scipy.stats import chi2_contingency
 from scipy.stats import norm
 import scipy.optimize
 from multiprocessing import Pool, Process
@@ -112,20 +112,20 @@ class Sweep_performances():
                 dh = self.computeSpecialKullbackLeibler(np.array([h0, h1]), np.array([M0, M1]))
                 return 1-np.mean([dm, dh])
 
-        elif case == "C":
-            if h1 == m1:
-                return 1
-            else:
-                chi, p, ddl, the = chi2_contingency(obs, correction=False)
-                return (chi/(chi+(h+m)))**(0.5)
-                #return np.sqrt(chi)
+        # elif case == "C":
+        #     if h1 == m1:
+        #         return 1
+        #     else:
+        #         chi, p, ddl, the = chi2_contingency(obs, correction=False)
+        #         return (chi/(chi+(h+m)))**(0.5)
+        #         #return np.sqrt(chi)
         
-        elif case == "phi":
-            if h1 == m1:
-                return 1
-            else:
-                chi, p, ddl, the = chi2_contingency(obs, correction=False)
-                return np.sqrt(chi)
+        # elif case == "phi":
+        #     if h1 == m1:
+        #         return 1
+        #     else:
+        #         chi, p, ddl, the = chi2_contingency(obs, correction=False)
+        #         return np.sqrt(chi)
 
         elif case == "Z":
             ph1 = float(a)/h
@@ -342,8 +342,7 @@ class Likelihood():
                 # print np.log(values[true_action])
                 # print llh                
                 # sys.stdin.readline()
-                self.model.updateValue(trial[2])                                        
-                
+                self.model.updateValue(trial[2])                                                        
         return -llh
 
     def computeLikelihoodAll(self, p):
@@ -402,7 +401,7 @@ class Likelihood():
             self.best_parameters = np.array(self.best_parameters)
             self.start_parameters = np.array(self.start_parameters)
             max_likelihood = np.array(max_likelihood)
-            return dict({self.current_subject:dict({'start':self.start_parameters,
+             return dict({self.current_subject:dict({'start':self.start_parameters,
                                                     'best':self.best_parameters, 
                                                     'max':max_likelihood})})
         elif self.fname == 'anneal':
@@ -559,8 +558,8 @@ class Likelihood():
             sys.exit()
 
     def run(self):        
-        subject = ['S1', 'S9', 'S8', 'S3']
-        #subject = self.subject
+        #subject = ['S1', 'S9', 'S8', 'S3']
+        subject = self.subject
         pool = Pool(len(subject))
         self.data = pool.map(unwrap_self_multiOptimize, zip([self]*len(subject), subject))                
 

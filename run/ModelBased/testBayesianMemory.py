@@ -55,7 +55,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
 noise = 0.0001
-length_memory = 7
+length_memory = 8
 #threshold = 1.2
 threshold = 1.0
 

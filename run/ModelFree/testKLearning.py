@@ -52,13 +52,13 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 eta = 0.0001     # variance of evolution noise v
 var_obs = 0.05   # variance of observation noise n
-gamma = 0.2   # discount factor
-init_cov = 10   # initialisation of covariance matrice
+gamma = 0.43     # discount factor
+init_cov = 10    # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
-beta = 8.7
+beta = 2.2
 
 nb_trials = 42
-nb_blocs = 1000
+nb_blocs = 100
 cats = CATS()
 
 kalman = KalmanQLearning('k', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa)

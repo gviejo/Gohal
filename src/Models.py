@@ -25,7 +25,9 @@ class QLearning():
         self.gamma=gamma;self.alpha=alpha;self.beta=beta
         self.n_action=len(actions)
         self.n_state=len(states)
-        self.bounds = dict({"gamma":[0.0, 1.0], "beta":[1.0, 10.0], "alpha":[0.0, 1.0]})
+        self.bounds = dict({"gamma":[0.0, 1.0],
+                            "beta":[1.0, 30.0],
+                            "alpha":[0.0, 1.0]})
         #Values Initialization
         self.values = np.zeros((self.n_state, self.n_action))        
         #Valrious Init
@@ -41,7 +43,7 @@ class QLearning():
     def getAllParameters(self):
         return dict({'gamma':[self.bounds['gamma'][0],self.gamma,self.bounds['gamma'][1]],
                      'beta':[self.bounds['beta'][0],self.beta,self.bounds['beta'][1]],
-                     'alpha':[self.bounds['alpha'][0],self.beta,self.bounds['alpha'][1]]})   
+                     'alpha':[self.bounds['alpha'][0],self.alpha,self.bounds['alpha'][1]]})   
 
     def setAllParameters(self):
         for i in dict_p.iterkeys():
@@ -122,8 +124,8 @@ class QLearning():
         return self.action[-1][-1]
     
     def updateValue(self, reward):
-        r = int((reward==1)*1)
-        self.responses[-1].append(r)
+        self.responses[-1].append(int((reward==1)*1))
+        r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
         delta = reward+self.gamma*np.max(self.values[self.current_state])-self.values[self.current_state, self.current_state]
         self.values[self.current_state, self.current_action] = self.values[self.current_state, self.current_action]+self.alpha*delta
     
@@ -142,7 +144,10 @@ class KalmanQLearning():
         self.gamma=gamma;self.beta=beta;self.eta=eta;self.var_obs=var_obs;self.init_cov=init_cov;self.kappa=kappa
         self.n_action=len(actions)
         self.n_state=len(states)
-        self.bounds = dict({"gamma":[0.0, 1.0], "beta":[0.1, 10.0], "eta":[0.00001, 0.001]})
+        self.bounds = dict({"gamma":[0.0, 1.0],
+                            "beta":[0.1, 30.0],
+                            #"eta":[0.00001, 0.001],
+                            "var_obs":[0.0001, 0.1]})
         #Values Initialization                
         self.values = np.zeros((self.n_state,self.n_action))
         self.covariance = createCovarianceDict(len(states)*len(actions), self.init_cov, self.eta)
@@ -161,7 +166,8 @@ class KalmanQLearning():
     def getAllParameters(self):        
         return dict({'gamma':[self.bounds['gamma'][0],self.gamma,self.bounds['gamma'][1]],
                      'beta':[self.bounds['beta'][0],self.beta,self.bounds['beta'][1]],
-                     'eta':[self.bounds['eta'][0],self.eta,self.bounds['eta'][1]]})                
+                     #'eta':[self.bounds['eta'][0],self.eta,self.bounds['eta'][1]],
+                     'var_obs':[self.bounds['var_obs'][0],self.var_obs,self.bounds['var_obs'][1]]})
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -174,6 +180,8 @@ class KalmanQLearning():
             return self.beta
         elif name == 'eta':
             return self.eta
+        elif name == 'var_obs':
+            return self.var_obs
         else:
             print "Parameters not found"
             sys.exit(0)     
@@ -200,6 +208,13 @@ class KalmanQLearning():
                 self.eta = self.bounds['eta'][1]
             else:
                 self.eta = value
+        elif name == 'var_obs':
+            if value < self.bounds['var_obs'][0]:
+                self.var_obs = self.bounds['var_obs'][0]
+            elif value > self.bounds['var_obs'][1]:
+                self.var_obs = self.bounds['var_obs'][1]
+            else:
+                self.var_obs = value                
         else:
             print "Parameters not found"
             sys.exit(0)    
@@ -247,9 +262,8 @@ class KalmanQLearning():
         return self.action[-1][-1]
 
     def updateValue(self, reward):
-        #r = int((reward==0)*-1+(reward==1)*1)        
-        r = int((reward==1)*1)
-        self.responses[-1].append(r)                
+        self.responses[-1].append(int((reward==1)*1))
+        r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0
         self.computeSigmaPoints()                
         t =self.n_action*self.current_state+self.current_action
         rewards_predicted = (self.point[:,t]-self.gamma*np.max(self.point[:,self.n_action*self.current_state:self.n_action*self.current_state+self.n_action], 1)).reshape(len(self.point), 1)

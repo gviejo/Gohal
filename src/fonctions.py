@@ -1,27 +1,27 @@
 import numpy as np
 
-from prettytable import PrettyTable
+#from prettytable import PrettyTable
 from copy import deepcopy
 import cPickle as pickle
 import sys
 from scipy import stats
 
-from scipy.stats import chi2_contingency, sem
+#from scipy.stats import chi2_contingency, sem
 
 
 
-def displayQValues(states, actions, values, ind = 0):
-    foo = PrettyTable()
-    line_actions = ["State\Action"]
-    for i in actions:
-        line_actions.append(i)
-    foo.set_field_names(line_actions)
-    for j in states:
-        line = [j]
-        for v in actions:
-            line.append(round(values[ind][values[(j,v)]], 3))
-        foo.add_row(line)
-    foo.printt()
+# def displayQValues(states, actions, values, ind = 0):
+#     foo = PrettyTable()
+#     line_actions = ["State\Action"]
+#     for i in actions:
+#         line_actions.append(i)
+#     foo.set_field_names(line_actions)
+#     for j in states:
+#         line = [j]
+#         for v in actions:
+#             line.append(round(values[ind][values[(j,v)]], 3))
+#         foo.add_row(line)
+#     foo.printt()
 
 def print_dict(dictionary, ident = '', braces=1):
     """ Recursively prints nested dictionaries."""
@@ -207,16 +207,14 @@ def searchStimOrder(s, a, r):
             correct = np.where((r == 1) & (s == j))[0][0]
             t = len(np.where((r[0:correct] == 0) & (s[0:correct] == j))[0])
             incorrect[t] = j
-            tmp[np.where(st == j)[0][0]] = t    
+            tmp[np.where(st == j)[0][0]] = t
+    if np.sum(tmp == 0) == 2:
+        return tuple((st[tmp != 0][0], st[tmp == 0][0], st[tmp == 0][1]))
     if np.sum(tmp == 0) == 1 and len(np.unique(tmp)) == 3:
         return tuple((st[tmp == np.min(tmp[tmp!=0])][0], st[tmp == np.max(tmp[tmp!=0])][0] ,st[tmp == 0][0]))
-    elif np.sum(tmp == 0) == 2:
-        return tuple((st[tmp != 0][0], st[tmp == 0][0], st[tmp == 0][1]))
-    elif (len(np.unique(tmp)) == 2) and (np.sum(tmp == 0) == 1):
+    elif np.sum(tmp == 0) == 1 and len(np.unique(tmp)) == 2:
         return tuple((st[tmp != 0][0], st[tmp != 0][1], st[tmp == 0][0]))
-    elif len(np.unique(tmp)) == 3:
-        return tuple(st[np.argsort(tmp)])        
-    elif (len(np.unique(tmp)) == 2) and (np.sum(tmp == np.min(tmp)) == 1):
+    elif np.sum(tmp == np.min(tmp)) == 1 and len(np.unique(tmp)) == 2:
         #find the first one who got the solution        
         first = st[tmp == np.min(tmp)][0]
         rest = st[tmp != np.min(tmp)]
@@ -224,11 +222,14 @@ def searchStimOrder(s, a, r):
             return tuple((first, rest[0], rest[1]))
         else:       
             return tuple((first, rest[1], rest[0]))  
-    elif (len(np.unique(tmp)) == 2) and (np.sum(tmp == np.min(tmp)) == 2):        
+    elif np.sum(tmp == np.min(tmp)) == 2 and len(np.unique(tmp)) == 2:        
         if np.where(s == st[tmp == np.min(tmp)][0])[0][0] < np.where(s == st[tmp == np.min(tmp)][1])[0][0]:            
             return tuple((st[tmp == np.min(tmp)][0], st[tmp == np.min(tmp)][1], st[tmp == np.max(tmp)][0]))
         else:            
             return tuple((st[tmp == np.min(tmp)][1], st[tmp == np.min(tmp)][0], st[tmp == np.max(tmp)][0]))
+    elif len(np.unique(tmp)) == 3:
+        return tuple(st[np.argsort(tmp)])        
+
 
 def computeMeanReactionTime(data, case = None, ind = 40):
     tmp = []
@@ -486,20 +487,20 @@ def computeSingleCorrelation(human, model, case = 'JSD'):
                 dh = computeSpecialKullbackLeibler(np.array([h0, h1]), np.array([M0, M1]))
                 return 1-np.mean([dm, dh])
 
-	elif case == "C":
-	    if h1 == m1:
-		return 1
-	    else:
-		chi, p, ddl, the = chi2_contingency(obs, correction=False)
-		return (chi/(chi+(h+m)))**(0.5)
-		#return np.sqrt(chi)
+	# elif case == "C":
+	#     if h1 == m1:
+	# 	return 1
+	#     else:
+	# 	chi, p, ddl, the = chi2_contingency(obs, correction=False)
+	# 	return (chi/(chi+(h+m)))**(0.5)
+	# 	#return np.sqrt(chi)
 
-	elif case == "phi":
-	    if h1 == m1:
-                return 1
-	    else:
-		chi, p, ddl, the = chi2_contingency(obs, correction=False)
-		return np.sqrt(chi)
+	# elif case == "phi":
+	#     if h1 == m1:
+        #         return 1
+	#     else:
+	# 	chi, p, ddl, the = chi2_contingency(obs, correction=False)
+	# 	return np.sqrt(chi)
 
 	elif case == "Z":
 	    ph1 = float(a)/h

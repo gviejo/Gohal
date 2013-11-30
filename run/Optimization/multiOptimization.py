@@ -63,6 +63,7 @@ alpha = 0.5
 #########################
 #optimization parameters
 n_run = 5000
+n_grid = 30
 maxiter = 10000
 maxfun = 10000
 xtol = 0.01
@@ -77,7 +78,7 @@ models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gam
                'qlearning':QLearning('q', cats.states, cats.actions, alpha, beta, gamma)
               })
 
-opt = Likelihood(human, models[options.model], options.fonction, n_run, maxiter, maxfun, xtol, ftol, disp)
+opt = Likelihood(human, models[options.model], options.fonction, n_run, n_grid, maxiter, maxfun, xtol, ftol, disp)
 #########################
 # -----------------------------------
 
@@ -87,8 +88,7 @@ opt = Likelihood(human, models[options.model], options.fonction, n_run, maxiter,
 t1 = time()
 
 opt.run()
-#opt.optimize(["S9"])
-data = opt.save(options.output+"data_"+options.model+"_"+str(datetime.datetime.now()).replace(" ", "_"))
+data = opt.save(options.output+"_"+str(datetime.datetime.now()).replace(" ", "_"))
 
 t2 = time()
 
