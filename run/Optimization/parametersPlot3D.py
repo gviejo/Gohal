@@ -164,7 +164,7 @@ if options.subject:
     ax.set_ylabel(parameters[1])
     ax.set_zlabel(parameters[2])
     if fname == 'brute':
-        ax.scatter(p['opt'][ind][0], p['opt'][ind][1], p['opt'][ind][2], s = 40, color = 'black')
+        ax.scatter(p['opt'][ind][0], p['opt'][ind][1], p['opt'][ind][2], s = 1000, color = 'green')
         ax.set_xlim(np.min(p['grid'][ind][0]),np.max(p['grid'][ind][0]))
         ax.set_ylim(np.min(p['grid'][ind][1]),np.max(p['grid'][ind][1]))
         ax.set_zlim(np.min(p['grid'][ind][2]),np.max(p['grid'][ind][2]))        
@@ -174,7 +174,10 @@ else:
     ax.set_ylabel(parameters[1])
     ax.set_zlabel(parameters[2])
 
-print p['opt'][ind]
+print p['opt'][ind][1]
+print p['opt'][ind][2]
+print p['opt'][ind][0]
+
 
 show()        
 

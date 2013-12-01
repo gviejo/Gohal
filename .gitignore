@@ -14,4 +14,3 @@ data*
 submit_job.sh
 *.e*
 *.out
-*.txt

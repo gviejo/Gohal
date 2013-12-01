@@ -7,7 +7,7 @@ import sys
 from scipy import stats
 
 #from scipy.stats import chi2_contingency, sem
-
+from scipy.stats import sem
 
 
 # def displayQValues(states, actions, values, ind = 0):

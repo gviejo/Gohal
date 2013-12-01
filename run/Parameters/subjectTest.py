@@ -63,7 +63,7 @@ def testParameters():
     model.action = convertAction(np.array(model.action))
     model.responses = np.array(model.responses)
     model.reaction = np.array(model.reaction)
-    
+    return p
 
 # -----------------------------------
 
@@ -103,7 +103,7 @@ model = models[options.model]
 
 
 t1 = time()
-testParameters()
+p = testParameters()
 t2 = time()
 
 print "\n"
@@ -188,7 +188,7 @@ ax2 = ax1.twinx()
 ax2.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
 ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
 ax2.set_ylabel("Inference Level")
-ax2.set_ylim(-5, 10)
+ax2.set_ylim(-5, 15)
 ##
 msize = 8.0
 mwidth = 2.5

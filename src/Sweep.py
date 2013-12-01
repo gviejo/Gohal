@@ -401,7 +401,7 @@ class Likelihood():
             self.best_parameters = np.array(self.best_parameters)
             self.start_parameters = np.array(self.start_parameters)
             max_likelihood = np.array(max_likelihood)
-             return dict({self.current_subject:dict({'start':self.start_parameters,
+            return dict({self.current_subject:dict({'start':self.start_parameters,
                                                     'best':self.best_parameters, 
                                                     'max':max_likelihood})})
         elif self.fname == 'anneal':
