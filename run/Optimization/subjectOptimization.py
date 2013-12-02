@@ -71,7 +71,7 @@ alpha = 0.5
 #########################
 #optimization parameters
 n_run = 50
-n_grid = 15
+n_grid = 20
 maxiter = 10000
 maxfun = 10000
 xtol = 0.01
@@ -94,12 +94,12 @@ opt = Likelihood(human, models[options.model], options.fonction, n_run, n_grid, 
 # SESSION MODELS
 # -----------------------------------
 t1 = time()
-opt.current_subject = options.subject
-p = opt.generateStart()
-opt.computeLikelihood(p)
+#opt.current_subject = options.subject
+#p = opt.generateStart()
+#opt.computeLikelihood(p)
 
-#opt.optimize(options.subject)
-#opt.save(options.output+options.subject+"_"+options.model+"_"+options.fonction+"_"+str(datetime.datetime.now()).replace(" ", "_"))
+opt.optimize(options.subject)
+opt.save(options.output+options.subject+"_"+options.model+"_"+options.fonction+"_"+str(datetime.datetime.now()).replace(" ", "_"))
 
 t2 = time()
 

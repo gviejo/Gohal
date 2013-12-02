@@ -428,7 +428,8 @@ class Likelihood():
                                        ranges=rranges,
                                        disp=self.disp,
                                        Ns=self.n_grid,
-                                       full_output=True)
+                                       full_output=True,                                       
+                                       finish=scipy.optimize.fmin)
             self.best_parameters = tmp[0]
             max_likelihood = tmp[1]
             self.brute_grid = tuple((tmp[2], tmp[3]))

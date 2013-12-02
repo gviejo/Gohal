@@ -126,7 +126,7 @@ class QLearning():
     def updateValue(self, reward):
         self.responses[-1].append(int((reward==1)*1))
         r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
-        delta = reward+self.gamma*np.max(self.values[self.current_state])-self.values[self.current_state, self.current_state]
+        delta = r+self.gamma*np.max(self.values[self.current_state])-self.values[self.current_state, self.current_state]
         self.values[self.current_state, self.current_action] = self.values[self.current_state, self.current_action]+self.alpha*delta
     
 
@@ -146,8 +146,8 @@ class KalmanQLearning():
         self.n_state=len(states)
         self.bounds = dict({"gamma":[0.0, 1.0],
                             "beta":[0.1, 30.0],
-                            #"eta":[0.00001, 0.001],
-                            "var_obs":[0.0001, 0.1]})
+                            "eta":[0.00001, 0.001]})
+                            #"var_obs":[0.0001, 0.1]})
         #Values Initialization                
         self.values = np.zeros((self.n_state,self.n_action))
         self.covariance = createCovarianceDict(len(states)*len(actions), self.init_cov, self.eta)
@@ -166,8 +166,8 @@ class KalmanQLearning():
     def getAllParameters(self):        
         return dict({'gamma':[self.bounds['gamma'][0],self.gamma,self.bounds['gamma'][1]],
                      'beta':[self.bounds['beta'][0],self.beta,self.bounds['beta'][1]],
-                     #'eta':[self.bounds['eta'][0],self.eta,self.bounds['eta'][1]],
-                     'var_obs':[self.bounds['var_obs'][0],self.var_obs,self.bounds['var_obs'][1]]})
+                     'eta':[self.bounds['eta'][0],self.eta,self.bounds['eta'][1]]})
+                     #'var_obs':[self.bounds['var_obs'][0],self.var_obs,self.bounds['var_obs'][1]]})
 
     def setAllParameters(self, dict_p):
         for i in dict_p.iterkeys():
@@ -304,135 +304,6 @@ class KalmanQLearning():
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] - (kalman_gain.reshape(len(kalman_gain), 1)*cov_rewards)*kalman_gain
         
 
-class TreeConstruction():
-    """Class that implement a trees construction based on 
-    Color Association Experiments from Brovelli & al 2011
-    """
-
-    def __init__(self, name, states, actions, noise = 0.0):
-        self.name = name
-        self.noise = noise
-        self.states=states
-        self.actions=actions
-        self.n_action=len(actions)
-        self.initializeTree(states, actions)
-        self.state=list()
-        self.answer=list()
-        self.responses=list()
-        self.mental_path=list()
-        self.action=list()
-        self.reaction=list()
-        self.time_step=0.08
-
-    def initializeTree(self, state, action):
-        self.g = dict()
-        self.dict_action = dict()
-        for s in state:
-            self.g[s] = dict()            
-            self.g[s][0] = np.ones(len(action))*(1/float(len(action)))
-            for a in range(1, len(action)+1):
-                self.g[s][a] = dict()
-                self.dict_action[a] = action[a-1]
-                self.dict_action[action[a-1]] = a
-
-    def initialize(self):
-        self.initializeTree(self.states, self.actions)
-        self.mental_path = []
-        self.responses.append([])
-        self.action.append([])
-        self.state.append([])
-        self.reaction.append([])
-
-    def initializeList(self):
-        self.initializeTree(self.states, self.actions)
-        self.mental_path = []
-        self.state=list()
-        self.answer=list()
-        self.responses=list()
-        self.mental_path=list()
-        self.action=list()
-        self.reaction=list()
-        self.time_step=0.08
-
-    def getParameter(self, name):
-        if name == 'noise':
-            return self.noise
-        else:
-            print("Parameters not found")
-            sys.exit(0)
-    
-    def setParameter(self, name, value):
-        if name == 'noise':
-            self.noise = value
-        else:
-            print("Parameters not found")
-            sys.exit(0)
-
-    def chooseAction(self, state):
-        self.state[-1].append(state)        
-        self.action[-1].append(self.branching(self.g[state], 0))
-        return self.action[-1][-1]
-
-    def branching(self, ptr_trees, edge_count):
-        id_action = ptr_trees.keys()[self.sample(ptr_trees[0])]
-        if id_action == 0:
-            sys.stderr.write("End of trees\n")
-            sys.exit()
-        self.mental_path.append(id_action)
-        if len(ptr_trees[id_action]):
-            return self.branching(ptr_trees[id_action], edge_count+1)
-        else:
-            self.reaction[-1].append(edge_count*self.time_step)
-            return self.dict_action[id_action]
-
-    def updateTrees(self, state, reward):        
-        self.responses[-1].append((reward==1)*1)
-        if reward != 1:
-            self.extendTrees(self.mental_path, self.mental_path, self.g[state])
-        elif reward == 1:
-            self.reinforceTrees(self.mental_path, self.mental_path, self.g[state])
-        #TO ADD NOISE TO OTHERS STATE
-        if self.noise:
-            for s in set(self.states)-set([state]):
-                self.addNoise(self.g[s])
-
-    def reinforceTrees(self, path, position, ptr_trees):
-        if len(position) > 1:
-            self.reinforceTrees(path, position[1:], ptr_trees[position[0]])
-        elif len(position) == 1:
-            ptr_trees[0] = np.zeros(len(ptr_trees.keys())-1)
-            ptr_trees[0][ptr_trees.keys().index(position[0])-1] = 1
-            self.mental_path = []
-
-    def extendTrees(self, path, position, ptr_trees):
-        if len(position) > 1:
-            self.extendTrees(path, position[1:], ptr_trees[position[0]])
-        elif len(position) == 1:
-            ptr_trees[0] = np.zeros(len(ptr_trees.keys())-1)
-            ptr_trees[0][ptr_trees.keys().index(position[0])-1] = 1
-            self.extendTrees(path, position[1:], ptr_trees[position[0]])            
-        else:
-            new_nodes = set(range(1,self.n_action+1))-set(path)
-            ptr_trees[0] = np.ones(len(new_nodes))*1/float(len(new_nodes))
-            for i in new_nodes:
-                ptr_trees[i] = {}
-            self.mental_path = []
-
-    def sample(self, values):
-        #WARNING return 1 not 0 for indicing
-        # values are probability
-        tmp = [np.sum(values[0:i]) for i in range(len(values))]
-        return np.sum(np.array(tmp) < np.random.rand())
-
-    def addNoise(self, ptr_tree):
-        if 0 in ptr_tree.keys():
-            tmp = np.abs(np.random.normal(ptr_tree[0], np.ones(len(ptr_tree[0]))*self.noise, len(ptr_tree[0])))
-            ptr_tree[0] = tmp/np.sum(tmp)
-            for k in ptr_tree.iterkeys():
-                if type(ptr_tree[k]) == dict and len(ptr_tree[k].values()) > 0:
-                    self.addNoise(ptr_tree[k])
-
-
 class BayesianWorkingMemory():
     """Class that implement a bayesian working memory based on 
     Color Association Experiments from Brovelli & al 2011
@@ -466,7 +337,7 @@ class BayesianWorkingMemory():
         self.entropy = self.initial_entropy        
         self.n_element = 0
         self.p_choice = 0.0
-        self.bounds = dict({"lenght":[5, 100], "threshold":[0.0, 2.5], "noise":[0.0, 0.1]})
+        self.bounds = dict({"lenght":[5, 20], "threshold":[0.0, 2.5], "noise":[0.0, 0.1]})
         # Optimization init
         self.p_s = np.zeros((self.lenght_memory, self.n_state))
         self.p_a_s = np.zeros((self.lenght_memory, self.n_state, self.n_action))
@@ -716,4 +587,133 @@ class BayesianWorkingMemory():
         values = values/np.sum(values)        
         return -np.sum(values*np.log2(values))
 
+
+
+class TreeConstruction():
+    """Class that implement a trees construction based on 
+    Color Association Experiments from Brovelli & al 2011
+    """
+
+    def __init__(self, name, states, actions, noise = 0.0):
+        self.name = name
+        self.noise = noise
+        self.states=states
+        self.actions=actions
+        self.n_action=len(actions)
+        self.initializeTree(states, actions)
+        self.state=list()
+        self.answer=list()
+        self.responses=list()
+        self.mental_path=list()
+        self.action=list()
+        self.reaction=list()
+        self.time_step=0.08
+
+    def initializeTree(self, state, action):
+        self.g = dict()
+        self.dict_action = dict()
+        for s in state:
+            self.g[s] = dict()            
+            self.g[s][0] = np.ones(len(action))*(1/float(len(action)))
+            for a in range(1, len(action)+1):
+                self.g[s][a] = dict()
+                self.dict_action[a] = action[a-1]
+                self.dict_action[action[a-1]] = a
+
+    def initialize(self):
+        self.initializeTree(self.states, self.actions)
+        self.mental_path = []
+        self.responses.append([])
+        self.action.append([])
+        self.state.append([])
+        self.reaction.append([])
+
+    def initializeList(self):
+        self.initializeTree(self.states, self.actions)
+        self.mental_path = []
+        self.state=list()
+        self.answer=list()
+        self.responses=list()
+        self.mental_path=list()
+        self.action=list()
+        self.reaction=list()
+        self.time_step=0.08
+
+    def getParameter(self, name):
+        if name == 'noise':
+            return self.noise
+        else:
+            print("Parameters not found")
+            sys.exit(0)
+    
+    def setParameter(self, name, value):
+        if name == 'noise':
+            self.noise = value
+        else:
+            print("Parameters not found")
+            sys.exit(0)
+
+    def chooseAction(self, state):
+        self.state[-1].append(state)        
+        self.action[-1].append(self.branching(self.g[state], 0))
+        return self.action[-1][-1]
+
+    def branching(self, ptr_trees, edge_count):
+        id_action = ptr_trees.keys()[self.sample(ptr_trees[0])]
+        if id_action == 0:
+            sys.stderr.write("End of trees\n")
+            sys.exit()
+        self.mental_path.append(id_action)
+        if len(ptr_trees[id_action]):
+            return self.branching(ptr_trees[id_action], edge_count+1)
+        else:
+            self.reaction[-1].append(edge_count*self.time_step)
+            return self.dict_action[id_action]
+
+    def updateTrees(self, state, reward):        
+        self.responses[-1].append((reward==1)*1)
+        if reward != 1:
+            self.extendTrees(self.mental_path, self.mental_path, self.g[state])
+        elif reward == 1:
+            self.reinforceTrees(self.mental_path, self.mental_path, self.g[state])
+        #TO ADD NOISE TO OTHERS STATE
+        if self.noise:
+            for s in set(self.states)-set([state]):
+                self.addNoise(self.g[s])
+
+    def reinforceTrees(self, path, position, ptr_trees):
+        if len(position) > 1:
+            self.reinforceTrees(path, position[1:], ptr_trees[position[0]])
+        elif len(position) == 1:
+            ptr_trees[0] = np.zeros(len(ptr_trees.keys())-1)
+            ptr_trees[0][ptr_trees.keys().index(position[0])-1] = 1
+            self.mental_path = []
+
+    def extendTrees(self, path, position, ptr_trees):
+        if len(position) > 1:
+            self.extendTrees(path, position[1:], ptr_trees[position[0]])
+        elif len(position) == 1:
+            ptr_trees[0] = np.zeros(len(ptr_trees.keys())-1)
+            ptr_trees[0][ptr_trees.keys().index(position[0])-1] = 1
+            self.extendTrees(path, position[1:], ptr_trees[position[0]])            
+        else:
+            new_nodes = set(range(1,self.n_action+1))-set(path)
+            ptr_trees[0] = np.ones(len(new_nodes))*1/float(len(new_nodes))
+            for i in new_nodes:
+                ptr_trees[i] = {}
+            self.mental_path = []
+
+    def sample(self, values):
+        #WARNING return 1 not 0 for indicing
+        # values are probability
+        tmp = [np.sum(values[0:i]) for i in range(len(values))]
+        return np.sum(np.array(tmp) < np.random.rand())
+
+    def addNoise(self, ptr_tree):
+        if 0 in ptr_tree.keys():
+            tmp = np.abs(np.random.normal(ptr_tree[0], np.ones(len(ptr_tree[0]))*self.noise, len(ptr_tree[0])))
+            ptr_tree[0] = tmp/np.sum(tmp)
+            for k in ptr_tree.iterkeys():
+                if type(ptr_tree[k]) == dict and len(ptr_tree[k].values()) > 0:
+                    self.addNoise(ptr_tree[k])
 
