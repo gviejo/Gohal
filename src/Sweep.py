@@ -386,24 +386,29 @@ class Likelihood():
                                                     'best':self.best_parameters, 
                                                     'max':max_likelihood})})
         elif self.fname == 'fmin':
+            warnflag = []
             for i in xrange(self.n_run):
                 p_start = self.generateStart()
                 tmp = scipy.optimize.fmin(func=self.computeLikelihood,
                                             x0=p_start,
-                                            maxiter=self.maxiter,
-                                            maxfun=self.maxfun,
-                                            xtol=self.xtol,
-                                            ftol=self.ftol,
-                                            disp=self.disp)
-                self.best_parameters.append(tmp.x)
-                max_likelihood.append(-tmp.fun)
+                                            full_output = True,
+                                            #maxiter=self.maxiter,
+                                            #maxfun=self.maxfun,
+                                            #xtol=self.xtol,
+                                            #ftol=self.ftol,
+                                            disp=self.disp)                
+                self.best_parameters.append(tmp[0])
+                max_likelihood.append(-tmp[1])
                 self.start_parameters.append(p_start)
+                warnflag.append(tmp[4])
             self.best_parameters = np.array(self.best_parameters)
             self.start_parameters = np.array(self.start_parameters)
             max_likelihood = np.array(max_likelihood)
-            return dict({self.current_subject:dict({'start':self.start_parameters,
-                                                    'best':self.best_parameters, 
-                                                    'max':max_likelihood})})
+            warnflag = np.array(warnflag)
+            self.data =  [dict({self.current_subject:dict({'start':self.start_parameters,
+                                                            'best':self.best_parameters,
+                                                            'warnflag':warnflag,
+                                                            'max':max_likelihood})})]
         elif self.fname == 'anneal':
             for i in xrange(self.n_run):
                 p_start = self.generateStart()

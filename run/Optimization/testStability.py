@@ -62,6 +62,7 @@ noise = 0.000           # variance of white noise for working memory
 length_memory = 7      # size of working memory
 threshold = 1           # inference threshold
 sigma = 0.00002         # updating rate of the average reward
+alpha = 0.5
 #########################
 #optimization parameters
 fname = 'minimize'
@@ -78,9 +79,8 @@ cats = CATS(0)
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bmw_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
                'bmw_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
-			   'ksel':KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-                       BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise, threshold),
-                       sigma)})
+               'qlearning':QLearning('ql', cats.states, cats.actions, alpha, beta, gamma)
+			   })
 model = models[options.model]
 opt = Likelihood(human, model, fname, n_run, n_grid, maxiter, maxfun, xtol, ftol, disp)
 
@@ -90,7 +90,7 @@ opt.set(model, 'S9')
 ll = list()
 psampled = list()
 
-moving_p = 0
+moving_p = 2
 
 cst = np.array([opt.p[i][1] for i in opt.p_order])
 

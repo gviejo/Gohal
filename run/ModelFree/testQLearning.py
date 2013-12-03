@@ -24,15 +24,19 @@ from time import time
 def testModel():    
     model.initializeList()
     for i in xrange(nb_blocs):
-        sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                    
+        sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()   
         cats.reinitialize()
         model.initialize()
-        entropy.append([])
         for j in xrange(nb_trials):
             state = cats.getStimulus(j)
             action = model.chooseAction(state)
             reward = cats.getOutcome(state, action)
-            model.updateValue(reward)            
+            print state
+            print action
+            print reward
+            model.updateValue(reward)
+            print model.values
+            sys.stdin.readline()
     model.state = convertStimulus(np.array(model.state))
     model.action = convertAction(np.array(model.action))
     model.responses = np.array(model.responses)
@@ -67,7 +71,7 @@ model = QLearning('k', cats.states, cats.actions, gamma, alpha, beta)
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
-entropy = []
+
 
 testModel()
 

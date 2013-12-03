@@ -112,15 +112,25 @@ elif fname == 'fmin':
     X = np.reshape(X, (len(subject), n_search, n_parameters))
 elif fname == 'brute':
     ind = subject.index(options.subject)
-    X = np.transpose(np.reshape(p['grid'][ind], (3, p['grid'][ind].shape[1]*p['grid'][ind].shape[2]*p['grid'][ind].shape[3])))
-    fun = p['grid_fun'][ind].flatten()
+    #X = np.transpose(np.reshape(p['grid'][ind], (3, p['grid'][ind].shape[1]*p['grid'][ind].shape[2]*p['grid'][ind].shape[3])))
+    #X = np.transpose(np.vstack((p['grid'][ind][0].flatten(), p['grid'][ind][1].flatten(), p['grid'][ind][2].flatten())))
+    #fun = p['grid_fun'][ind].flatten()
     # CHeck if nan in fun
-    fun = fun[np.logical_not(np.isnan(fun))]
-    X = X[np.logical_not(np.isnan(fun))]    
+    #fun = fun[np.logical_not(np.isnan(fun))]
+    #X = X[np.logical_not(np.isnan(fun))]    
     #threshold = np.min(fun)+float(options.threshold)*(np.max(fun)-np.min(fun))/2
+    X = []
+    fun = []
+    for i in xrange(p['grid'][ind].shape[1]):
+        for j in xrange(p['grid'][ind].shape[2]):
+            for k in xrange(p['grid'][ind].shape[3]):
+                X.append(p['grid'][ind][:,i,j,k])
+                fun.append(p['grid_fun'][ind][i,j,k])
+    X = np.array(X)
+    fun = np.array(fun)
     threshold = np.min(fun)+float(options.threshold)*(np.max(fun)-np.min(fun))
 
-    fun = fun[fun<threshold]
+    fun = fun[fun<threshold]    
     X = X[fun<threshold]  
     popt = p['opt'][ind]  
 else:
@@ -157,7 +167,7 @@ subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
 
 fig2 = figure(figsize = (14, 9))
 ax = fig2.add_subplot(111, projection = '3d')
-ax.scatter(X[:,0], X[:,1], X[:,2], c = -fun)
+ax.scatter(X[:,0], X[:,1], X[:,2], c = -fun)#, s=(-fun+np.max(fun))/np.min(fun)*10)
 ax.set_xlabel(parameters[0])
 ax.set_ylabel(parameters[1])
 ax.set_zlabel(parameters[2])
@@ -180,9 +190,9 @@ if "bwm" in options.model and p['p_order'].index('lenght') == 1:
         title(str(length[i]))
     subplots_adjust(hspace=0.4,wspace = 0.4)        
 
-print popt[0]
 print popt[1]
 print popt[2]
+print popt[0]
 
 
 show()        

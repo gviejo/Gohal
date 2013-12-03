@@ -82,6 +82,7 @@ gamma = 0.630     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
 beta = 1.6666   
+alpha = 0.5
 noise = 0.01
 length_memory = 8
 threshold = 1.2
@@ -92,7 +93,8 @@ cats = CATS(nb_trials)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bwm_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
-               'bwm_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold)
+               'bwm_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
+               'qlearning':QLearning('q', cats.states, cats.actions, alpha, beta, gamma)
                })
 
 model = models[options.model]

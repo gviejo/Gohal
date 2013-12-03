@@ -70,7 +70,7 @@ sigma = 0.00002         # updating rate of the average reward
 alpha = 0.5 
 #########################
 #optimization parameters
-n_run = 50
+n_run = 5
 n_grid = 20
 maxiter = 10000
 maxfun = 10000
@@ -98,7 +98,7 @@ t1 = time()
 #p = opt.generateStart()
 #opt.computeLikelihood(p)
 
-opt.optimize(options.subject)
+tmp = opt.optimize(options.subject)
 opt.save(options.output+options.subject+"_"+options.model+"_"+options.fonction+"_"+str(datetime.datetime.now()).replace(" ", "_"))
 
 t2 = time()

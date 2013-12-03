@@ -126,7 +126,7 @@ class QLearning():
     def updateValue(self, reward):
         self.responses[-1].append(int((reward==1)*1))
         r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
-        delta = r+self.gamma*np.max(self.values[self.current_state])-self.values[self.current_state, self.current_state]
+        delta = r+self.gamma*np.max(self.values[self.current_state])-self.values[self.current_state, self.current_action]        
         self.values[self.current_state, self.current_action] = self.values[self.current_state, self.current_action]+self.alpha*delta
     
 
