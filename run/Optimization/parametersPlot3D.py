@@ -83,7 +83,7 @@ cats = CATS()
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bwm_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
                'bwm_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
-               'qlearning':QLearning('q', cats.states, cats.actions, alpha, beta, gamma)
+               'qlearning':QLearning('q', cats.states, cats.actions, gamma, alpha, beta)
                })
 model = models[options.model]
 
@@ -104,12 +104,16 @@ n_search = p['search']
 subject = p['subject']
 n_parameters = len(parameters)
 fname = p['fname']
-X = p['opt']
+
 
 if fname == 'minimize':
     fun = p['max']        
 elif fname == 'fmin':
-    X = np.reshape(X, (len(subject), n_search, n_parameters))
+    ind = subject.index(options.subject)
+    flag = p['warnflag'][ind]
+    X = p['opt'][ind][flag == 0]
+    fun = -p['max'][ind][flag == 0]
+
 elif fname == 'brute':
     ind = subject.index(options.subject)
     #X = np.transpose(np.reshape(p['grid'][ind], (3, p['grid'][ind].shape[1]*p['grid'][ind].shape[2]*p['grid'][ind].shape[3])))
@@ -123,7 +127,7 @@ elif fname == 'brute':
     fun = []
     for i in xrange(p['grid'][ind].shape[1]):
         for j in xrange(p['grid'][ind].shape[2]):
-            for k in xrange(p['grid'][ind].shape[3]):
+            for k in xrange(p['grid'][ind].shape[3]):                
                 X.append(p['grid'][ind][:,i,j,k])
                 fun.append(p['grid_fun'][ind][i,j,k])
     X = np.array(X)
@@ -151,12 +155,14 @@ params = {'backend':'pdf',
           'text.usetex':False}          
 
 ion()
-fig1 = figure(figsize = (14, 9))
 
+
+fig1 = figure(figsize = (14, 9))
 for i in xrange(n_parameters):
     subplot(n_parameters, 1, i+1)        
     plot(X[:,i], fun, 'o')            
-    axvline(popt[i], linewidth = 4, color = 'green')
+    if fname == 'brute':
+        axvline(popt[i], linewidth = 4, color = 'green')
     xlabel(parameters[i])      
     xlim(p['parameters'][parameters[i]][0], p['parameters'][parameters[i]][2])
     ylabel("Likelihood")
@@ -171,28 +177,39 @@ ax.scatter(X[:,0], X[:,1], X[:,2], c = -fun)#, s=(-fun+np.max(fun))/np.min(fun)*
 ax.set_xlabel(parameters[0])
 ax.set_ylabel(parameters[1])
 ax.set_zlabel(parameters[2])
+ax.set_xlim(p['parameters'][parameters[0]][0], p['parameters'][parameters[0]][2])
+ax.set_ylim(p['parameters'][parameters[1]][0], p['parameters'][parameters[1]][2])
+ax.set_zlim(p['parameters'][parameters[2]][0], p['parameters'][parameters[2]][2])
 if fname == 'brute':
     ax.scatter(popt[0], popt[1], popt[2], s = 1000, color = 'green')
-    ax.set_xlim(np.min(p['grid'][ind][0]),np.max(p['grid'][ind][0]))
-    ax.set_ylim(np.min(p['grid'][ind][1]),np.max(p['grid'][ind][1]))
-    ax.set_zlim(np.min(p['grid'][ind][2]),np.max(p['grid'][ind][2]))        
 
-if "bwm" in options.model and p['p_order'].index('lenght') == 1:
-    fig3 = figure(figsize = (14, 9))
-    value = np.unique(p['grid'][ind][1])
-    length = np.unique(value.astype(int))
-    n = int(np.ceil(np.sqrt(len(length))))
-    extents = [np.min(p['grid'][ind][0]), np.max(p['grid'][ind][0]), np.min(p['grid'][ind][2]), np.max(p['grid'][ind][2])]
-    for i in xrange(len(length)):
-        subplot(n,n,i+1)
-        t = np.where(value.astype(int)==length[i])[0][0]
-        imshow(-p['grid_fun'][ind][:,t,:], origin = 'lowest', extent=extents, aspect = 'auto')
-        title(str(length[i]))
-    subplots_adjust(hspace=0.4,wspace = 0.4)        
 
-print popt[1]
-print popt[2]
-print popt[0]
+if fname == 'fmin':
+    fig3 = figure(figsize = (14,9))
+    for i in xrange(n_parameters):
+        subplot(n_parameters,1,i+1)
+        hist(X[:,i], 1000)
+        xlim(p['parameters'][parameters[i]][0], p['parameters'][parameters[i]][2])
+        xlabel(parameters[i])
+        grid()
+
+if fname == 'brute':
+    print popt[1]
+    print popt[2]
+    print popt[0]
+    if "bwm" in options.model and p['p_order'].index('lenght') == 1:
+        fig3 = figure(figsize = (14, 9))
+        value = np.unique(p['grid'][ind][1])
+        length = np.unique(value.astype(int))
+        n = int(np.ceil(np.sqrt(len(length))))
+        extents = [np.min(p['grid'][ind][0]), np.max(p['grid'][ind][0]), np.min(p['grid'][ind][2]), np.max(p['grid'][ind][2])]
+        for i in xrange(len(length)):
+            subplot(n,n,i+1)
+            t = np.where(value.astype(int)==length[i])[0][0]
+            imshow(-p['grid_fun'][ind][:,t,:], origin = 'lowest', extent=extents, aspect = 'auto')
+            title(str(length[i]))
+        subplots_adjust(hspace=0.4,wspace = 0.4)        
+
 
 
 show()        

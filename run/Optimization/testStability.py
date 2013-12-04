@@ -54,15 +54,15 @@ X = human.subject['meg']
 # -----------------------------------
 eta = 0.0001            # variance of evolution noise v
 var_obs = 0.05          # variance of observation noise n
-gamma = 0.95            # discount factor
+gamma = 0.4            # discount factor
 init_cov = 10           # initialisation of covariance matrice
 kappa = 0.1             # unscentered transform parameters
-beta = 5.5              # temperature for kalman soft-max
+beta = 5.2              # temperature for kalman soft-max
 noise = 0.000           # variance of white noise for working memory
 length_memory = 7      # size of working memory
 threshold = 1           # inference threshold
 sigma = 0.00002         # updating rate of the average reward
-alpha = 0.5
+alpha = 1.0
 #########################
 #optimization parameters
 fname = 'minimize'
@@ -79,13 +79,13 @@ cats = CATS(0)
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bmw_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
                'bmw_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
-               'qlearning':QLearning('ql', cats.states, cats.actions, alpha, beta, gamma)
+               'qlearning':QLearning('ql', cats.states, cats.actions, gamma, alpha, beta)
 			   })
 model = models[options.model]
 opt = Likelihood(human, model, fname, n_run, n_grid, maxiter, maxfun, xtol, ftol, disp)
 
 
-opt.set(model, 'S9')
+opt.set(model, 'S1')
 
 ll = list()
 psampled = list()
@@ -95,7 +95,7 @@ moving_p = 2
 cst = np.array([opt.p[i][1] for i in opt.p_order])
 
 for i in xrange(200):		
-	cst[moving_p] =  np.random.uniform(opt.ranges[moving_p][0], opt.ranges[moving_p][1])
+	cst[moving_p] = np.random.uniform(opt.ranges[moving_p][0], opt.ranges[moving_p][1])
 	ll.append(opt.computeLikelihood(cst))
 	print i, cst
 	psampled.append(cst[moving_p])

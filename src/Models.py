@@ -26,8 +26,8 @@ class QLearning():
         self.n_action=len(actions)
         self.n_state=len(states)
         self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[1.0, 30.0],
-                            "alpha":[0.0, 1.0]})
+                            "beta":[1.0, 10.0],
+                            "alpha":[0.0, 2.0]})
         #Values Initialization
         self.values = np.zeros((self.n_state, self.n_action))        
         #Valrious Init

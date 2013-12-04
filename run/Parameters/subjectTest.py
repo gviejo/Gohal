@@ -94,7 +94,7 @@ cats = CATS(nb_trials)
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bwm_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
                'bwm_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
-               'qlearning':QLearning('q', cats.states, cats.actions, alpha, beta, gamma)
+               'qlearning':QLearning('q', cats.states, cats.actions, gamma, alpha, beta)
                })
 
 model = models[options.model]
