@@ -113,6 +113,10 @@ elif fname == 'fmin':
     flag = p['warnflag'][ind]
     X = p['opt'][ind][flag == 0]
     fun = -p['max'][ind][flag == 0]
+    for i in xrange(len(p['p_order'])):
+        bounds = np.array([p['parameters'][p['p_order'][i]][0],p['parameters'][p['p_order'][i]][2]])
+        X = X[np.where((X[:,i]>bounds[0])&(X[:,i]<bounds[1]))]
+        fun = fun[np.where((X[:,i]>bounds[0])&(X[:,i]<bounds[1]))]
 
 elif fname == 'brute':
     ind = subject.index(options.subject)
@@ -188,7 +192,7 @@ if fname == 'fmin':
     fig3 = figure(figsize = (14,9))
     for i in xrange(n_parameters):
         subplot(n_parameters,1,i+1)
-        hist(X[:,i], 1000)
+        hist(X[:,i],30)
         xlim(p['parameters'][parameters[i]][0], p['parameters'][parameters[i]][2])
         xlabel(parameters[i])
         grid()

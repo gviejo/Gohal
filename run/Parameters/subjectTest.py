@@ -246,10 +246,7 @@ subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
 
 show()
 
-
-
-
-
+indi = human.computeIndividualPerformances()
 
 
 

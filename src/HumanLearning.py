@@ -164,3 +164,14 @@ class HLearning():
             return tmp
         else:            
             return np.delete(tmp, np.unique(bad), 0)        
+
+    def computeIndividualPerformances(self):
+        indi = dict()
+        for s in self.subject['meg'].iterkeys():
+            tmp = 0.0
+            size = 0.0
+            for i in self.subject['meg'][s].iterkeys():
+                tmp+=np.sum(self.subject['meg'][s][i]['sar'][:,2])
+                size+=len(self.subject['meg'][s][i]['sar'][:,2])
+            indi[s] = tmp/size
+        return indi
