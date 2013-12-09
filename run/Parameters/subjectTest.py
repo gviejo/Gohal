@@ -154,7 +154,7 @@ y_fmri = computeMeanRepresentativeSteps(step)
 # -----------------------------------
 
 # Probability of correct responses
-figure(figsize = (11,8))
+figure(figsize = (9,4))
 ion()
 params = {'backend':'pdf',
           'axes.labelsize':10,
@@ -165,7 +165,7 @@ params = {'backend':'pdf',
           'text.usetex':False}          
 #rcParams.update(params)                  
 colors = ['blue', 'red', 'green']
-subplot(2,2,1)
+subplot(1,2,1)
 for i in xrange(3):
     plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
     errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
@@ -182,7 +182,7 @@ for i in xrange(3):
     grid()
 
 
-ax1 = plt.subplot(2,2,2)
+ax1 = plt.subplot(1,2,2)
 ax1.plot(range(1, len(rt_meg[0])+1), rt_meg[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
 ax1.errorbar(range(1, len(rt_meg[0])+1), rt_meg[0], rt_meg[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
 
@@ -221,32 +221,31 @@ ax1.set_title('B')
 
 ################
 
-ind = np.arange(1, len(rt[0])+1)
-ax5 = subplot(2,2,3)
-for i,j,k,l,m in zip([y, y_meg, y_fmri], 
-                   ['blue', 'grey', 'grey'], 
-                   ['model', 'MEG', 'FMRI'],
-                   [1.0, 0.9, 0.9], 
-                   ['-', '--', ':']):
-    ax5.plot(ind, i[0], linewidth = 2, color = j, label = k, alpha = l, linestyle = m)
-    ax5.errorbar(ind, i[0], i[1], linewidth = 2, color = j, alpha = l, linestyle = m)
+# ind = np.arange(1, len(rt[0])+1)
+# ax5 = subplot(2,2,3)
+# for i,j,k,l,m in zip([y, y_meg, y_fmri], 
+#                    ['blue', 'grey', 'grey'], 
+#                    ['model', 'MEG', 'FMRI'],
+#                    [1.0, 0.9, 0.9], 
+#                    ['-', '--', ':']):
+#     ax5.plot(ind, i[0], linewidth = 2, color = j, label = k, alpha = l, linestyle = m)
+#     ax5.errorbar(ind, i[0], i[1], linewidth = 2, color = j, alpha = l, linestyle = m)
 
-ax5.grid()
-ax5.set_ylabel("PCR %")    
-ax5.set_yticks(np.arange(0, 1.2, 0.2))
-ax5.set_xticks(range(2, 15, 2))
-ax5.set_ylim(-0.05, 1.05)
-ax5.legend(loc = 'lower right')
+# ax5.grid()
+# ax5.set_ylabel("PCR %")    
+# ax5.set_yticks(np.arange(0, 1.2, 0.2))
+# ax5.set_xticks(range(2, 15, 2))
+# ax5.set_ylim(-0.05, 1.05)
+# ax5.legend(loc = 'lower right')
 
 
 ################
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
-#savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testBWM3.pdf', bbox_inches='tight')
+savefig('../../../Dropbox/ISIR/B2V_council/images/fig_subject'+options.model+'.pdf', bbox_inches='tight')
 
 
 show()
 
-indi = human.computeIndividualPerformances()
 
 
 

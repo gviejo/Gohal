@@ -9,7 +9,7 @@ run parameterTest.py -m model -i subjectParametersmodel.txt
 
 ex :
     
-python saveValue.py -i ../../../Dropbox/ISIR/Brovelli/SubjectParameters/subjectParametersKQL.txt 
+python saveValue.py -i kalman.txt 
                     -m kalman 
                     -o ../../../Dropbox/PEPS_GoHaL/Beh_Model/
 
@@ -47,62 +47,30 @@ parser.add_option("-o", "--output", action="store", help="The output directory \
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def loadParameters():
-    p = dict()
-    f = open(options.input, 'r')
-    for i in f.xreadlines():
-        if i[0] != "#":
-            s = i.split(" ")[0]
-            p[s] = dict()
-            line = i.split(" ")[1].replace("(", "").replace(")\n", "").split(",")
-            p[s]['p'] = dict()
-            for j in line:
-                if "likelihood" in j.split(":")[0]:
-                    p[s][j.split(":")[0]] = float(j.split(":")[1])
-                else:
-                    p[s]['p'][j.split(":")[0]] = float(j.split(":")[1])
-    return p
+def testParameters(subject):
+   model.initializeList()
+   for bloc in X[subject].iterkeys():
+      sys.stdout.write("\r Sujet : %s | Blocs : %i" % (subject,bloc)); sys.stdout.flush()                    
+      cats.reinitialize()
+      model.initialize()
+      for trial in X[subject][bloc]['sar']:
+         state = cvt[trial[0]]
+         true_action = trial[1]-1
+         values = model.computeValue(state)
+         model.current_action = true_action       
+         model.updateValue(trial[2])
+   model.state = convertStimulus(np.array(model.state))
+   model.action = convertAction(np.array(model.action))
+   model.responses = np.array(model.responses)
+   model.reaction = np.array(model.reaction)
 
-def searchStimOrder(sar):    
-    # search for order
-    incorrect = dict()
-    for j in [1,2,3]:
-        if len(np.where((sar[:,2] == 1) & (sar[:,0] == j))[0]):
-            correct = np.where((sar[:,2] == 1) & (sar[:,0] == j))[0][0]
-            t = len(np.where((sar[0:correct,2] == 0) & (sar[0:correct,0] == j))[0])
-            incorrect[t] = j    
-    if 1 in incorrect.keys() and 3 in incorrect.keys() and 4 in incorrect.keys():
-        first = incorrect[1]
-        second = incorrect[3]
-        third = incorrect[4]
-    elif len(incorrect.keys()) == 3:
-        first = incorrect[incorrect.keys()[0]]
-        second = incorrect[incorrect.keys()[1]]
-        third = incorrect[incorrect.keys()[2]]
-    elif len(incorrect.keys()) == 2:
-        first = incorrect[incorrect.keys()[0]]
-        second = incorrect[incorrect.keys()[1]]
-        third = (set([1,2,3]) - set([first, second])).pop()
-    else:
-        print "You are screwed"
-    return [first, second, third]
 
-def testModel(subject):  
-    model.initializeList()  
-    for bloc in X[subject].iterkeys():        
-        model.initialize()
-        for trial in X[subject][bloc]['sar']:
-            state = cvt[trial[0]]
-            true_action = trial[1]-1
-            values = model.computeValue(state)
-            model.current_action = true_action       
-            model.updateValue(trial[2])
 # -----------------------------------
 
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 
 # -----------------------------------
@@ -113,25 +81,34 @@ var_obs = 0.05   # variance of observation noise n
 gamma = 0.630     # discount factor
 init_cov = 10   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
-beta = 1.6666   
+beta = 1.6666
+alpha = 0.5
 noise = 0.01
 length_memory = 8
 threshold = 1.2
 
 nb_trials = human.responses['meg'].shape[1]
-#nb_blocs = human.responses['meg'].shape[0]
-nb_blocs = 6
+nb_blocs = human.responses['meg'].shape[0]
+
 cats = CATS()
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-               'bwm':BayesianWorkingMemory('bwm', cats.states, cats.actions, length_memory, noise, threshold)})
+               'bwm_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
+               'bwm_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
+               'qlearning':QLearning('q', cats.states, cats.actions, gamma, alpha, beta)
+               })
+model = models[options.model]
 
+# ----------------------------------
+# Special array for matlab saving
+# ----------------------------------
 # types = dict({'kalman':np.zeros(nb_blocs, dtype = [('p_a', 'O')]), 
 #               'bwm':np.zeros(nb_blocs, dtype = [('p_a', 'O')])})
-types = dict({'kalman':[('p_a', 'O')],
-            'bwm':['p_a', 'O']})
-fields = np.array(types[options.model])[:,0]
-model = models[options.model]
+#types = dict({'kalman':[('p_a', 'O')],
+#              'bwm':['p_a', 'O'],
+#              'qlearning':['p_a','O']})
+types = dict({i:['p_a','0'] for i in models.iterkeys()})
+fields = np.array(types[options.model])
 
 
 # -----------------------------------
@@ -139,7 +116,8 @@ model = models[options.model]
 # -----------------------------------
 # PARAMETERS Loading
 # -----------------------------------
-p = loadParameters()
+p = eval(open(options.input, 'r').read())
+
 # -----------------------------------
 
 # -----------------------------------
@@ -148,13 +126,12 @@ p = loadParameters()
 cvt = dict({i:'s'+str(i) for i in [1,2,3]})
 X = human.subject['meg']
 
-for i in X.iterkeys():
-    
+for i in p.iterkeys():    
     filename = options.output+i+"/"+options.model+".mat"
-    parameter = p[i]['p']
-    for j in parameter.iterkeys():
-        model.setParameter(j, parameter[j])    
-    testModel(i)
+    for j in p[i].iterkeys():
+       model.setParameter(j, p[i][j])
+    
+    testParameters(i)
     x = np.zeros(len(model.value)+2, dtype = types[options.model])
 
     for j in xrange(len(model.value)):
@@ -165,7 +142,7 @@ for i in X.iterkeys():
                 order2 = searchStimOrder(X[i][j+1]['sar'])
                 tmp = np.array([np.matrix(tmp[X[i][j+1]['sar'][:,0] == s]) for s in order2])
                 x[j+1][k] = tmp                
-    scipy.io.savemat(filename, {options.model:x})
+    #scipy.io.savemat(filename, {options.model:x})
     
 # -----------------------------------
 # order data

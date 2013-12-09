@@ -94,10 +94,10 @@ opt = Likelihood(human, models[options.model], options.fonction, n_run, n_grid, 
 # SESSION MODELS
 # -----------------------------------
 t1 = time()
-#opt.current_subject = options.subject
-#p = opt.generateStart()
-#opt.computeLikelihood(p)
-
+opt.current_subject = options.subject
+#p = np.array([1.93, 9.0, 0.96])
+#llh = opt.computeLikelihood(p)
+#print llh
 opt.optimize(options.subject)
 opt.save(options.output+options.subject+"_"+options.model+"_"+options.fonction+"_"+str(datetime.datetime.now()).replace(" ", "_"))
 

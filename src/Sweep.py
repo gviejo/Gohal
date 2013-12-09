@@ -576,6 +576,7 @@ class Likelihood():
         subject = []
         grid = []
         grid_fun = []
+        warn = []
         for i in self.subject:
             for j in self.data:
                 if j.keys()[0] == i and self.fname != 'brute':
@@ -583,6 +584,7 @@ class Likelihood():
                     start.append(j[i]['start'])
                     fun.append(j[i]['max'])
                     subject.append(i)
+                    warn.append(j[i]['warnflag'])
                 elif j.keys()[0] == i and self.fname == 'brute':
                     opt.append(j[i]['best'])
                     grid.append(j[i]['grid'])
@@ -603,7 +605,8 @@ class Likelihood():
                      'subject':subject,
                      'parameters':self.p,
                      'search':self.n_run,
-                     'fname':self.fname})
+                     'fname':self.fname,
+                     'warnflag':warn})
         output = open(output_file, 'wb')
         pickle.dump(data, output)
         output.close()
