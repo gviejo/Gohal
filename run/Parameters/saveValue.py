@@ -143,9 +143,7 @@ for i in p.iterkeys():
                 order2 = searchStimOrder(X[i][j+1]['sar'][:,0], X[i][j+1]['sar'][:,1], X[i][j+1]['sar'][:,2])
                 
                 x[j+1][k] = np.array([np.matrix(tmp[X[i][j+1]['sar'][:,0] == s]) for s in order2])  
-    if i == 'S1':
-      sys.exit()
-    #scipy.io.savemat(filename, {options.model:x})
+    scipy.io.savemat(filename, {options.model:x})
 
     
 # -----------------------------------
