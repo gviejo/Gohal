@@ -469,8 +469,10 @@ class BayesianWorkingMemory():
             self.evaluationModule()        
             #self.decisionModule()
         if "v1" in self.name:
+            self.value[-1].append(self.values)
             return self.values
-        elif "v2" in self.name:            
+        elif "v2" in self.name:
+            self.value[-1].append(self.values[self.current_state]) 
             return self.values[self.current_state]
 
     def chooseAction(self, state):

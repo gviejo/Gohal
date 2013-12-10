@@ -104,11 +104,12 @@ model = models[options.model]
 # ----------------------------------
 # types = dict({'kalman':np.zeros(nb_blocs, dtype = [('p_a', 'O')]), 
 #               'bwm':np.zeros(nb_blocs, dtype = [('p_a', 'O')])})
-#types = dict({'kalman':[('p_a', 'O')],
-#              'bwm':['p_a', 'O'],
-#              'qlearning':['p_a','O']})
-types = dict({i:['p_a','0'] for i in models.iterkeys()})
-fields = np.array(types[options.model])
+types = dict({'kalman':[('p_a', 'O')],
+              'bwm_v1':[('p_a', 'O')],
+              'bwm_v2':[('p_a', 'O')],
+              'qlearning':[('p_a','O')]})
+#types = dict({i:[('p_a','0')] for i in models.iterkeys()})
+fields = np.array(types[options.model])[:,0]
 
 
 # -----------------------------------
@@ -133,16 +134,19 @@ for i in p.iterkeys():
     
     testParameters(i)
     x = np.zeros(len(model.value)+2, dtype = types[options.model])
-
+    
     for j in xrange(len(model.value)):
-        print i , j
         for k in fields:
             if k == 'p_a':
                 tmp = np.matrix(model.value[j])
-                order2 = searchStimOrder(X[i][j+1]['sar'])
-                tmp = np.array([np.matrix(tmp[X[i][j+1]['sar'][:,0] == s]) for s in order2])
-                x[j+1][k] = tmp                
+                
+                order2 = searchStimOrder(X[i][j+1]['sar'][:,0], X[i][j+1]['sar'][:,1], X[i][j+1]['sar'][:,2])
+                
+                x[j+1][k] = np.array([np.matrix(tmp[X[i][j+1]['sar'][:,0] == s]) for s in order2])  
+    if i == 'S1':
+      sys.exit()
     #scipy.io.savemat(filename, {options.model:x})
+
     
 # -----------------------------------
 # order data

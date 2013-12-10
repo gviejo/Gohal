@@ -35,7 +35,6 @@ if not sys.argv[1:]:
 parser = OptionParser()
 parser.add_option("-i", "--input", action="store", help="The name of the parameters file to load", default=False)
 parser.add_option("-m", "--model", action="store", help="The name of the model to test", default=False)
-parser.add_option("-s", "--subject", action="store", help="Which subject to plot \n Ex : -s S1", default=False)
 (options, args) = parser.parse_args() 
 # -----------------------------------
 
@@ -88,7 +87,7 @@ length_memory = 8
 threshold = 1.2
 
 nb_trials = human.responses['meg'].shape[1]
-nb_blocs = 10
+nb_blocs = 100
 cats = CATS(nb_trials)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
