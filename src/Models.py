@@ -112,6 +112,7 @@ class QLearning():
     def computeValue(self, state):
         self.current_state = convertStimulus(state)-1
         self.value[-1].append(SoftMaxValues(self.values[self.current_state], self.beta))
+        self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.beta))
         return self.value[-1][-1]
 
     def chooseAction(self, state):        
@@ -248,6 +249,7 @@ class KalmanQLearning():
         self.covariance['noise'] = self.covariance['cov']*self.eta
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']        
         self.value[-1].append(SoftMaxValues(self.values[self.current_state], self.beta))
+        self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.beta))
         return self.value[-1][-1]
 
     def chooseAction(self, state):
@@ -406,6 +408,10 @@ class BayesianWorkingMemory():
         self.choice.append([])
         self.sampleChoice.append([])
         self.sampleEntropy.append([])
+        if "v1" in self.name:
+            self.values = np.ones(self.n_action)*(1./self.n_action)
+        elif "v2" in self.name:
+            self.values = np.ones((self.n_state, self.n_action))*(1./self.n_action)
 
     def initializeList(self):
         self.n_element = 0
@@ -422,6 +428,10 @@ class BayesianWorkingMemory():
         self.choice=list()
         self.sampleChoice=list()
         self.sampleEntropy=list()
+        if "v1" in self.name:
+            self.values = np.ones(self.n_action)*(1./self.n_action)
+        elif "v2" in self.name:
+            self.values = np.ones((self.n_state, self.n_action))*(1./self.n_action)
         
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -469,7 +479,7 @@ class BayesianWorkingMemory():
             self.evaluationModule()        
             #self.decisionModule()
         if "v1" in self.name:
-            self.value[-1].append(self.values)
+            self.value[-1].append(list(self.values))
             return self.values
         elif "v2" in self.name:
             self.value[-1].append(list(self.values[self.current_state]))

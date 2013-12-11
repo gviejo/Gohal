@@ -55,14 +55,14 @@ def testParameters(subject):
       model.initialize()
       for trial in X[subject][bloc]['sar']:
          state = cvt[trial[0]]
-         true_action = trial[1]-1
-         values = model.computeValue(state)
+         true_action = trial[1]-1         
+         values = model.computeValue(state)         
          model.current_action = true_action       
          model.updateValue(trial[2])
    model.state = convertStimulus(np.array(model.state))
    model.action = convertAction(np.array(model.action))
    model.responses = np.array(model.responses)
-   model.reaction = np.array(model.reaction)
+   
 
 
 # -----------------------------------
@@ -104,10 +104,17 @@ model = models[options.model]
 # ----------------------------------
 # types = dict({'kalman':np.zeros(nb_blocs, dtype = [('p_a', 'O')]), 
 #               'bwm':np.zeros(nb_blocs, dtype = [('p_a', 'O')])})
-types = dict({'kalman':[('p_a', 'O')],
-              'bwm_v1':[('p_a', 'O')],
-              'bwm_v2':[('p_a', 'O')],
-              'qlearning':[('p_a','O')]})
+types = dict({'kalman':[('p_a', 'O'),
+                        ('entropy','O')],
+              'qlearning':[('p_a','O'),
+                          ('entropy','O')],
+              'bwm_v1':[('p_a', 'O'),
+                        ('p_r_s', 'O'),
+                        ('p_a_rs', 'O')],
+              'bwm_v2':[('p_a', 'O')
+                        ('p_r_s', 'O'),
+                        ('p_a_rs', 'O')]
+              })
 #types = dict({i:[('p_a','0')] for i in models.iterkeys()})
 fields = np.array(types[options.model])[:,0]
 
@@ -133,16 +140,18 @@ for i in p.iterkeys():
        model.setParameter(j, p[i][j])
     
     testParameters(i)
-    x = np.zeros(len(model.value)+2, dtype = types[options.model])
+    x = np.zeros(len(model.value), dtype = types[options.model])
     
     for j in xrange(len(model.value)):
         for k in fields:
-            if k == 'p_a':
-                tmp = np.matrix(model.value[j])
-                
-                order2 = searchStimOrder(X[i][j+1]['sar'][:,0], X[i][j+1]['sar'][:,1], X[i][j+1]['sar'][:,2])
-                
-                x[j+1][k] = np.array([np.matrix(tmp[X[i][j+1]['sar'][:,0] == s]) for s in order2])  
+            order2 = searchStimOrder(X[i][j+1]['sar'][:,0], X[i][j+1]['sar'][:,1], X[i][j+1]['sar'][:,2])
+            if k == 'p_a':                
+                val = np.array(model.value[j])
+                x[j][k] = np.array([np.matrix(val[X[i][j+1]['sar'][:,0] == s]) for s in order2])              
+            if k == 'entropy':
+                val = np.array(model.reaction[j])
+                x[j][k] = np.array([val[X[i][j+1]['sar'][:,0] == s] for s in order2])
+
     scipy.io.savemat(filename, {options.model:x})
 
     
