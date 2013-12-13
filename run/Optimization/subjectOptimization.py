@@ -70,7 +70,7 @@ sigma = 0.00002         # updating rate of the average reward
 alpha = 0.5 
 #########################
 #optimization parameters
-n_run = 50
+n_run = 3
 n_grid = 30
 maxiter = 10000
 maxfun = 10000
@@ -83,7 +83,7 @@ cats = CATS(0)
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bwm_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
                'bwm_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
-               'qlearning':QLearning('q', cats.states, cats.actions, alpha, beta, gamma)
+               'qlearning':QLearning('q', cats.states, cats.actions, gamma, alpha, beta)
               })
 
 opt = Likelihood(human, models[options.model], options.fonction, n_run, n_grid, maxiter, maxfun, xtol, ftol, disp)

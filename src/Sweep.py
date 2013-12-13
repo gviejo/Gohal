@@ -263,11 +263,11 @@ class Optimization():
 
 class Likelihood():
     """
-    Optimization with scipy.optimize.fmin
+    Optimization with the function you have to choose carefully my friend
     See : Trial-by-trial data analysis using computational models, Daw, 2009
     """
     def __init__(self, human, ptr_model, fname, n_run, n_grid, maxiter, maxfun, xtol, ftol, disp):
-        self.X = human.subject['meg']
+        self.X = human.subject['fmri']
         self.model = ptr_model
         self.fname = fname
         self.maxiter = maxiter
@@ -507,23 +507,28 @@ class Likelihood():
                                                     'best':self.best_parameters, 
                                                     'max':max_likelihood})})
         elif self.fname == 'fmin':
+            warnflag = []
             for i in xrange(self.n_run):
                 p_start = self.generateStart()
                 tmp = scipy.optimize.fmin(func=self.computeLikelihood,
                                             x0=p_start,
-                                            maxiter=self.maxiter,
-                                            maxfun=self.maxfun,
-                                            xtol=self.xtol,
-                                            ftol=self.ftol,
+                                            #maxiter=self.maxiter,
+                                            #maxfun=self.maxfun,
+                                            #xtol=self.xtol,
+                                            #ftol=self.ftol,
+                                            full_output=True,
                                             disp=self.disp)
-                self.best_parameters.append(tmp.x)
-                max_likelihood.append(-tmp.fun)
+                self.best_parameters.append(tmp[0])
+                max_likelihood.append(-tmp[1])
                 self.start_parameters.append(p_start)
+                warnflag.append(tmp[4])
             self.best_parameters = np.array(self.best_parameters)
             self.start_parameters = np.array(self.start_parameters)
             max_likelihood = np.array(max_likelihood)
+            warnflag = np.array(warnflag)
             return dict({self.current_subject:dict({'start':self.start_parameters,
                                                     'best':self.best_parameters, 
+                                                    'warnflag':warnflag,
                                                     'max':max_likelihood})})
         elif self.fname == 'anneal':                    
             for i in xrange(self.n_run):
@@ -545,12 +550,13 @@ class Likelihood():
                                                     'max':max_likelihood})})
 
         elif self.fname == 'brute':
-            rranges = tuple([slice(i[0],i[1],0.01) for i in self.ranges])
+            rranges = tuple([slice(i[0],i[1],(i[1]-i[0])/self.n_grid) for i in self.ranges])
             tmp = scipy.optimize.brute(func=self.computeLikelihood,
                                        ranges=rranges,
                                        disp=self.disp,
                                        Ns=self.n_grid,
-                                       full_output=True)
+                                       full_output=True, 
+                                       finish=scipy.optimize.fmin)
             self.best_parameters = tmp[0]
             max_likelihood = tmp[1]
             self.brute_grid = tuple((tmp[2], tmp[3]))
