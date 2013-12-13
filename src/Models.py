@@ -162,7 +162,8 @@ class KalmanQLearning():
         self.action = list()        
         self.responses = list()
         self.reaction = list()        
-        self.value = list()        
+        self.value = list()
+        self.vpi = list()      
 
     def getAllParameters(self):        
         return dict({'gamma':[self.bounds['gamma'][0],self.gamma,self.bounds['gamma'][1]],
@@ -228,6 +229,7 @@ class KalmanQLearning():
         self.state.append([])
         self.reaction.append([])
         self.value.append([])
+        self.vpi.append([])
 
     def initializeList(self):
         self.values = np.zeros((self.n_state, self.n_action))
@@ -237,6 +239,7 @@ class KalmanQLearning():
         self.responses = list()
         self.reaction = list()
         self.value = list()
+        self.vpi = list()
 
     def sampleSoftMax(self, values):
         tmp = np.exp(values*float(self.beta))
@@ -250,6 +253,7 @@ class KalmanQLearning():
         self.covariance['cov'][:,:] = self.covariance['cov'][:,:] + self.covariance['noise']        
         self.value[-1].append(SoftMaxValues(self.values[self.current_state], self.beta))
         self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.beta))
+        self.vpi[-1].append(computeVPIValues(self.values[self.current_state], self.covariance['cov'][self.current_state]))
         return self.value[-1][-1]
 
     def chooseAction(self, state):
@@ -344,6 +348,7 @@ class BayesianWorkingMemory():
         self.p_s = np.zeros((self.lenght_memory, self.n_state))
         self.p_a_s = np.zeros((self.lenght_memory, self.n_state, self.n_action))
         self.p_r_as = np.zeros((self.lenght_memory, self.n_state, self.n_action, 2))
+        self.p_r_s = np.ones(2)*0.5
         #self.p_s_var = np.ones(self.n_state)*self.noise
         #self.p_a_s_var = np.ones((self.n_state, self.n_action))*self.noise
         #self.p_r_as_var = np.ones((self.n_state, self.n_action, 2))*self.noise
@@ -358,6 +363,8 @@ class BayesianWorkingMemory():
         self.choice=list()
         self.sampleChoice=list()
         self.sampleEntropy=list()
+        self.sample_p_r_s=list()
+        self.sample_nb_inf=list()
 
     def getAllParameters(self):        
         return dict({'lenght':[self.bounds["lenght"][0],self.lenght_memory,self.bounds["lenght"][1]],
@@ -408,6 +415,8 @@ class BayesianWorkingMemory():
         self.choice.append([])
         self.sampleChoice.append([])
         self.sampleEntropy.append([])
+        self.sample_p_r_s.append([])
+        self.sample_nb_inf.append([])
         if "v1" in self.name:
             self.values = np.ones(self.n_action)*(1./self.n_action)
         elif "v2" in self.name:
@@ -428,6 +437,8 @@ class BayesianWorkingMemory():
         self.choice=list()
         self.sampleChoice=list()
         self.sampleEntropy=list()
+        self.sample_p_r_s=list()
+        self.sample_nb_inf=list()
         if "v1" in self.name:
             self.values = np.ones(self.n_action)*(1./self.n_action)
         elif "v2" in self.name:
@@ -445,8 +456,8 @@ class BayesianWorkingMemory():
     def evaluationModule(self):
         tmp = self.p/np.sum(self.p)
         p_ra_s = tmp[self.current_state]/np.sum(tmp[self.current_state])
-        p_r_s = np.sum(p_ra_s, axis = 0)
-        p_a_rs = p_ra_s/p_r_s
+        self.p_r_s = np.sum(p_ra_s, axis = 0)
+        p_a_rs = p_ra_s/self.p_r_s
         if "v1" in self.name:
             self.values = p_a_rs[:,1]/p_a_rs[:,0]
             self.values = self.values/np.sum(self.values)
@@ -478,6 +489,9 @@ class BayesianWorkingMemory():
             self.inferenceModule()
             self.evaluationModule()        
             #self.decisionModule()
+        self.entropies[-1].append(self.entropy.copy())
+        self.sample_p_r_s[-1].append(self.p_r_s[1].copy())
+        self.sample_nb_inf[-1].append(self.nb_inferences)
         if "v1" in self.name:
             self.value[-1].append(list(self.values))
             return self.values
@@ -593,8 +607,8 @@ class BayesianWorkingMemory():
         self.p = self.p + self.p_r_as[0] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[0].shape)
         tmp = self.p/np.sum(self.p)
         p_ra_s = tmp[self.current_state]/np.sum(tmp[self.current_state])
-        p_r_s = np.sum(p_ra_s, axis = 0)
-        p_a_rs = p_ra_s/p_r_s
+        self.p_r_s = np.sum(p_ra_s, axis = 0)
+        p_a_rs = p_ra_s/self.p_r_s
         values = p_a_rs[:,1]/p_a_rs[:,0]
         values = values/np.sum(values)        
         return -np.sum(values*np.log2(values))

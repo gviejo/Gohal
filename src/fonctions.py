@@ -102,9 +102,9 @@ def computeVPIValues(mean, variance):
     #vpi = array(current state)
     vpi = np.zeros((len(mean)))
     ind = np.argsort(mean)
-    vpi[ind[-1]] = (mean[ind[-2]]-mean[ind[-1]])*norm.cdf(mean[ind[-2]], mean[ind[-1]], np.sqrt(variance[ind[-1]])) + (np.sqrt(variance[ind[-1]])/np.sqrt(2*np.pi))*np.exp(-(mean[ind[-2]]-mean[ind[-1]])**2/(2*variance[ind[-1]]))
+    vpi[ind[-1]] = (mean[ind[-2]]-mean[ind[-1]])*stats.norm.cdf(mean[ind[-2]], mean[ind[-1]], np.sqrt(variance[ind[-1]])) + (np.sqrt(variance[ind[-1]])/np.sqrt(2*np.pi))*np.exp(-(mean[ind[-2]]-mean[ind[-1]])**2/(2*variance[ind[-1]]))
     for i in range(len(mean)-2, -1, -1):
-        vpi[ind[i]] = (mean[ind[i]]-mean[ind[-1]])*(1-norm.cdf(mean[ind[-1]], mean[ind[i]], np.sqrt(variance[ind[i]]))) + (np.sqrt(variance[ind[i]])/np.sqrt(2*np.pi))*np.exp(-(mean[ind[-1]]-mean[ind[i]])**2/(2*variance[ind[i]]))        
+        vpi[ind[i]] = (mean[ind[i]]-mean[ind[-1]])*(1-stats.norm.cdf(mean[ind[-1]], mean[ind[i]], np.sqrt(variance[ind[i]]))) + (np.sqrt(variance[ind[i]])/np.sqrt(2*np.pi))*np.exp(-(mean[ind[-1]]-mean[ind[i]])**2/(2*variance[ind[i]]))        
     return vpi
        
 def updateRewardRate(reward_rate, sigma, delay = 0.0):
@@ -510,10 +510,10 @@ def computeSingleCorrelation(human, model, case = 'JSD'):
 		return 1.0
             elif pm1 == 0.0:
 		z = (np.abs(h1-m1))/(np.sqrt(p*(1-p)*((1/a))))
-		return 1-(norm.cdf(z, 0, 1)-norm.cdf(-z, 0, 1))                
+		return 1-(stats.norm.cdf(z, 0, 1)-stats.norm.cdf(-z, 0, 1))                
 	    else:
 		z = (np.abs(h1-m1))/(np.sqrt(p*(1-p)*((1/a)+(1/b))))
-		return 1-(norm.cdf(z, 0, 1)-norm.cdf(-z, 0, 1))
+		return 1-(stats.norm.cdf(z, 0, 1)-stats.norm.cdf(-z, 0, 1))
 
 def computeSpecialKullbackLeibler(p, q):
 	# Don;t use for compute Divergence Kullback-Leibler

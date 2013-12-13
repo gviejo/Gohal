@@ -11,7 +11,7 @@ ex :
     
 python saveValue.py -i kalman.txt 
                     -m kalman 
-                    -o ../../../Dropbox/PEPS_GoHaL/Beh_Model/
+                    -o ../../../Dropbox/PEPS_GoHaL/MEG/
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -38,7 +38,7 @@ if not sys.argv[1:]:
    sys.stdout.write("More help avalaible with -h or --help option")
    sys.exit(0)
 parser = OptionParser()
-parser.add_option("-i", "--input", action="store", help="The name of the directory to load", default=False)
+parser.add_option("-i", "--input", action="store", help="The name of the parameters to load", default=False)
 parser.add_option("-m", "--model", action="store", help="The name of the model to test", default=False)
 parser.add_option("-o", "--output", action="store", help="The output directory \n Must contains one subdirectory for each subject", default=False)
 (options, args) = parser.parse_args() 
@@ -49,11 +49,15 @@ parser.add_option("-o", "--output", action="store", help="The output directory \
 # -----------------------------------
 def testParameters(subject):
    model.initializeList()
-   for bloc in X[subject].iterkeys():
-      sys.stdout.write("\r Sujet : %s | Blocs : %i" % (subject,bloc)); sys.stdout.flush()                    
+   s = subject
+   #Dirty Trick to have ordered data
+   if list(subject)[1] == '0':
+        s = "".join([list(subject)[0], list(subject)[2]])
+   for bloc in X[s].iterkeys():
+      sys.stdout.write("\r Sujet : %s | Blocs : %i" % (s,bloc)); sys.stdout.flush()                    
       cats.reinitialize()
       model.initialize()
-      for trial in X[subject][bloc]['sar']:
+      for trial in X[s][bloc]['sar']:
          state = cvt[trial[0]]
          true_action = trial[1]-1         
          values = model.computeValue(state)         
@@ -105,15 +109,18 @@ model = models[options.model]
 # types = dict({'kalman':np.zeros(nb_blocs, dtype = [('p_a', 'O')]), 
 #               'bwm':np.zeros(nb_blocs, dtype = [('p_a', 'O')])})
 types = dict({'kalman':[('p_a', 'O'),
-                        ('entropy','O')],
+                        ('entropy','O'),
+                        ('vpi','O')],
               'qlearning':[('p_a','O'),
                           ('entropy','O')],
               'bwm_v1':[('p_a', 'O'),
+                        ('entropy','O'),
                         ('p_r_s', 'O'),
-                        ('p_a_rs', 'O')],
-              'bwm_v2':[('p_a', 'O')
+                        ('nb_inf','O')],                                            
+              'bwm_v2':[('p_a', 'O'),
+                        ('entropy','O'),
                         ('p_r_s', 'O'),
-                        ('p_a_rs', 'O')]
+                        ('nb_inf','O')]                        
               })
 #types = dict({i:[('p_a','0')] for i in models.iterkeys()})
 fields = np.array(types[options.model])[:,0]
@@ -134,32 +141,33 @@ p = eval(open(options.input, 'r').read())
 cvt = dict({i:'s'+str(i) for i in [1,2,3]})
 X = human.subject['meg']
 
-for i in p.iterkeys():    
-    filename = options.output+i+"/"+options.model+".mat"
+filename = options.output+options.model+".mat"
+x = np.zeros((len(X.keys()), 4), dtype = types[options.model])
+
+for i in sorted(p.keys()):    
     for j in p[i].iterkeys():
-       model.setParameter(j, p[i][j])
-    
-    testParameters(i)
-    x = np.zeros(len(model.value), dtype = types[options.model])
-    
-    for j in xrange(len(model.value)):
+       model.setParameter(j, p[i][j])    
+    testParameters(i)    
+    for j in xrange(len(model.value)):        
         for k in fields:
-            order2 = searchStimOrder(X[i][j+1]['sar'][:,0], X[i][j+1]['sar'][:,1], X[i][j+1]['sar'][:,2])
             if k == 'p_a':                
-                val = np.array(model.value[j])
-                x[j][k] = np.array([np.matrix(val[X[i][j+1]['sar'][:,0] == s]) for s in order2])              
-            if k == 'entropy':
-                val = np.array(model.reaction[j])
-                x[j][k] = np.array([val[X[i][j+1]['sar'][:,0] == s] for s in order2])
-
-    scipy.io.savemat(filename, {options.model:x})
+                x[sorted(p.keys()).index(i),j][k] = np.matrix(model.value[j])
+            if ('kalman' or 'qlearning') in options.model:
+                if k == 'entropy':
+                    x[sorted(p.keys()).index(i),j][k] = np.matrix(np.vstack(model.reaction[j]))    
+                if options.model == 'kalman' and k == 'vpi':
+                    x[sorted(p.keys()).index(i),j][k] = np.matrix(np.vstack(model.vpi[j]))    
+            elif 'bwm' in options.model:                    
+                if k == 'entropy':
+                    x[sorted(p.keys()).index(i),j][k] = np.matrix(np.vstack(model.entropies[j]))
+                elif k == 'p_r_s':
+                    x[sorted(p.keys()).index(i),j][k] = np.matrix(np.vstack(model.sample_p_r_s[j]))    
+                elif k == 'nb_inf':
+                    x[sorted(p.keys()).index(i),j][k] = np.matrix(np.vstack(model.sample_nb_inf[j]))    
+scipy.io.savemat(filename, {options.model:x})
 
     
-# -----------------------------------
-# order data
-# -----------------------------------
 
-# -----------------------------------
 
 
 
