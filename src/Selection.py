@@ -12,6 +12,150 @@ import sys
 import os
 import numpy as np
 from fonctions import *
+from Models import *
+
+
+class ESelection():
+    """Class that implement selection based on entropy 
+    Specially tuned for Brovelli experiment so beware
+    """
+    def __init__(self, name, states, actions, alpha, beta, gamma, length, noise):
+        # State action space
+        self.states=states
+        self.actions=actions
+        #Parameters
+        self.name = name
+        self.alpha = alpha
+        self.beta = beta        
+        self.gamma = gamma
+        self.length = length
+        self.noise = noise
+        self.n_action = len(actions)
+        self.n_state = len(states)
+        self.bounds = dict({"gamma":[0.0, 1.0],
+                            "beta":[1.0, 10.0],
+                            "alpha":[0.0, 2.0],
+                            "length":[5,20],
+                            "noise":[0.0, 1.0]})
+        #Values initialization
+        #self.values = np.zeros((self.n_state, self.n_action))
+        self.values = None
+        #Various Init
+        self.current_state = None
+        self.current_action = None        
+        self.max_entropy = -np.log2(1./self.n_action)
+        # Model initialization
+        self.bwm = BayesianWorkingMemory("v1", self.states, self.actions, self.length, self.noise)
+        self.bwm.initializeList()            
+        self.free = QLearning("ql", self.states, self.actions, self.gamma, self.alpha, self.beta)
+        self.free.initializeList()
+        #List Init
+        self.state = list()
+        self.action = list()
+        self.responses =list()
+        self.reaction = list()
+        self.value = list()
+        self.threshold = list()
+
+    def getAllParameters(self):
+        return dict({'gamma':[self.bounds['gamma'][0],self.gamma,self.bounds['gamma'][1]],
+                     'beta':[self.bounds['beta'][0],self.beta,self.bounds['beta'][1]],
+                     'alpha':[self.bounds['alpha'][0],self.alpha,self.bounds['alpha'][1]],
+                     'length':[self.bounds['length'][0],self.length,self.bounds['length'][1]],
+                     'noise':[self.bounds['noise'][0],self.noise,self.bounds['noise'][1]]})
+
+    def setParameter(self, name, value):
+        if name == 'gamma':
+            if value < self.bounds['gamma'][0]:
+                self.gamma = self.bounds['gamma'][0]
+            elif value > self.bounds['gamma'][1]:
+                self.gamma = self.bounds['gamma'][1]
+            else:
+                self.gamma = value                
+        elif name == 'beta':
+            if value < self.bounds['beta'][0]:
+                self.beta = self.bounds['beta'][0]
+            elif value > self.bounds['beta'][1]:
+                self.beta = self.bounds['beta'][1]
+            else :
+                self.beta = value        
+        elif name == 'alpha':
+            if value < self.bounds['alpha'][0]:
+                self.alpha = self.bounds['alpha'][0]
+            elif value > self.bounds['alpha'][1]:
+                self.alpha = self.bounds['alpha'][1]
+            else:
+                self.alpha = value
+        elif name == 'length':
+            if value < self.bounds['length'][0]:
+                self.length = self.bounds['length'][0]
+            elif value > self.bounds['length'][1]:
+                self.length = self.bounds['length'][1]
+            else:
+                self.length = value
+        elif name == 'noise':
+            if value < self.bounds['noise'][0]:
+                self.noise = self.bounds['noise']
+            elif value > self.bounds['noise'][1]:
+                self.noise = self.bounds['noise'][1]
+            else:
+                self.noise = value
+        else:
+            print "Parameters not found"
+            sys.exit(0)    
+
+    def initializeList(self):        
+        self.bwm.initializeList()
+        self.free.initializeList()
+        self.values = np.zeros((self.n_state, self.n_action))
+        self.state = list()
+        self.action = list()
+        self.responses = list()
+        self.reaction = list()
+        self.value = list()
+        self.threshold = list()
+
+    def initialize(self):
+        self.bwm.initialize()
+        self.free.initialize()
+        self.values = np.zeros((self.n_state, self.n_action))
+        self.state.append([])
+        self.action.append([])
+        self.responses.append([])
+        self.reaction.append([])
+        self.value.append([])
+        self.threshold.append([])
+
+    def sampleSoftMax(self, values):
+        tmp = np.exp(values*float(self.beta))
+        tmp = tmp/float(np.sum(tmp))
+        tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
+        return np.sum(np.array(tmp) < np.random.rand())-1
+
+    def computeValue(self, state):
+        return None
+
+    def chooseAction(self, state):
+        self.state[-1].append(state)
+        self.current_state = convertStimulus(state)-1
+        self.free.current_state = self.current_state
+        self.bwm.threshold = self.max_entropy - computeEntropy(self.free.values[self.current_state], self.beta)
+        #self.bwm.threshold = 0.0
+        self.threshold[-1].append(self.bwm.threshold)
+        #print self.bwm.threshold
+        #self.values = self.bwm.computeValue(state)
+        self.action[-1].append(self.bwm.chooseAction(state))
+        self.current_action = self.actions.index(self.action[-1][-1])
+        self.free.current_action = self.current_action
+        self.reaction[-1].append(self.bwm.nb_inferences)
+        return self.action[-1][-1]
+
+    def updateValue(self, reward):
+        self.responses[-1].append(int((reward==1)*1))
+        self.bwm.updateValue(reward)
+        self.free.updateValue(reward)
+
+
 
 class KSelection():
     """Class that implement Keramati models for action selection

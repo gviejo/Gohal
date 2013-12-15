@@ -25,13 +25,12 @@ from time import time
 def testModel():
     bww.initializeList()
     for i in xrange(nb_blocs):
-        sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                    
         cats.reinitialize()
         bww.initialize()
         for j in xrange(nb_trials):
             state = cats.getStimulus(j)
             action = bww.chooseAction(state)
-            reward = cats.getOutcome(state, action)
+            reward = cats.getOutcome(state, action)            
             bww.updateValue(reward)
 
     bww.state = convertStimulus(np.array(bww.state))
@@ -54,16 +53,16 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.0001
+noise = 0.0
 length_memory = 8
-#threshold = 1.2
-threshold = 1.0
+threshold = 1.2
+
 
 nb_trials = 48
 nb_blocs = 300
 cats = CATS(nb_trials)
 
-bww = BayesianWorkingMemory("v2", cats.states, cats.actions, length_memory, noise, threshold)
+bww = BayesianWorkingMemory("v1", cats.states, cats.actions, length_memory, noise, threshold)
 
 # -----------------------------------
 
@@ -72,7 +71,7 @@ bww = BayesianWorkingMemory("v2", cats.states, cats.actions, length_memory, nois
 # -----------------------------------
 bww.initializeList()
 bww.initialize()
-#sys.exit()
+
 t1 = time()
 testModel()
 t2 = time()

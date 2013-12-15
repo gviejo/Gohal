@@ -42,7 +42,7 @@ parser.add_option("-m", "--model", action="store", help="The name of the model t
 # FONCTIONS
 # -----------------------------------
 def testParameters():
-    p = eval(open(options.input, 'r').read())
+    p = eval(open(options.input, 'r').read())[options.model]
     model.initializeList()
     for s in p.keys():
         for i in p[s].iterkeys():
@@ -86,7 +86,7 @@ noise = 0.01
 length_memory = 8
 threshold = 1.2
 
-nb_trials = human.responses['meg'].shape[1]
+nb_trials = human.responses['fmri'].shape[1]
 nb_blocs = 100
 cats = CATS(nb_trials)
 
@@ -116,7 +116,7 @@ print t2-t1
 #order data
 # -----------------------------------
 pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
-pcr_human = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
 
 step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
 rt = computeMeanRepresentativeSteps(step)
@@ -131,12 +131,12 @@ var_correct = np.array([sem(model.reaction[np.where((distance == i) & (model.res
 mean_incorrect = np.array([np.mean(model.reaction[np.where((distance == i) & (model.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
 var_incorrect = np.array([sem(model.reaction[np.where((distance == i) & (model.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
 
-step, indice = getRepresentativeSteps(human.reaction['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
-rt_meg = computeMeanRepresentativeSteps(step) 
-step, indice = getRepresentativeSteps(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
-indice_meg = indice
-y_meg = computeMeanRepresentativeSteps(step)
-distance_meg = computeDistanceMatrix(human.stimulus['meg'], indice)
+step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+rt_fmri = computeMeanRepresentativeSteps(step) 
+step, indice = getRepresentativeSteps(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+indice_fmri = indice
+y_fmri = computeMeanRepresentativeSteps(step)
+distance_fmri = computeDistanceMatrix(human.stimulus['fmri'], indice)
 
 step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
 rt_fmri = computeMeanRepresentativeSteps(step) 
@@ -182,8 +182,8 @@ for i in xrange(3):
 
 
 ax1 = plt.subplot(1,2,2)
-ax1.plot(range(1, len(rt_meg[0])+1), rt_meg[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
-ax1.errorbar(range(1, len(rt_meg[0])+1), rt_meg[0], rt_meg[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
 
 ax2 = ax1.twinx()
 ax2.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
@@ -240,7 +240,7 @@ ax1.set_title('B')
 
 ################
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
-savefig('../../../Dropbox/ISIR/B2V_council/images/fig_subject'+options.model+'.pdf', bbox_inches='tight')
+#savefig('../../../Dropbox/ISIR/B2V_council/images/fig_subject'+options.model+'.pdf', bbox_inches='tight')
 
 
 show()

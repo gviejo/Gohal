@@ -131,7 +131,7 @@ fields = np.array(types[options.model])[:,0]
 # -----------------------------------
 # PARAMETERS Loading
 # -----------------------------------
-p = eval(open(options.input, 'r').read())
+p = eval(open(options.input, 'r').read())[options.model]
 
 # -----------------------------------
 

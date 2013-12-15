@@ -189,6 +189,10 @@ if fname == 'brute':
 
 
 if fname == 'fmin':
+    print parameters[1], np.mean(X, 0)[1]    
+    print parameters[0], np.mean(X, 0)[0]
+    print parameters[2], np.mean(X, 0)[2]
+
     fig3 = figure(figsize = (14,9))
     for i in xrange(n_parameters):
         subplot(n_parameters,1,i+1)

@@ -44,7 +44,7 @@ parser.add_option("-s", "--subject", action="store", help="Which subject to plot
 # FONCTIONS
 # -----------------------------------
 def testParameters():
-    p = eval(open(options.input, 'r').read())
+    p = eval(open(options.input, 'r').read())[options.model]
     model.initializeList()
     for s in p.keys():
         for i in p[s].iterkeys():

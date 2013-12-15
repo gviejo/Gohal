@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
-Test for QLearning :
-Plot probability of correct responses and reaction time
+Test for Entropy Selection
+
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -12,70 +12,74 @@ import numpy as np
 sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
-from HumanLearning import HLearning
-from Models import QLearning
+from Selection import ESelection
 from matplotlib import *
 from pylab import *
+from HumanLearning import HLearning
 from time import time
+
 
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def testModel():    
+def testModel():
     model.initializeList()
     for i in xrange(nb_blocs):
-        sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()   
         cats.reinitialize()
         model.initialize()
         for j in xrange(nb_trials):
+            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
             state = cats.getStimulus(j)
             action = model.chooseAction(state)
-            reward = cats.getOutcome(state, action)
-            #print state
-            #print action
-            #print reward
+            reward = cats.getOutcome(state, action)            
             model.updateValue(reward)
-            #print model.values
-            #sys.stdin.readline()
+
     model.state = convertStimulus(np.array(model.state))
     model.action = convertAction(np.array(model.action))
     model.responses = np.array(model.responses)
     model.reaction = np.array(model.reaction)
-    model.value = np.array(model.value)
+    model.threshold = np.array(model.threshold)
+    
+
 
 # -----------------------------------
 
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../../fMRI',39)}))
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-alpha = 0.9
-gamma = 0.1  # discount factor
-beta = 2
+noise = 0.0
+length = 12
+alpha = 0.3
+beta = 3.0
+gamma = 0.5
 
 nb_trials = 42
-nb_blocs = 400
-cats = CATS()
+nb_blocs = 100
+cats = CATS(nb_trials)
 
-model = QLearning('k', cats.states, cats.actions, gamma, alpha, beta)
-
+model = ESelection("test", cats.states, cats.actions, alpha, beta, gamma, length, noise)
 
 # -----------------------------------
 
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
+model.initializeList()
+model.initialize()
 
-
+t1 = time()
 testModel()
+t2 = time()
 
-
+print "\n"
+print t2-t1
 # -----------------------------------
 
 
@@ -83,12 +87,19 @@ testModel()
 #order data
 # -----------------------------------
 pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
-pcr_human = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+thr = extractStimulusPresentation(model.threshold, model.state, model.action, model.responses)
 
-#model.reaction = (computeEntropy(np.ones(5)*0.2, beta) - model.reaction)/computeEntropy(np.ones(5)*0.2, beta)
-model.reaction = computeEntropy(np.ones(5)*0.2, beta) - model.reaction
+step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+rt_fmri = computeMeanRepresentativeSteps(step) 
 
-entropy = extractStimulusPresentation(model.reaction, model.state, model.action, model.responses)
+step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
+rt = computeMeanRepresentativeSteps(step)
+
+step, indice = getRepresentativeSteps(model.threshold, model.state, model.action, model.responses)
+thr_step = computeMeanRepresentativeSteps(step) 
+
+
 
 # -----------------------------------
 
@@ -96,7 +107,7 @@ entropy = extractStimulusPresentation(model.reaction, model.state, model.action,
 # -----------------------------------
 # Plot
 # -----------------------------------
-figure(figsize = (9,4))
+figure(figsize = (9,7))
 params = {'backend':'pdf',
           'axes.labelsize':10,
           'text.fontsize':10,
@@ -106,7 +117,7 @@ params = {'backend':'pdf',
           'text.usetex':False}          
 #rcParams.update(params)                  
 colors = ['blue', 'red', 'green']
-subplot(1,2,1)
+subplot(2,2,1)
 for i in xrange(3):
     plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
     errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
@@ -122,23 +133,42 @@ for i in xrange(3):
     title('A')
     grid()
 
-subplot(1,2,2)
+
+ax1 = plt.subplot(2,2,2)
+ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+
+ax2 = ax1.twinx()
+ax2.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
+ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
+ax2.set_ylabel("Inference Level")
+ax2.set_ylim(-5, 15)
+ax1.grid()
+############
+
+subplot(2,2,3)
 for i in xrange(3):
-    plot(range(1, len(entropy['mean'][i])+1), entropy['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
-    errorbar(range(1, len(entropy['mean'][i])+1), entropy['mean'][i], entropy['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
-    ylabel("Information")
-    #legend(loc = 'lower right')
+    plot(range(1, len(thr['mean'][i])+1), thr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+    errorbar(range(1, len(thr['mean'][i])+1), thr['mean'][i], thr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+    ylabel("Threshold Level")
+    legend(loc = 'lower right')
     xticks(range(2,11,2))
     xlabel("Trial")
     xlim(0.8, 10.2)
-    #ylim(-0.05, 1.05)
-    #yticks(np.arange(0, 1.2, 0.2))
-    title('B')
+    ylim(-0.05, model.max_entropy+0.2)
+    #yticks(np.arange(0, 1.2, 0.2))    
     grid()
+subplot(2,2,4)
+plot(range(1, len(thr_step[0])+1), thr_step[0], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
+errorbar(range(1, len(thr_step[0])+1), thr_step[0], thr_step[1], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
+ylim(-0.05, model.max_entropy+0.2)
+grid()
+
+
 
 
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
 
-#savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testKQL.pdf', bbox_inches='tight')
+savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testKQL.pdf', bbox_inches='tight')
 
 show()

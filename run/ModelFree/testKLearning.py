@@ -87,6 +87,9 @@ print t2-t1
 pcr = extractStimulusPresentation(kalman.responses, kalman.state, kalman.action, kalman.responses)
 pcr_human = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 
+
+entropy = extractStimulusPresentation(kalman.reaction, kalman.state, kalman.action, kalman.responses)
+
 # -----------------------------------
 
 
@@ -118,6 +121,21 @@ for i in xrange(3):
     yticks(np.arange(0, 1.2, 0.2))
     title('A')
     grid()
+
+subplot(1,2,2)
+for i in xrange(3):
+    plot(range(1, len(entropy['mean'][i])+1), entropy['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+    errorbar(range(1, len(entropy['mean'][i])+1), entropy['mean'][i], entropy['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+    ylabel("Information")
+    #legend(loc = 'lower right')
+    xticks(range(2,11,2))
+    xlabel("Trial")
+    xlim(0.8, 10.2)
+    #ylim(-0.05, 1.05)
+    #yticks(np.arange(0, 1.2, 0.2))
+    title('B')
+    grid()
+    
 
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
 
