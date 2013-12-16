@@ -55,9 +55,9 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-alpha = 0.9
+alpha = 1.3
 gamma = 0.1  # discount factor
-beta = 2
+beta = 3.0
 
 nb_trials = 42
 nb_blocs = 400

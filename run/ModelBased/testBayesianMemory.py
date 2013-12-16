@@ -23,22 +23,23 @@ from time import time
 # FONCTIONS
 # -----------------------------------
 def testModel():
-    bww.initializeList()
+    model.initializeList()
     for i in xrange(nb_blocs):
         cats.reinitialize()
-        bww.initialize()
+        model.initialize()
         for j in xrange(nb_trials):
+            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()
             state = cats.getStimulus(j)
-            action = bww.chooseAction(state)
+            action = model.chooseAction(state)
             reward = cats.getOutcome(state, action)            
-            bww.updateValue(reward)
+            model.updateValue(reward)
 
-    bww.state = convertStimulus(np.array(bww.state))
-    bww.action = convertAction(np.array(bww.action))
-    bww.responses = np.array(bww.responses)
-    bww.reaction = np.array(bww.reaction)
-    bww.entropies = np.array(bww.entropies)    
-    bww.choice = np.array(bww.choice)
+    model.state = convertStimulus(np.array(model.state))
+    model.action = convertAction(np.array(model.action))
+    model.responses = np.array(model.responses)
+    model.reaction = np.array(model.reaction)
+    model.entropies = np.array(model.entropies)    
+    model.choice = np.array(model.choice)
 
 
 # -----------------------------------
@@ -53,24 +54,24 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.0
-length_memory = 8
-threshold = 1.2
+noise = 0.0001
+length_memory = 10
+threshold = 0.1
 
 
 nb_trials = 48
-nb_blocs = 300
+nb_blocs = 400
 cats = CATS(nb_trials)
 
-bww = BayesianWorkingMemory("v1", cats.states, cats.actions, length_memory, noise, threshold)
+model = BayesianWorkingMemory("v1_test", cats.states, cats.actions, length_memory, noise, threshold)
 
 # -----------------------------------
 
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
-bww.initializeList()
-bww.initialize()
+model.initializeList()
+model.initialize()
 
 t1 = time()
 testModel()
@@ -84,21 +85,21 @@ print t2-t1
 # -----------------------------------
 #order data
 # -----------------------------------
-pcr = extractStimulusPresentation(bww.responses, bww.state, bww.action, bww.responses)
+pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
 pcr_human = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 
-step, indice = getRepresentativeSteps(bww.reaction, bww.state, bww.action, bww.responses)
+step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
 rt = computeMeanRepresentativeSteps(step)
-step, indice = getRepresentativeSteps(bww.responses, bww.state, bww.action, bww.responses)
+step, indice = getRepresentativeSteps(model.responses, model.state, model.action, model.responses)
 y = computeMeanRepresentativeSteps(step)
-distance = computeDistanceMatrix(bww.state, indice)
+distance = computeDistanceMatrix(model.state, indice)
 
-correct = np.array([bww.reaction[np.where((distance == i) & (bww.responses == 1) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
-incorrect = np.array([bww.reaction[np.where((distance == i) & (bww.responses  == 0) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
-mean_correct = np.array([np.mean(bww.reaction[np.where((distance == i) & (bww.responses  == 1) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
-var_correct = np.array([sem(bww.reaction[np.where((distance == i) & (bww.responses  == 1) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
-mean_incorrect = np.array([np.mean(bww.reaction[np.where((distance == i) & (bww.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
-var_incorrect = np.array([sem(bww.reaction[np.where((distance == i) & (bww.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+correct = np.array([model.reaction[np.where((distance == i) & (model.responses == 1) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
+incorrect = np.array([model.reaction[np.where((distance == i) & (model.responses  == 0) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
+mean_correct = np.array([np.mean(model.reaction[np.where((distance == i) & (model.responses  == 1) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+var_correct = np.array([sem(model.reaction[np.where((distance == i) & (model.responses  == 1) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+mean_incorrect = np.array([np.mean(model.reaction[np.where((distance == i) & (model.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+var_incorrect = np.array([sem(model.reaction[np.where((distance == i) & (model.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
 
 step, indice = getRepresentativeSteps(human.reaction['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
 rt_meg = computeMeanRepresentativeSteps(step) 
@@ -193,7 +194,7 @@ ind = np.arange(1, len(rt[0])+1)
 ax5 = subplot(2,2,3)
 for i,j,k,l,m in zip([y, y_meg, y_fmri], 
                    ['blue', 'grey', 'grey'], 
-                   ['BWW', 'MEG', 'FMRI'],
+                   ['model', 'MEG', 'FMRI'],
                    [1.0, 0.9, 0.9], 
                    ['-', '--', ':']):
     ax5.plot(ind, i[0], linewidth = 2, color = j, label = k, alpha = l, linestyle = m)

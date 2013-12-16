@@ -37,26 +37,33 @@ class ESelection():
                             "alpha":[0.0, 2.0],
                             "length":[5,20],
                             "noise":[0.0, 1.0]})
+        # Bayesian Working Memory Initialization
+        self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
+        self.p = None
+        self.nb_inferences = 0
+        self.threshold = 0
+        self.n_element = 0
+        self.p_s = np.zeros((self.length, self.n_state))
+        self.p_a_s = np.zeros((self.length, self.n_state, self.n_action))
+        self.p_r_as = np.zeros((self.length, self.n_state, self.n_action, 2))
+        self.p_r_s = np.ones(2)*0.5
+        self.p_ra_s = np.zeros((self.length, self.n_state, self.n_action, 2))
+        # QLearning Initialization
+        self.free = QLearning("",self.states,self.actions,self.gamma, self.alpha, self.beta)
         #Values initialization
-        #self.values = np.zeros((self.n_state, self.n_action))
-        self.values = None
+        self.values = np.ones(self.n_action)*(1./self.n_action)        
         #Various Init
         self.current_state = None
         self.current_action = None
         self.current_strategy = None
-        self.max_entropy = -np.log2(1./self.n_action)
-        # Model initialization
-        self.bwm = BayesianWorkingMemory("v1", self.states, self.actions, self.length, self.noise)
-        self.bwm.initializeList()            
-        self.free = QLearning("ql", self.states, self.actions, self.gamma, self.alpha, self.beta)
-        self.free.initializeList()
+        #self.max_entropy = -np.log2(1./self.n_action)
+        self.max_entropy = 1.0
         #List Init
         self.state = list()
         self.action = list()
         self.responses =list()
         self.reaction = list()
         self.value = list()
-        self.threshold = list()
 
     def getAllParameters(self):
         return dict({'gamma':[self.bounds['gamma'][0],self.gamma,self.bounds['gamma'][1]],
@@ -105,8 +112,7 @@ class ESelection():
             print "Parameters not found"
             sys.exit(0)    
 
-    def initializeList(self):        
-        self.bwm.initializeList()
+    def initializeList(self):                
         self.free.initializeList()
         self.values = np.zeros((self.n_state, self.n_action))
         self.state = list()
@@ -114,10 +120,8 @@ class ESelection():
         self.responses = list()
         self.reaction = list()
         self.value = list()
-        self.threshold = list()
 
     def initialize(self):
-        self.bwm.initialize()
         self.free.initialize()
         self.values = np.zeros((self.n_state, self.n_action))
         self.state.append([])
@@ -125,7 +129,6 @@ class ESelection():
         self.responses.append([])
         self.reaction.append([])
         self.value.append([])
-        self.threshold.append([])
 
     def sampleSoftMax(self, values):
         tmp = np.exp(values*float(self.beta))
@@ -134,32 +137,76 @@ class ESelection():
         return np.sum(np.array(tmp) < np.random.rand())-1
 
     def chooseStrategy(self):
+        return None
 
     def computeValue(self, state):
         return None
 
+    def sample(self, values):
+        tmp = [np.sum(values[0:i]) for i in range(len(values))]
+        return np.sum(np.array(tmp) < np.random.rand())-1
 
+    def inferenceModule(self):
+        tmp = self.p_a_s[self.nb_inferences] * np.vstack(self.p_s[self.nb_inferences])
+        self.p = self.p + self.p_r_as[self.nb_inferences] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[self.nb_inferences].shape)        
+        self.nb_inferences+=1
+
+    def evaluationModule(self):
+        tmp = self.p/np.sum(self.p)
+        self.p_ra_s = tmp[self.current_state]/np.sum(tmp[self.current_state])
+        self.p_r_s = np.sum(self.p_ra_s, axis = 0)
+        self.entropy = -np.sum(self.p_r_s*np.log2(self.p_r_s))
+
+    def decisionModule(self):
+        p_a_rs = self.p_ra_s/self.p_r_s
+        self.values = p_a_rs[:,1]/p_a_rs[:,0]
+        self.values = self.values/np.sum(self.values)        
+        self.current_action = self.sample(self.values)
 
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
         self.free.current_state = self.current_state
-        self.bwm.threshold = self.max_entropy - computeEntropy(self.free.values[self.current_state], self.beta)
-        #self.bwm.threshold = 0.0
-        self.threshold[-1].append(self.bwm.threshold)
-        #print self.bwm.threshold
-        #self.values = self.bwm.computeValue(state)
-        self.action[-1].append(self.bwm.chooseAction(state))
-        self.current_action = self.actions.index(self.action[-1][-1])
+        Pr = np.max(SoftMaxValues(self.free.values[self.current_state], self.beta))
+        Hb = -Pr*np.log2(Pr)-(1.0-Pr)*np.log2(1.0-Pr)
+        self.threshold = self.max_entropy-Hb
+        self.threshold = 0.2
+        self.p = self.uniform[:,:,:]
+        self.entropy = self.max_entropy
+        self.nb_inferences = 0
+        while self.entropy > self.threshold and self.nb_inferences < self.n_element:
+            self.inferenceModule()
+            self.evaluationModule()
+        self.decisionModule()
+        self.value[-1].append(self.values)
+        self.action[-1].append(self.actions[self.current_state])        
         self.free.current_action = self.current_action
-        self.reaction[-1].append(self.bwm.nb_inferences)
+        self.reaction[-1].append(self.nb_inferences)
         return self.action[-1][-1]
 
     def updateValue(self, reward):
-        self.responses[-1].append(int((reward==1)*1))
-        self.bwm.updateValue(reward)
         self.free.updateValue(reward)
-
+        r = int((reward==1)*1)
+        self.responses[-1].append(r)
+        if self.noise:
+            self.p_s = self.p_s*(1-self.noise)+self.noise*(1.0/self.n_state*np.ones(self.p_s.shape))
+            self.p_a_s = self.p_a_s*(1-self.noise)+self.noise*(1.0/self.n_action*np.ones(self.p_a_s.shape))
+            self.p_r_as = self.p_r_as*(1-self.noise)+self.noise*(0.5*np.ones(self.p_r_as.shape))
+        #Shifting memory            
+        if self.n_element < self.length:
+            self.n_element+=1
+        self.p_s[1:self.n_element] = self.p_s[0:self.n_element-1]
+        self.p_a_s[1:self.n_element] = self.p_a_s[0:self.n_element-1]
+        self.p_r_as[1:self.n_element] = self.p_r_as[0:self.n_element-1]
+        self.p_s[0] = 0.0
+        self.p_a_s[0] = np.ones((self.n_state, self.n_action))*(1/float(self.n_action))
+        self.p_r_as[0] = np.ones((self.n_state, self.n_action, 2))*0.5
+        #Adding last choice                 
+        self.p_s[0, self.current_state] = 1.0        
+        self.p_a_s[0, self.current_state] = 0.0
+        self.p_a_s[0, self.current_state, self.current_action] = 1.0
+        self.p_r_as[0, self.current_state, self.current_action] = 0.0
+        self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0        
 
 
 class KSelection():
