@@ -49,15 +49,15 @@ parser.add_option("-o", "--output", action="store", help="The output directory \
 # -----------------------------------
 def testParameters(subject):
    model.initializeList()
-   s = subject
+   sc = subject
    #Dirty Trick to have ordered data
    if list(subject)[1] == '0':
-        s = "".join([list(subject)[0], list(subject)[2]])
-   for bloc in X[s].iterkeys():
-      sys.stdout.write("\r Sujet : %s | Blocs : %i" % (s,bloc)); sys.stdout.flush()                    
+        sc = "".join([list(subject)[0], list(subject)[2]])
+   for bloc in X[sc].iterkeys():
+      sys.stdout.write("\r Sujet : %s | Blocs : %i" % (sc,bloc)); sys.stdout.flush()                    
       cats.reinitialize()
       model.initialize()
-      for trial in X[s][bloc]['sar']:
+      for trial in X[sc][bloc]['sar']:
          state = cvt[trial[0]]
          true_action = trial[1]-1         
          values = model.computeValue(state)         
@@ -91,8 +91,10 @@ noise = 0.01
 length_memory = 8
 threshold = 1.2
 
-nb_trials = human.responses['meg'].shape[1]
-nb_blocs = human.responses['meg'].shape[0]
+case = options.input.split(".")[0]
+
+nb_trials = human.responses[case].shape[1]
+nb_blocs = human.responses[case].shape[0]
 
 cats = CATS()
 
@@ -110,9 +112,13 @@ model = models[options.model]
 #               'bwm':np.zeros(nb_blocs, dtype = [('p_a', 'O')])})
 types = dict({'kalman':[('p_a', 'O'),
                         ('entropy','O'),
-                        ('vpi','O')],
+                        ('vpi','O'),
+                        ('Pr','O'),
+                        ('H','O')],
               'qlearning':[('p_a','O'),
-                          ('entropy','O')],
+                          ('entropy','O'),
+                          ('Pr','O'),
+                          ('H','O')],
               'bwm_v1':[('p_a', 'O'),
                         ('entropy','O'),
                         ('p_r_s', 'O'),
@@ -139,7 +145,7 @@ p = eval(open(options.input, 'r').read())[options.model]
 # Subject testing and saving
 # -----------------------------------
 cvt = dict({i:'s'+str(i) for i in [1,2,3]})
-X = human.subject['meg']
+X = human.subject[case]
 
 filename = options.output+options.model+".mat"
 x = np.zeros((len(X.keys()), 4), dtype = types[options.model])
@@ -147,16 +153,22 @@ x = np.zeros((len(X.keys()), 4), dtype = types[options.model])
 for i in sorted(p.keys()):    
     for j in p[i].iterkeys():
        model.setParameter(j, p[i][j])    
-    testParameters(i)    
+    testParameters(i)        
     for j in xrange(len(model.value)):        
-        for k in fields:
+        for k in fields:            
             if k == 'p_a':                
                 x[sorted(p.keys()).index(i),j][k] = np.matrix(model.value[j])
-            if ('kalman' or 'qlearning') in options.model:
+            elif 'qlearning' in options.model or 'kalman' in options.model:
                 if k == 'entropy':
                     x[sorted(p.keys()).index(i),j][k] = np.matrix(np.vstack(model.reaction[j]))    
-                if options.model == 'kalman' and k == 'vpi':
+                elif options.model == 'kalman' and k == 'vpi':
                     x[sorted(p.keys()).index(i),j][k] = np.matrix(np.vstack(model.vpi[j]))    
+                elif k == 'Pr':
+                    x[sorted(p.keys()).index(i),j][k] = np.max(np.matrix(np.vstack(model.value[j])), 1)
+                elif k == 'H':                    
+                    Pr = np.max(np.vstack(model.value[j]), 1)   
+                    x[sorted(p.keys()).index(i),j][k] = np.matrix(-(Pr*np.log2(Pr)+(1-Pr)*np.log2(1-Pr))) 
+
             elif 'bwm' in options.model:                    
                 if k == 'entropy':
                     x[sorted(p.keys()).index(i),j][k] = np.matrix(np.vstack(model.entropies[j]))

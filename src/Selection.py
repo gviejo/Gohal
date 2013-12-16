@@ -42,7 +42,8 @@ class ESelection():
         self.values = None
         #Various Init
         self.current_state = None
-        self.current_action = None        
+        self.current_action = None
+        self.current_strategy = None
         self.max_entropy = -np.log2(1./self.n_action)
         # Model initialization
         self.bwm = BayesianWorkingMemory("v1", self.states, self.actions, self.length, self.noise)
@@ -132,8 +133,12 @@ class ESelection():
         tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
         return np.sum(np.array(tmp) < np.random.rand())-1
 
+    def chooseStrategy(self):
+
     def computeValue(self, state):
         return None
+
+
 
     def chooseAction(self, state):
         self.state[-1].append(state)

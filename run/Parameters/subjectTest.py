@@ -87,7 +87,7 @@ length_memory = 8
 threshold = 1.2
 
 nb_trials = human.responses['fmri'].shape[1]
-nb_blocs = 100
+nb_blocs = 50
 cats = CATS(nb_trials)
 
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
@@ -182,14 +182,14 @@ for i in xrange(3):
 
 
 ax1 = plt.subplot(1,2,2)
-ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
-ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0]-0.2, linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0]-0.2, rt_fmri[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
 
 ax2 = ax1.twinx()
 ax2.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
 ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
 ax2.set_ylabel("Inference Level")
-ax2.set_ylim(-5, 15)
+ax2.set_ylim(-4, 12)
 ##
 msize = 8.0
 mwidth = 2.5
@@ -214,8 +214,8 @@ ax1.set_ylabel("Reaction time (s)")
 ax1.grid()
 ax1.set_xlabel("Representative steps")
 ax1.set_xticks([1,5,10,15])
-ax1.set_yticks([0.46, 0.50, 0.54])
-ax1.set_ylim(0.43, 0.56)
+#ax1.set_yticks([0.46, 0.50, 0.54])
+#ax1.set_ylim(0.43, 0.56)
 ax1.set_title('B')
 
 ################

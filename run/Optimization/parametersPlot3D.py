@@ -105,6 +105,7 @@ subject = p['subject']
 n_parameters = len(parameters)
 fname = p['fname']
 
+#p['parameters']['threshold'][2] = 1.1
 
 if fname == 'minimize':
     fun = p['max']        
@@ -117,6 +118,9 @@ elif fname == 'fmin':
         bounds = np.array([p['parameters'][p['p_order'][i]][0],p['parameters'][p['p_order'][i]][2]])
         X = X[np.where((X[:,i]>bounds[0])&(X[:,i]<bounds[1]))]
         fun = fun[np.where((X[:,i]>bounds[0])&(X[:,i]<bounds[1]))]
+    if len(X) < 5:
+        X = p['opt'][ind]
+        fun = -p['max'][ind]        
 
 elif fname == 'brute':
     ind = subject.index(options.subject)
