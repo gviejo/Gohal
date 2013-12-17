@@ -28,12 +28,14 @@ def testModel():
         cats.reinitialize()
         model.initialize()
         for j in xrange(nb_trials):
-            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()
+            #sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()
             state = cats.getStimulus(j)
             action = model.chooseAction(state)
+            print state, action
             reward = cats.getOutcome(state, action)            
+            print reward, "\n"
             model.updateValue(reward)
-
+            sys.stdin.readline()
     model.state = convertStimulus(np.array(model.state))
     model.action = convertAction(np.array(model.action))
     model.responses = np.array(model.responses)

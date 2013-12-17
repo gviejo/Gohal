@@ -31,15 +31,15 @@ def testModel():
             sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
             state = cats.getStimulus(j)
             action = model.chooseAction(state)
-            reward = cats.getOutcome(state, action)            
+            reward = cats.getOutcome(state, action)
             model.updateValue(reward)
 
     model.state = convertStimulus(np.array(model.state))
     model.action = convertAction(np.array(model.action))
     model.responses = np.array(model.responses)
     model.reaction = np.array(model.reaction)
-    model.threshold = np.array(model.threshold)
-    
+    model.thr = np.array(model.thr)
+    model.thr_free = np.array(model.thr_free)    
 
 
 # -----------------------------------
@@ -56,8 +56,8 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 noise = 0.0
 length = 12
-alpha = 0.1
-beta = 1.0
+alpha = 0.99
+beta = 3.0
 gamma = 0.5
 
 nb_trials = 42
@@ -88,7 +88,9 @@ print t2-t1
 # -----------------------------------
 pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
 pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
-thr = extractStimulusPresentation(model.threshold, model.state, model.action, model.responses)
+
+thr = extractStimulusPresentation(model.thr, model.state, model.action, model.responses)
+thr_free = extractStimulusPresentation(model.thr_free, model.state, model.action, model.responses)
 
 step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
 rt_fmri = computeMeanRepresentativeSteps(step) 
@@ -96,9 +98,11 @@ rt_fmri = computeMeanRepresentativeSteps(step)
 step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
 rt = computeMeanRepresentativeSteps(step)
 
-step, indice = getRepresentativeSteps(model.threshold, model.state, model.action, model.responses)
+step, indice = getRepresentativeSteps(model.thr, model.state, model.action, model.responses)
 thr_step = computeMeanRepresentativeSteps(step) 
 
+step, indice = getRepresentativeSteps(model.thr_free, model.state, model.action, model.responses)
+thr_free_step = computeMeanRepresentativeSteps(step) 
 
 
 # -----------------------------------
@@ -107,6 +111,7 @@ thr_step = computeMeanRepresentativeSteps(step)
 # -----------------------------------
 # Plot
 # -----------------------------------
+ion()
 figure(figsize = (9,7))
 params = {'backend':'pdf',
           'axes.labelsize':10,
@@ -150,8 +155,9 @@ subplot(2,2,3)
 for i in xrange(3):
     plot(range(1, len(thr['mean'][i])+1), thr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
     errorbar(range(1, len(thr['mean'][i])+1), thr['mean'][i], thr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
-    ylabel("Threshold Level")
-    legend(loc = 'lower right')
+    plot(range(1, len(thr_free['mean'][i])+1), thr_free['mean'][i], linewidth = 2, linestyle = '--', color = colors[i], label= 'Stim '+str(i+1))    
+    errorbar(range(1, len(thr_free['mean'][i])+1), thr_free['mean'][i], thr_free['sem'][i], linewidth = 2, linestyle = '--', color = colors[i])
+    ylabel("H(p(r/s))")
     xticks(range(2,11,2))
     xlabel("Trial")
     xlim(0.8, 10.2)
@@ -161,7 +167,11 @@ for i in xrange(3):
 subplot(2,2,4)
 plot(range(1, len(thr_step[0])+1), thr_step[0], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
 errorbar(range(1, len(thr_step[0])+1), thr_step[0], thr_step[1], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
+plot(range(1, len(thr_free_step[0])+1), thr_free_step[0], linewidth = 2, linestyle = '-', color = 'grey', alpha = 0.9)
+errorbar(range(1, len(thr_free_step[0])+1), thr_free_step[0], thr_free_step[1], linewidth = 2, linestyle = '-', color = 'grey', alpha = 0.9)
 ylim(-0.05, model.max_entropy+0.2)
+ylabel("H(p(r/s))")
+xlabel("Representative step")
 grid()
 
 
@@ -169,6 +179,6 @@ grid()
 
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
 
-savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testKQL.pdf', bbox_inches='tight')
+savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testSelection.pdf', bbox_inches='tight')
 
 show()
