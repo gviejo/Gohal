@@ -49,16 +49,18 @@ class ESelection():
         self.p_r_as = np.zeros((self.length, self.n_state, self.n_action, 2))
         self.p_r_s = np.ones(2)*0.5
         self.p_ra_s = np.ones((self.n_action, 2))*1.0/(self.n_action*2)
+        #self.max_entropy = 1.0
+        self.max_entropy = -np.log2(1./self.n_action)        
+        self.entropy = self.max_entropy
         # QLearning Initialization
         self.free = QLearning("",self.states,self.actions,self.gamma, self.alpha, self.beta)
+        self.free_values =  None
+        self.based_values = None
+        self.Hfree = self.max_entropy
         #Various Init
         self.current_state = None
         self.current_action = None
-        self.current_strategy = None
-        self.max_entropy = -np.log2(1./self.n_action)
-        #self.max_entropy = 1.0
-        self.entropy = self.max_entropy
-        self.Hfree = self.max_entropy
+        self.current_strategy = None        
         #List Init
         self.state = list()
         self.action = list()
@@ -124,6 +126,8 @@ class ESelection():
         self.p_ra_s = np.ones((self.n_action, 2))*1.0/(self.n_action*2)
         self.p_r_s = np.ones(2)*0.5
         self.values = np.ones(self.n_action)*(1./self.n_action)
+        self.free_values = np.ones(self.n_action)*(1./self.n_action)
+        self.based_values = np.ones(self.n_action)*(1./self.n_action)
         self.state.append([])
         self.action.append([])
         self.responses.append([])
@@ -141,6 +145,8 @@ class ESelection():
         self.p_ra_s = np.zeros((self.n_action, 2))*1.0/(self.n_action*2)
         self.p_r_s = np.ones(2)*0.5
         self.values = np.ones(self.n_action)*(1./self.n_action)
+        self.free_values = np.ones(self.n_action)*(1./self.n_action)
+        self.based_values = np.ones(self.n_action)*(1./self.n_action)
         self.state = list()
         self.action = list()
         self.responses = list()
@@ -166,73 +172,85 @@ class ESelection():
         # print "INFERENCE MODULE"
         # print "nb_inferences", self.nb_inferences
         # print "self.p = ", self.p
+        # sys.stdin.readline()
 
     def evaluationModule(self):
         tmp = self.p/np.sum(self.p)
         self.p_ra_s = tmp[self.current_state]/np.sum(tmp[self.current_state])
         self.p_r_s = np.sum(self.p_ra_s, axis = 0)
         p_a_rs = self.p_ra_s/self.p_r_s
-        self.values = p_a_rs[:,1]/p_a_rs[:,0]
-        self.values = self.values/np.sum(self.values)
-        self.entropy = -np.sum(self.values*np.log(self.values))
+        self.based_values = p_a_rs[:,1]/p_a_rs[:,0]
+        self.based_values = self.based_values/np.sum(self.based_values)
+        self.entropy = -np.sum(self.based_values*np.log2(self.based_values))
         #self.entropy = -np.sum(self.p_r_s*np.log2(self.p_r_s))
 
         # print "EVALUATION MODULE"
         # print "self.p_ra_s = ", self.p_ra_s
         # print "self.p_r_s", self.p_r_s
+        # print "self.values ", self.values
         # print "entropy", self.entropy
+        # sys.stdin.readline()
 
     def decisionModule(self):
-        p_a_rs = self.p_ra_s/self.p_r_s
-        self.values = p_a_rs[:,1]/p_a_rs[:,0]
-        #On somme avec le free parce qu'on est un ouf
-        self.values = self.values + self.free.values
-        self.values = self.values/np.sum(self.values)       
+        #p_a_rs = self.p_ra_s/self.p_r_s
+        #self.values = p_a_rs[:,1]/p_a_rs[:,0]
+        self.values = self.based_values + ((self.max_entropy-self.Hfree)/self.max_entropy)*self.free_values
+        self.values = self.values/np.sum(self.values)      
         self.current_action = self.sample(self.values)
         # print "DECISION MODULE"
-        # print "p_ra_s", self.p_ra_s
-        # print "p_r_s", self.p_r_s
-        # print "p_a_rs", p_a_rs
+        # print "based.values", self.based_values
+        # print "free.values", self.free_values
         # print "values", self.values
         # print "action", self.current_action
+        # sys.stdin.readline()
 
-    def decisionSigmoide(self):
-        tmp = 1/(1+np.exp(-(self.entropy-self.Hfree)))
-        return np.random.rand() < tmp
+    def decisionSigmoide(self):        
+        tmp = 1/(1+(float(self.n_element-self.nb_inferences))*np.exp(-(self.entropy-self.Hfree)))
+        d = np.random.uniform(0,1) > tmp
+        # print "Sigmoide Module"
+        # print "Hb-Hf ", self.entropy-self.Hfree
+        # print "nb_element ", self.n_element
+        # print "nb_inferences", self.nb_inferences
+        # print "p(I)  = ", tmp
+        # print "Decision ", d, "\n"
+
+        return d
 
     def chooseAction(self, state):
-        self.state[-1].append(state)
+        self.state[-1].append(state)        
         self.current_state = convertStimulus(state)-1                
-        free_value = self.free.computeValue(state)
-        self.Hfree = -np.sum(free_value*np.log2(free_value))
+        self.free_values = self.free.computeValue(state)
+        self.Hfree = -np.sum(self.free_values*np.log2(self.free_values))
         #Pr = np.max(self.free.computeValue(state))
         #Hb = -Pr*np.log2(Pr)-(1.0-Pr)*np.log2(1.0-Pr)
         #self.threshold = self.max_entropy-Hb
-        #self.threshold = 0.0
+        self.threshold = 0.0
         #self.threshold = self.max_entropy-Hfree
         self.p = self.uniform[:,:,:]
         self.entropy = self.max_entropy
         self.nb_inferences = 0
+        
+        self.thr[-1].append([self.entropy])
+
         # print "state = ",self.current_state
         # print "entropy = ", self.entropy
         # print "nb_inferences = ", self.nb_inferences
         # print "n_element", self.n_element
         # sys.stdin.readline()
+     
         #while self.entropy > self.threshold and self.nb_inferences < self.n_element:
-        while self.decisionSigmoide() and self.nb_inferences < self.n_element:
+        while self.decisionSigmoide() and self.nb_inferences < self.n_element:            
             self.inferenceModule()
-            # sys.stdin.readline()
             self.evaluationModule()
-            # sys.stdin.readline()
+            self.thr[-1][-1].append(self.entropy)
         self.decisionModule()
-        # sys.stdin.readline()
         self.value[-1].append(self.values)
         self.action[-1].append(self.actions[self.current_action])        
         self.free.current_action = self.current_action
         self.reaction[-1].append(self.nb_inferences)
-        self.thr[-1].append(self.max_entropy-self.entropy)        
+        
         self.thr_free[-1].append(self.Hfree)
-        return self.action[-1][-1]
+        return self.actions[self.current_action]
 
     def updateValue(self, reward):
         self.free.updateValue(reward)
@@ -241,6 +259,7 @@ class ESelection():
         r = int((reward==1)*1)
         # print "UPDAT VALUE"
         # print reward
+        # print "self.current_action", self.current_action
 
         # print r,"\n"
 

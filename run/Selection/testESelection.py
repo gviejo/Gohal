@@ -28,11 +28,15 @@ def testModel():
         cats.reinitialize()
         model.initialize()
         for j in xrange(nb_trials):
-            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
+            #sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
             state = cats.getStimulus(j)
+            print "STATE", state
             action = model.chooseAction(state)
+            print "ACTION ", action
             reward = cats.getOutcome(state, action)
+            print "REWARD", reward
             model.updateValue(reward)
+            sys.stdin.readline()
 
     model.state = convertStimulus(np.array(model.state))
     model.action = convertAction(np.array(model.action))
@@ -56,8 +60,8 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 noise = 0.0
 length = 12
-alpha = 0.99
-beta = 3.0
+alpha = 1.0
+beta = 4.0
 gamma = 0.5
 
 nb_trials = 42
@@ -89,8 +93,8 @@ print t2-t1
 pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
 pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
 
-thr = extractStimulusPresentation(model.thr, model.state, model.action, model.responses)
-thr_free = extractStimulusPresentation(model.thr_free, model.state, model.action, model.responses)
+# thr = extractStimulusPresentation(model.thr, model.state, model.action, model.responses)
+# thr_free = extractStimulusPresentation(model.thr_free, model.state, model.action, model.responses)
 
 step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
 rt_fmri = computeMeanRepresentativeSteps(step) 
@@ -98,11 +102,11 @@ rt_fmri = computeMeanRepresentativeSteps(step)
 step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
 rt = computeMeanRepresentativeSteps(step)
 
-step, indice = getRepresentativeSteps(model.thr, model.state, model.action, model.responses)
-thr_step = computeMeanRepresentativeSteps(step) 
+# step, indice = getRepresentativeSteps(model.thr, model.state, model.action, model.responses)
+# thr_step = computeMeanRepresentativeSteps(step) 
 
-step, indice = getRepresentativeSteps(model.thr_free, model.state, model.action, model.responses)
-thr_free_step = computeMeanRepresentativeSteps(step) 
+# step, indice = getRepresentativeSteps(model.thr_free, model.state, model.action, model.responses)
+# thr_free_step = computeMeanRepresentativeSteps(step) 
 
 
 # -----------------------------------
@@ -151,34 +155,45 @@ ax2.set_ylim(-5, 15)
 ax1.grid()
 ############
 
-subplot(2,2,3)
-for i in xrange(3):
-    plot(range(1, len(thr['mean'][i])+1), thr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
-    errorbar(range(1, len(thr['mean'][i])+1), thr['mean'][i], thr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
-    plot(range(1, len(thr_free['mean'][i])+1), thr_free['mean'][i], linewidth = 2, linestyle = '--', color = colors[i], label= 'Stim '+str(i+1))    
-    errorbar(range(1, len(thr_free['mean'][i])+1), thr_free['mean'][i], thr_free['sem'][i], linewidth = 2, linestyle = '--', color = colors[i])
-    ylabel("H(p(r/s))")
-    xticks(range(2,11,2))
-    xlabel("Trial")
-    xlim(0.8, 10.2)
-    ylim(-0.05, model.max_entropy+0.2)
-    #yticks(np.arange(0, 1.2, 0.2))    
-    grid()
-subplot(2,2,4)
-plot(range(1, len(thr_step[0])+1), thr_step[0], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
-errorbar(range(1, len(thr_step[0])+1), thr_step[0], thr_step[1], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
-plot(range(1, len(thr_free_step[0])+1), thr_free_step[0], linewidth = 2, linestyle = '-', color = 'grey', alpha = 0.9)
-errorbar(range(1, len(thr_free_step[0])+1), thr_free_step[0], thr_free_step[1], linewidth = 2, linestyle = '-', color = 'grey', alpha = 0.9)
-ylim(-0.05, model.max_entropy+0.2)
-ylabel("H(p(r/s))")
-xlabel("Representative step")
-grid()
+# subplot(2,2,3)
+# for i in xrange(3):
+#     plot(range(1, len(thr['mean'][i])+1), thr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+#     errorbar(range(1, len(thr['mean'][i])+1), thr['mean'][i], thr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+#     plot(range(1, len(thr_free['mean'][i])+1), thr_free['mean'][i], linewidth = 2, linestyle = '--', color = colors[i], label= 'Stim '+str(i+1))    
+#     errorbar(range(1, len(thr_free['mean'][i])+1), thr_free['mean'][i], thr_free['sem'][i], linewidth = 2, linestyle = '--', color = colors[i])
+#     ylabel("H(p(r/s))")
+#     xticks(range(2,11,2))
+#     xlabel("Trial")
+#     xlim(0.8, 10.2)
+#     ylim(-0.05, model.max_entropy+0.2)
+#     #yticks(np.arange(0, 1.2, 0.2))    
+#     grid()
+# subplot(2,2,4)
+# plot(range(1, len(thr_step[0])+1), thr_step[0], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
+# errorbar(range(1, len(thr_step[0])+1), thr_step[0], thr_step[1], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
+# plot(range(1, len(thr_free_step[0])+1), thr_free_step[0], linewidth = 2, linestyle = '-', color = 'grey', alpha = 0.9)
+# errorbar(range(1, len(thr_free_step[0])+1), thr_free_step[0], thr_free_step[1], linewidth = 2, linestyle = '-', color = 'grey', alpha = 0.9)
+# ylim(-0.05, model.max_entropy+0.2)
+# ylabel("H(p(r/s))")
+# xlabel("Representative step")
+# grid()
 
 
 
 
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
 
-savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testSelection.pdf', bbox_inches='tight')
+#savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testSelection.pdf', bbox_inches='tight')
+
+Hb = model.thr[0]
+Hf = model.thr_free[0]  
+figure()
+
+for i in xrange(nb_trials):
+    subplot(211)
+    plot(Hf[i]-Hb[i])
+    subplot(212)
+    plot(1/(1+np.exp(-3*(Hf[i]-Hb[i]))))
+
 
 show()
