@@ -14,6 +14,250 @@ import numpy as np
 from fonctions import *
 from Models import *
 
+class FSelection():
+    """ Fusionnnnnnn
+    Specially tuned for Brovelli experiment so beware
+
+    """
+    def __init__(self, name, states, actions, alpha, beta, gamma, length, noise, threshold, gain):
+        #State Action Spaces
+        self.states=states
+        self.actions=actions
+        #Parameters
+        self.name = name
+        self.length = length
+        self.noise = noise
+        self.alpha = alpha
+        self.beta = beta
+        self.gamma = gamma
+        self.threshold = float(threshold)
+        self.gain = float(gain)
+        self.n_action = int(len(actions))
+        self.n_state = int(len(states))
+        self.bounds = dict({"gamma":[0.0, 1.0],
+                            "beta":[1.0, 10.0],
+                            "alpha":[0.0, 2.0],
+                            "length":[5, 20],
+                            "threshold":[0.0, 100.0], 
+                            "noise":[0.0, 0.1],
+                            "gain":[0.0,100.0]})
+        #Probability Initialization
+        self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
+        self.p_s = np.zeros((self.length, self.n_state))
+        self.p_a_s = np.zeros((self.length, self.n_state, self.n_action))
+        self.p_r_as = np.zeros((self.length, self.n_state, self.n_action, 2))
+        self.p_a_mf = None
+        self.p_a_mb = None
+        self.p = None
+        self.p_a = None
+        self.pA = None
+        # QValues model free
+        self.values_mf = np.zeros((self.n_state, self.n_action))
+        # Control initialization
+        self.nb_inferences = 0
+        self.n_element= 0
+        self.current_state = None
+        self.current_action = None
+        self.max_entropy = -np.log2(1./self.n_action)
+        self.Hb = self.max_entropy
+        self.Hf = self.max_entropy
+        # List Init
+        self.state = list()
+        self.action = list()
+        self.responses = list()
+        self.reaction = list()
+        self.value = list()
+
+
+    def getAllParameters(self):
+        return dict({'gamma':[self.bounds['gamma'][0],self.gamma,self.bounds['gamma'][1]],
+                     'beta':[self.bounds['beta'][0],self.beta,self.bounds['beta'][1]],
+                     'alpha':[self.bounds['alpha'][0],self.alpha,self.bounds['alpha'][1]],
+                     'length':[self.bounds['length'][0],self.length,self.bounds['length'][1]],
+                     'noise':[self.bounds['noise'][0],self.noise,self.bounds['noise'][1]],
+                     'gain':[self.bounds['gain'][0],self.gain,self.bounds['gain'][1]],
+                     'threshold':[self.bounds['gain'][0],self.threshold,self.bounds['threshold'][1]]})
+
+    def setParameter(self, name, value):
+        if name == 'gamma':
+            if value < self.bounds['gamma'][0]:
+                self.gamma = self.bounds['gamma'][0]
+            elif value > self.bounds['gamma'][1]:
+                self.gamma = self.bounds['gamma'][1]
+            else:
+                self.gamma = value                
+        elif name == 'beta':
+            if value < self.bounds['beta'][0]:
+                self.beta = self.bounds['beta'][0]
+            elif value > self.bounds['beta'][1]:
+                self.beta = self.bounds['beta'][1]
+            else :
+                self.beta = value        
+        elif name == 'alpha':
+            if value < self.bounds['alpha'][0]:
+                self.alpha = self.bounds['alpha'][0]
+            elif value > self.bounds['alpha'][1]:
+                self.alpha = self.bounds['alpha'][1]
+            else:
+                self.alpha = value
+        elif name == 'length':
+            if value < self.bounds['length'][0]:
+                self.length = self.bounds['length'][0]
+            elif value > self.bounds['length'][1]:
+                self.length = self.bounds['length'][1]
+            else:
+                self.length = int(value)
+        elif name == 'noise':
+            if value < self.bounds['noise'][0]:
+                self.noise = self.bounds['noise']
+            elif value > self.bounds['noise'][1]:
+                self.noise = self.bounds['noise'][1]
+            else:
+                self.noise = value
+        elif name == 'gain':
+            if value < self.bounds['gain'][0]:
+                self.gain = self.bounds['gain']
+            elif value > self.bounds['gain'][1]:
+                self.gain = self.bounds['gain']
+            else:
+                self.gain = value
+        elif name == 'threshold':
+            if value < self.bounds['threshold'][0]:
+                self.threshold = self.bounds['threshold']
+            elif value > self.bounds['threshold'][1]:
+                self.threshold = self.bounds['threshold']
+            else:
+                self.threshold = value
+
+        else:
+            print "Parameters not found"
+            sys.exit(0)    
+
+    def initialize(self):
+        self.state.append([])
+        self.action.append([])
+        self.responses.append([])
+        self.reaction.append([])
+        self.value.append([])
+        self.p_s = np.zeros((self.length, self.n_state))
+        self.p_a_s = np.zeros((self.length, self.n_state, self.n_action))
+        self.p_r_as = np.zeros((self.length, self.n_state, self.n_action, 2))
+        self.values_mf = np.zeros((self.n_state, self.n_action))
+        self.nb_inferences = 0
+        self.current_state = None
+        self.current_action = None
+        self.Hb = self.max_entropy
+        self.Hf = self.max_entropy
+
+
+    def initializeList(self):                
+        self.state = list()
+        self.action = list()
+        self.responses = list()
+        self.reaction = list()
+        self.value = list()        
+
+    def sample(self, values):
+        tmp = [np.sum(values[0:i]) for i in range(len(values))]
+        return np.sum(np.array(tmp) < np.random.rand())-1
+
+    def inferenceModule(self):        
+        tmp = self.p_a_s[self.nb_inferences] * np.vstack(self.p_s[self.nb_inferences])
+        self.p = self.p + self.p_r_as[self.nb_inferences] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[self.nb_inferences].shape)
+        self.nb_inferences+=1
+
+    def evaluationModule(self):
+        tmp = self.p/np.sum(self.p)
+        p_ra_s = tmp[self.current_state]/np.sum(tmp[self.current_state])
+        p_r_s = np.sum(p_ra_s, axis = 0)
+        p_a_rs = p_ra_s/p_r_s
+        self.p_a_mb = p_a_rs[:,1]/p_a_rs[:,0]
+        self.p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
+        self.Hb = -np.sum(self.p_a_mb*np.log2(self.p_a_mb))
+
+    def sigmoideModule(self):
+        self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.threshold)*np.exp(-(self.Hb-self.Hf)/self.gain))
+        return np.random.uniform(0,1) > self.pA
+
+    def fusionModule(self):
+        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.beta)
+        self.p_a = self.p_a_mb+((self.max_entropy-self.Hf)/self.max_entropy)*self.p_a_mf
+        self.p_a = self.p_a/np.sum(self.p_a)
+
+    def computeValue(self, state):
+        self.state[-1].append(state)
+        self.current_state = convertStimulus(state)-1
+        self.p = self.uniform[:,:,:]
+        self.Hb = self.max_entropy
+        self.Hf = computeEntropy(self.values_mf[self.current_state], self.beta)
+        self.nb_inferences = 0
+        self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
+        while self.sigmoideModule():
+        #for i in xrange(self.n_element):
+            self.inferenceModule()
+            self.evaluationModule()
+        self.fusionModule()
+        self.current_action = self.sample(self.p_a)            
+        self.value[-1].append(self.p_a)
+        self.reaction[-1].append(self.nb_inferences)
+        #self.reaction[-1].append(self.Hb+self.Hf)
+        
+        return self.p_a
+
+
+    def chooseAction(self, state):
+        self.state[-1].append(state)
+        self.current_state = convertStimulus(state)-1
+        self.p = self.uniform[:,:,:]
+        self.Hb = self.max_entropy
+        self.Hf = computeEntropy(self.values_mf[self.current_state], self.beta)
+        self.nb_inferences = 0
+        self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
+        while self.sigmoideModule():
+        #for i in xrange(self.n_element):
+            self.inferenceModule()
+            self.evaluationModule()
+        self.fusionModule()
+        self.current_action = self.sample(self.p_a)            
+        self.value[-1].append(self.p_a_mb)
+        self.action[-1].append(self.actions[self.current_action])
+        self.reaction[-1].append(self.nb_inferences)
+        #self.reaction[-1].append(self.Hb+self.Hf)
+        
+        return self.action[-1][-1]
+
+    def updateValue(self, reward):
+        r = int((reward==1)*1)
+        self.responses[-1].append(r)
+        if self.noise:
+            self.p_s = self.p_s*(1-self.noise)+self.noise*(1.0/self.n_state*np.ones(self.p_s.shape))
+            self.p_a_s = self.p_a_s*(1-self.noise)+self.noise*(1.0/self.n_action*np.ones(self.p_a_s.shape))
+            self.p_r_as = self.p_r_as*(1-self.noise)+self.noise*(0.5*np.ones(self.p_r_as.shape))
+        #Shifting memory            
+        if self.n_element < self.length:
+            self.n_element+=1
+        self.p_s[1:self.n_element] = self.p_s[0:self.n_element-1]
+        self.p_a_s[1:self.n_element] = self.p_a_s[0:self.n_element-1]
+        self.p_r_as[1:self.n_element] = self.p_r_as[0:self.n_element-1]
+        self.p_s[0] = 0.0
+        self.p_a_s[0] = np.ones((self.n_state, self.n_action))*(1/float(self.n_action))
+        self.p_r_as[0] = np.ones((self.n_state, self.n_action, 2))*0.5
+        # self.p_r_as[0] = np.ones((self.n_state, self.n_action, 2))*0.5
+        # self.p_r_as[0][:,:,0] = 0.2
+        # self.p_r_as[0][:,:,1] = 0.8
+        #Adding last choice                 
+        self.p_s[0, self.current_state] = 1.0        
+        self.p_a_s[0, self.current_state] = 0.0
+        self.p_a_s[0, self.current_state, self.current_action] = 1.0
+        self.p_r_as[0, self.current_state, self.current_action] = 0.0
+        self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0        
+        # Updating model free
+        #r = (reward==0)*0.0+(reward==1)*1.0+(reward==-1)*0.0        
+        delta = float(r)+self.gamma*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
+        self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.alpha*delta
+
+
+
 
 class ESelection():
     """Class that implement selection based on entropy 
@@ -50,7 +294,7 @@ class ESelection():
         self.p_r_s = np.ones(2)*0.5
         self.p_ra_s = np.ones((self.n_action, 2))*1.0/(self.n_action*2)
         #self.max_entropy = 1.0
-        self.max_entropy = -np.log2(1./self.n_action)        
+        self.max_entropy = -np.log2(1./self.n_action) 
         self.entropy = self.max_entropy
         # QLearning Initialization
         self.free = QLearning("",self.states,self.actions,self.gamma, self.alpha, self.beta)

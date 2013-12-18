@@ -18,6 +18,7 @@ sys.path.append("../../src")
 from fonctions import *
 from HumanLearning import HLearning
 from Models import *
+from Selection import FSelection
 from time import time
 from ColorAssociationTasks import CATS
 from Sweep import Likelihood
@@ -67,6 +68,7 @@ noise = 0.000           # variance of white noise for working memory
 length_memory = 7       # size of working memory
 threshold = 1           # inference threshold
 sigma = 0.00002         # updating rate of the average reward
+gain = 0.5
 alpha = 0.5 
 #########################
 #optimization parameters
@@ -83,7 +85,8 @@ cats = CATS(0)
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bwm_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
                'bwm_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
-               'qlearning':QLearning('q', cats.states, cats.actions, gamma, alpha, beta)
+               'qlearning':QLearning('q', cats.states, cats.actions, gamma, alpha, beta),
+               'fusion':FSelection("test", cats.states, cats.actions, alpha, beta, gamma, length_memory, noise, threshold, gain)
               })
 
 opt = Likelihood(human, models[options.model], options.fonction, n_run, n_grid, maxiter, maxfun, xtol, ftol, disp)
