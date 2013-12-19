@@ -334,16 +334,35 @@ class Likelihood():
                 values = self.model.computeValue(state)
                 llh = llh + np.log(values[true_action])
                 self.model.current_action = true_action
-                # print 'bloc',bloc
-                # print 'trial',trial
-                # print 'state',state
-                # print 'action', true_action
-                # print 'values', values
-                # print np.log(values[true_action])
-                # print llh                
-                # sys.stdin.readline()
                 self.model.updateValue(trial[2])                                                        
         return -llh
+
+    def computeFullLikelihood(self, p):
+        """ Performs a likelihood on performances
+            and a linear regression on reaction time
+        """
+        llh = 0.0
+        rt = []
+        for i, v in zip(self.p_order, p):
+            self.model.setParameter(i, v)
+        self.model.initializeList()
+        for bloc in self.X[self.current_subject].iterkeys():
+            self.model.initialize()
+            tmp = self.X[self.current_subject][bloc]
+            for trial, hrt in zip(tmp['sar'],tmp['rt']):            
+                state = self.cvt[trial[0]]                
+                true_action = trial[1]-1
+                values = self.model.computeValue(state)
+                llh = llh + np.log(values[true_action])
+                self.model.current_action = true_action
+                self.model.updateValue(trial[2])                                                        
+                rt.append([hrt[0],self.model.reaction[-1][-1]])
+        rt = np.array(rt)
+        rt = rt-np.min(rt,0)
+        rt = rt/np.max(rt,0)
+        lr = np.sum((rt[:,0]-rt[:,1])**2)
+        return -llh, lr
+
 
     def computeLikelihoodAll(self, p):
         """ Maximize log-likelihood based on 
@@ -570,8 +589,9 @@ class Likelihood():
             sys.exit()
 
     def run(self):        
-        #subject = ['S1', 'S9', 'S8', 'S3']
-        subject = self.subject
+        #subject = ['S1', 'S9', 'S8', 'S3']        
+        subject = ['S2', 'S8', 'S9', 'S11']
+        #subject = self.subject
         pool = Pool(len(subject))
         self.data = pool.map(unwrap_self_multiOptimize, zip([self]*len(subject), subject))                
 

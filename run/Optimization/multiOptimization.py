@@ -14,6 +14,7 @@ sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
 from Models import *
+from Selection import FSelection
 from matplotlib import *
 from pylab import *
 from HumanLearning import HLearning
@@ -57,13 +58,14 @@ kappa = 0.1             # unscentered transform parameters
 beta = 5.5              # temperature for kalman soft-max
 noise = 0.000           # variance of white noise for working memory
 length_memory = 7       # size of working memory
-threshold = 1           # inference threshold
+threshold = 1.0           # inference threshold
 sigma = 0.00002         # updating rate of the average reward
 alpha = 0.5 
+gain = 1.0
 #########################
 #optimization parameters
 n_run = 5000
-n_grid = 30
+n_grid = 10
 maxiter = 10000
 maxfun = 10000
 xtol = 0.01
@@ -75,7 +77,8 @@ cats = CATS(0)
 models = dict({'kalman':KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
                'bwm_v1':BayesianWorkingMemory('v1', cats.states, cats.actions, length_memory, noise, threshold),
                'bwm_v2':BayesianWorkingMemory('v2', cats.states, cats.actions, length_memory, noise, threshold),
-               'qlearning':QLearning('q', cats.states, cats.actions, alpha, beta, gamma)
+               'qlearning':QLearning('q', cats.states, cats.actions, alpha, beta, gamma),
+               'fusion':FSelection("test", cats.states, cats.actions, alpha, beta, gamma, length_memory, noise, threshold, gain)
               })
 
 opt = Likelihood(human, models[options.model], options.fonction, n_run, n_grid, maxiter, maxfun, xtol, ftol, disp)

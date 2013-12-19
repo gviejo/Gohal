@@ -32,6 +32,7 @@ def testModel():
             state = cats.getStimulus(j)
             print "STATE", state
             action = model.chooseAction(state)
+            
             print "ACTION ", action
             reward = cats.getOutcome(state, action)
             print "REWARD", reward

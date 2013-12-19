@@ -53,13 +53,13 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.0001
+noise = 0.001
 length = 12
 alpha = 1.2
 beta = 4.0
 gamma = 0.5
-threshold = 0.42
-gain = 0.8
+threshold = 1.0
+gain = 1.0
 
 nb_trials = 42
 nb_blocs = 50
@@ -147,7 +147,7 @@ ax2 = ax1.twinx()
 ax2.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
 ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
 ax2.set_ylabel("Inference Level")
-ax2.set_ylim(-5, 15)
+#x2.set_ylim(-5, 15)
 ax1.grid()
 ############
 

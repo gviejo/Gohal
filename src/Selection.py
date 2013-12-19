@@ -109,23 +109,23 @@ class FSelection():
                 self.length = int(value)
         elif name == 'noise':
             if value < self.bounds['noise'][0]:
-                self.noise = self.bounds['noise']
+                self.noise = self.bounds['noise'][0]
             elif value > self.bounds['noise'][1]:
                 self.noise = self.bounds['noise'][1]
             else:
                 self.noise = value
         elif name == 'gain':
             if value < self.bounds['gain'][0]:
-                self.gain = self.bounds['gain']
+                self.gain = self.bounds['gain'][0]
             elif value > self.bounds['gain'][1]:
-                self.gain = self.bounds['gain']
+                self.gain = self.bounds['gain'][1]
             else:
                 self.gain = value
         elif name == 'threshold':
             if value < self.bounds['threshold'][0]:
-                self.threshold = self.bounds['threshold']
+                self.threshold = self.bounds['threshold'][0]
             elif value > self.bounds['threshold'][1]:
-                self.threshold = self.bounds['threshold']
+                self.threshold = self.bounds['threshold'][1]
             else:
                 self.threshold = value
 
@@ -144,6 +144,7 @@ class FSelection():
         self.p_r_as = np.zeros((self.length, self.n_state, self.n_action, 2))
         self.values_mf = np.zeros((self.n_state, self.n_action))
         self.nb_inferences = 0
+        self.n_element = 0
         self.current_state = None
         self.current_action = None
         self.Hb = self.max_entropy
@@ -173,16 +174,33 @@ class FSelection():
         p_a_rs = p_ra_s/p_r_s
         self.p_a_mb = p_a_rs[:,1]/p_a_rs[:,0]
         self.p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
+        #p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
         self.Hb = -np.sum(self.p_a_mb*np.log2(self.p_a_mb))
 
+
+
     def sigmoideModule(self):
-        self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.threshold)*np.exp(-(self.Hb-self.Hf)/self.gain))
+        x = 2*self.max_entropy-self.Hb-self.Hf
+        #x = self.max_entropy-self.Hf
+        self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.threshold)*np.exp(-x*self.gain))
         return np.random.uniform(0,1) > self.pA
+
+
+
 
     def fusionModule(self):
         self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.beta)
-        self.p_a = self.p_a_mb+((self.max_entropy-self.Hf)/self.max_entropy)*self.p_a_mf
-        self.p_a = self.p_a/np.sum(self.p_a)
+
+        self.p_a = (self.nb_inferences>0)*1.0*self.p_a_mb+((self.max_entropy-self.Hf)/self.max_entropy)*self.p_a_mf
+        #self.p_a = (self.nb_inferences>0)*1.0*self.p_a_mb+((self.max_entropy-self.Hf)/self.max_entropy)*self.values_mf[self.current_state]
+        # print self.nb_inferences
+        # print self.p_a
+        #self.p_a = self.p_a/np.sum(self.p_a)
+        #print self.p_a
+        #sys.stdin.readline()
+        self.p_a = SoftMaxValues(self.p_a, self.beta)
+        #print self.p_a
+        # sys.stdin.readline()
 
     def computeValue(self, state):
         self.state[-1].append(state)
@@ -199,9 +217,8 @@ class FSelection():
         self.fusionModule()
         self.current_action = self.sample(self.p_a)            
         self.value[-1].append(self.p_a)
-        self.reaction[-1].append(self.nb_inferences)
+        self.reaction[-1].append(self.nb_inferences*(self.max_entropy-self.Hb)+self.Hf)
         #self.reaction[-1].append(self.Hb+self.Hf)
-        
         return self.p_a
 
 
@@ -221,7 +238,7 @@ class FSelection():
         self.current_action = self.sample(self.p_a)            
         self.value[-1].append(self.p_a_mb)
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(self.nb_inferences)
+        self.reaction[-1].append(self.nb_inferences*(self.max_entropy-self.Hb)+self.Hf)
         #self.reaction[-1].append(self.Hb+self.Hf)
         
         return self.action[-1][-1]

@@ -72,7 +72,7 @@ gain = 0.5
 alpha = 0.5 
 #########################
 #optimization parameters
-n_run = 3
+n_run = 1
 n_grid = 30
 maxiter = 10000
 maxfun = 10000
@@ -99,10 +99,12 @@ opt = Likelihood(human, models[options.model], options.fonction, n_run, n_grid, 
 t1 = time()
 opt.current_subject = options.subject
 #p = np.array([1.93, 9.0, 0.96])
+p = np.array([10, 0.0, 0.5, 2.0, 1.0, 2.0, 0.3])
 #llh = opt.computeLikelihood(p)
+rt = opt.computeFullLikelihood(p)
 #print llh
-opt.optimize(options.subject)
-opt.save(options.output+options.subject+"_"+options.model+"_"+options.fonction+"_"+str(datetime.datetime.now()).replace(" ", "_"))
+#opt.optimize(options.subject)
+#opt.save(options.output+options.subject+"_"+options.model+"_"+options.fonction+"_"+str(datetime.datetime.now()).replace(" ", "_"))
 
 t2 = time()
 
