@@ -27,6 +27,9 @@ class CATS():
         self.order = self.createOrderCorrect(self.states, [1,3,4])
         self.used = []
         self.correct = []
+        self.one_error = False
+        self.three_error = False
+        self.four_error = False
         
     def reinitialize(self):
         #self.__init__(self.nb_trials)
@@ -36,6 +39,10 @@ class CATS():
         self.order = self.createOrderCorrect(self.states, [1,3,4])
         self.used = []
         self.correct = []
+        self.one_error = False
+        self.three_error = False
+        self.four_error = False
+        
 
     def createOrderCorrect(self, states, nb_incorrect):
         s = list(states)
@@ -77,7 +84,20 @@ class CATS():
     def getOutcome(self, state, action):
         if state in self.asso.keys() and action in self.asso[state].keys():
             return self.asso[state][action]
-        elif np.sum(self.incorrect[self.states.index(state)] == -1) == self.order[state] and 1 not in self.asso[state].values():
+        elif np.sum(self.incorrect[self.states.index(state)] == -1) == 1 and 1 not in self.asso[state].values() and not self.one_error:
+            self.one_error = True
+            self.asso[state][action] = 1
+            self.used.append(action)
+            self.correct.append(state+" => "+action)
+            return 1
+        elif np.sum(self.incorrect[self.states.index(state)] == -1) == 3 and 1 not in self.asso[state].values() and not self.three_error:
+            self.three_error = True
+            self.asso[state][action] = 1
+            self.used.append(action)
+            self.correct.append(state+" => "+action)
+            return 1
+        elif np.sum(self.incorrect[self.states.index(state)] == -1) == 4 and 1 not in self.asso[state].values() and not self.four_error:
+            self.four_error = True
             self.asso[state][action] = 1
             self.used.append(action)
             self.correct.append(state+" => "+action)

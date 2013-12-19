@@ -28,10 +28,14 @@ def testModel():
         cats.reinitialize()
         model.initialize()
         for j in xrange(nb_trials):
-            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
+#            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
             state = cats.getStimulus(j)
+            print "STATE",state
             action = model.chooseAction(state)
+            print "ACTION",action
             reward = cats.getOutcome(state, action)
+            print "REWARD",reward,"\n"
+            print cats.asso, "\n"
             model.updateValue(reward)
 
     model.state = convertStimulus(np.array(model.state))
@@ -54,12 +58,12 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
 noise = 0.001
-length = 12
-alpha = 1.2
-beta = 4.0
+length = 10
+alpha = 0.9
+beta = 2.0
 gamma = 0.5
-threshold = 1.0
-gain = 1.0
+threshold = 10.0
+gain = 2.0
 
 nb_trials = 42
 nb_blocs = 50

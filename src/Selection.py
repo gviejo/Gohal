@@ -180,9 +180,16 @@ class FSelection():
 
 
     def sigmoideModule(self):
+        print "N element ",self.n_element
+        print "N inferences", self.nb_inferences
+        print "Hb", self.Hb
+        print "Hf", self.Hf
         x = 2*self.max_entropy-self.Hb-self.Hf
+        print "x", x
         #x = self.max_entropy-self.Hf
         self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.threshold)*np.exp(-x*self.gain))
+        print "pA",self.pA
+        #sys.stdin.readline()
         return np.random.uniform(0,1) > self.pA
 
 
@@ -190,7 +197,7 @@ class FSelection():
 
     def fusionModule(self):
         self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.beta)
-
+        
         self.p_a = (self.nb_inferences>0)*1.0*self.p_a_mb+((self.max_entropy-self.Hf)/self.max_entropy)*self.p_a_mf
         #self.p_a = (self.nb_inferences>0)*1.0*self.p_a_mb+((self.max_entropy-self.Hf)/self.max_entropy)*self.values_mf[self.current_state]
         # print self.nb_inferences
@@ -198,7 +205,7 @@ class FSelection():
         #self.p_a = self.p_a/np.sum(self.p_a)
         #print self.p_a
         #sys.stdin.readline()
-        self.p_a = SoftMaxValues(self.p_a, self.beta)
+        self.p_a = SoftMaxValues(self.p_a, 10.0)
         #print self.p_a
         # sys.stdin.readline()
 
@@ -238,7 +245,8 @@ class FSelection():
         self.current_action = self.sample(self.p_a)            
         self.value[-1].append(self.p_a_mb)
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(self.nb_inferences*(self.max_entropy-self.Hb)+self.Hf)
+        #self.reaction[-1].append(self.nb_inferences*(self.max_entropy-self.Hb)+self.Hf)
+        self.reaction[-1].append(self.nb_inferences*(self.max_entropy-self.Hb)+(self.max_entropy*self.Hf-self.Hf**2)/self.max_entropy)
         #self.reaction[-1].append(self.Hb+self.Hf)
         
         return self.action[-1][-1]
@@ -269,9 +277,13 @@ class FSelection():
         self.p_r_as[0, self.current_state, self.current_action] = 0.0
         self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0        
         # Updating model free
-        #r = (reward==0)*0.0+(reward==1)*1.0+(reward==-1)*0.0        
+        #r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
         delta = float(r)+self.gamma*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
         self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.alpha*delta
+        # Prediction in model based
+        # tmp = self.p_a_s[0] * np.vstack(self.p_s[0])
+        # self.p = self.p + self.p_r_as[0] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[0].shape)
+        # self.evaluationModule()
 
 
 
