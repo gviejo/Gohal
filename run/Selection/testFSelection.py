@@ -57,16 +57,16 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.001
+noise = 0.0001
 length = 10
-alpha = 0.9
-beta = 2.0
-gamma = 0.5
-threshold = 10.0
+alpha = 0.8
+beta = 3.1
+gamma = 0.4
+threshold = 4.0
 gain = 2.0
 
 nb_trials = 42
-nb_blocs = 50
+nb_blocs = 100
 cats = CATS(nb_trials)
 
 model = FSelection("test", cats.states, cats.actions, alpha, beta, gamma, length, noise, threshold, gain)
@@ -184,4 +184,5 @@ ax1.grid()
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
 
 #savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testSelection.pdf', bbox_inches='tight')
+savefig('/home/viejo/Desktop/figure_guillaume_a_tord.pdf', bbox_inches='tight')
 show()

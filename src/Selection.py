@@ -53,6 +53,7 @@ class FSelection():
         self.pA = None
         # QValues model free
         self.values_mf = np.zeros((self.n_state, self.n_action))
+        self.values_net = None
         # Control initialization
         self.nb_inferences = 0
         self.n_element= 0
@@ -173,41 +174,44 @@ class FSelection():
         p_r_s = np.sum(p_ra_s, axis = 0)
         p_a_rs = p_ra_s/p_r_s
         self.p_a_mb = p_a_rs[:,1]/p_a_rs[:,0]
-        self.p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
-        #p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
-        self.Hb = -np.sum(self.p_a_mb*np.log2(self.p_a_mb))
+        #self.p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
+        p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
+        #self.Hb = -np.sum(self.p_a_mb*np.log2(self.p_a_mb))
+        self.Hb = -np.sum(p_a_mb*np.log2(p_a_mb))
 
 
 
     def sigmoideModule(self):
-        print "N element ",self.n_element
-        print "N inferences", self.nb_inferences
-        print "Hb", self.Hb
-        print "Hf", self.Hf
+        # print "N element ",self.n_element
+        # print "N inferences", self.nb_inferences
+        # print "Hb", self.Hb
+        # print "Hf", self.Hf
         x = 2*self.max_entropy-self.Hb-self.Hf
-        print "x", x
+        # print "x", x
         #x = self.max_entropy-self.Hf
         self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.threshold)*np.exp(-x*self.gain))
-        print "pA",self.pA
+        # print "pA",self.pA
         #sys.stdin.readline()
         return np.random.uniform(0,1) > self.pA
 
 
-
-
     def fusionModule(self):
-        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.beta)
-        
-        self.p_a = (self.nb_inferences>0)*1.0*self.p_a_mb+((self.max_entropy-self.Hf)/self.max_entropy)*self.p_a_mf
+        #self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.beta)
+        #print "W", (self.max_entropy-self.Hf)/self.max_entropy
+        #print "MF", ((self.max_entropy-self.Hf)/self.max_entropy)*self.p_a_mf
+        #print "MB", self.p_a_mb
+        #self.p_a = (self.Hf/self.max_entropy)*self.p_a_mb+((self.max_entropy-self.Hf)/self.max_entropy)*self.p_a_mf
+        #self.p_a = (self.nb_inferences>0)*1.0*self.p_a_mb+((self.max_entropy-self.Hf)/self.max_entropy)*self.p_a_mf
         #self.p_a = (self.nb_inferences>0)*1.0*self.p_a_mb+((self.max_entropy-self.Hf)/self.max_entropy)*self.values_mf[self.current_state]
         # print self.nb_inferences
-        # print self.p_a
+        w = (self.max_entropy-self.Hb)/self.max_entropy
+        self.values_net = w*self.p_a_mb+(1-w)*self.values_mf[self.current_state]
+        print "Q(s,a)", self.values_net
         #self.p_a = self.p_a/np.sum(self.p_a)
-        #print self.p_a
         #sys.stdin.readline()
-        self.p_a = SoftMaxValues(self.p_a, 10.0)
-        #print self.p_a
-        # sys.stdin.readline()
+        self.p_a = SoftMaxValues(self.values_net, self.beta)
+        print "p(a)", self.p_a
+        #sys.stdin.readline()
 
     def computeValue(self, state):
         self.state[-1].append(state)
@@ -246,7 +250,8 @@ class FSelection():
         self.value[-1].append(self.p_a_mb)
         self.action[-1].append(self.actions[self.current_action])
         #self.reaction[-1].append(self.nb_inferences*(self.max_entropy-self.Hb)+self.Hf)
-        self.reaction[-1].append(self.nb_inferences*(self.max_entropy-self.Hb)+(self.max_entropy*self.Hf-self.Hf**2)/self.max_entropy)
+        #self.reaction[-1].append(self.nb_inferences*(self.max_entropy-self.Hb)+(self.max_entropy*self.Hf-self.Hf**2)/self.max_entropy)
+        self.reaction[-1].append(self.nb_inferences)
         #self.reaction[-1].append(self.Hb+self.Hf)
         
         return self.action[-1][-1]
