@@ -15,7 +15,7 @@ from fonctions import *
 from Models import *
 
 class FSelection():
-    """ Fusionnnnnnn
+    """ fusion strategy
     Specially tuned for Brovelli experiment so beware
 
     """
