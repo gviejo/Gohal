@@ -206,11 +206,11 @@ class FSelection():
         # print self.nb_inferences
         w = (self.max_entropy-self.Hb)/self.max_entropy
         self.values_net = w*self.p_a_mb+(1-w)*self.values_mf[self.current_state]
-        print "Q(s,a)", self.values_net
+        # print "Q(s,a)", self.values_net
         #self.p_a = self.p_a/np.sum(self.p_a)
         #sys.stdin.readline()
         self.p_a = SoftMaxValues(self.values_net, self.beta)
-        print "p(a)", self.p_a
+        # print "p(a)", self.p_a
         #sys.stdin.readline()
 
     def computeValue(self, state):
@@ -228,7 +228,8 @@ class FSelection():
         self.fusionModule()
         self.current_action = self.sample(self.p_a)            
         self.value[-1].append(self.p_a)
-        self.reaction[-1].append(self.nb_inferences*(self.max_entropy-self.Hb)+self.Hf)
+        #self.reaction[-1].append(self.nb_inferences*(self.max_entropy-self.Hb)+self.Hf)
+        self.reaction[-1].append(self.nb_inferences+1)
         #self.reaction[-1].append(self.Hb+self.Hf)
         return self.p_a
 
@@ -282,7 +283,7 @@ class FSelection():
         self.p_r_as[0, self.current_state, self.current_action] = 0.0
         self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0        
         # Updating model free
-        #r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
+        r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
         delta = float(r)+self.gamma*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
         self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.alpha*delta
         # Prediction in model based

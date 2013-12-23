@@ -337,14 +337,14 @@ class Likelihood():
                 self.model.updateValue(trial[2])                                                        
         return -llh
 
-    def computeFullLikelihood(self, p):
+    def computeFullLikelihood(self):
         """ Performs a likelihood on performances
             and a linear regression on reaction time
         """
         llh = 0.0
         rt = []
-        for i, v in zip(self.p_order, p):
-            self.model.setParameter(i, v)
+        # for i, v in zip(self.p_order, p):
+        #     self.model.setParameter(i, v)
         self.model.initializeList()
         for bloc in self.X[self.current_subject].iterkeys():
             self.model.initialize()
@@ -358,7 +358,7 @@ class Likelihood():
                 self.model.updateValue(trial[2])                                                        
                 rt.append([hrt[0],self.model.reaction[-1][-1]])
         rt = np.array(rt)
-        rt = rt-np.min(rt,0)
+        rt = rt-np.min(rt,0)        
         rt = rt/np.max(rt,0)
         lr = np.sum((rt[:,0]-rt[:,1])**2)
         return -llh, lr

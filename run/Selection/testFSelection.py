@@ -28,14 +28,14 @@ def testModel():
         cats.reinitialize()
         model.initialize()
         for j in xrange(nb_trials):
-#            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
+            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
             state = cats.getStimulus(j)
-            print "STATE",state
+            # print "STATE",state
             action = model.chooseAction(state)
-            print "ACTION",action
+            # print "ACTION",action
             reward = cats.getOutcome(state, action)
-            print "REWARD",reward,"\n"
-            print cats.asso, "\n"
+            # print "REWARD",reward,"\n"
+            # print cats.asso, "\n"
             model.updateValue(reward)
 
     model.state = convertStimulus(np.array(model.state))
@@ -50,7 +50,7 @@ def testModel():
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
+human = HLearning(dict({'meg':('/home/guillaume/Gohal/PEPS_GoHaL/Beh_Model/',48), 'fmri':('/home/guillaume/Gohal/fMRI',39)}))
 # -----------------------------------
 
 
@@ -184,5 +184,5 @@ ax1.grid()
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
 
 #savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testSelection.pdf', bbox_inches='tight')
-savefig('/home/viejo/Desktop/figure_guillaume_a_tord.pdf', bbox_inches='tight')
+#savefig('/home/viejo/Desktop/figure_guillaume_a_tord.pdf', bbox_inches='tight')
 show()
