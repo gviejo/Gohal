@@ -169,7 +169,7 @@ class FSelection():
             self.p_a_s = self.p_a_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_action*np.ones(self.p_a_s.shape))
             self.p_r_as = self.p_r_as*(1-self.parameters['noise'])+self.parameters['noise']*(0.5*np.ones(self.p_r_as.shape))
         #Shifting memory            
-        if self.n_element < self.parameters['length']:
+        if self.n_element < int(self.parameters['length']):
             self.n_element+=1
         self.p_s[1:self.n_element] = self.p_s[0:self.n_element-1]
         self.p_a_s[1:self.n_element] = self.p_a_s[0:self.n_element-1]
@@ -374,7 +374,7 @@ class KSelection():
             self.p_a_s = self.p_a_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_action*np.ones(self.p_a_s.shape))
             self.p_r_as = self.p_r_as*(1-self.parameters['noise'])+self.parameters['noise']*(0.5*np.ones(self.p_r_as.shape))
         #Shifting memory            
-        if self.n_element < self.parameters['length']:
+        if self.n_element < int(self.parameters['length']):
             self.n_element+=1
         self.p_s[1:self.n_element] = self.p_s[0:self.n_element-1]
         self.p_a_s[1:self.n_element] = self.p_a_s[0:self.n_element-1]
