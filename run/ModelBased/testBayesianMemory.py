@@ -23,26 +23,21 @@ from time import time
 # FONCTIONS
 # -----------------------------------
 def testModel():
-    model.initializeList()
+    model.startExp()
     for i in xrange(nb_blocs):
         cats.reinitialize()
-        model.initialize()
+        model.startBloc()
         for j in xrange(nb_trials):
-            #sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()
+            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()
             state = cats.getStimulus(j)
             action = model.chooseAction(state)
-            print state, action
             reward = cats.getOutcome(state, action)            
-            print reward, "\n"
             model.updateValue(reward)
-            sys.stdin.readline()
     model.state = convertStimulus(np.array(model.state))
     model.action = convertAction(np.array(model.action))
     model.responses = np.array(model.responses)
     model.reaction = np.array(model.reaction)
     model.entropies = np.array(model.entropies)    
-    model.choice = np.array(model.choice)
-
 
 # -----------------------------------
 
@@ -56,24 +51,21 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.0001
-length_memory = 10
-threshold = 0.1
-
+parameters = dict({'length':10,
+                    'noise':0.001,
+                    'threshold':0.8})
 
 nb_trials = 48
 nb_blocs = 400
 cats = CATS(nb_trials)
 
-model = BayesianWorkingMemory("v1_test", cats.states, cats.actions, length_memory, noise, threshold)
+model = BayesianWorkingMemory(cats.states, cats.actions, parameters)
 
 # -----------------------------------
 
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
-model.initializeList()
-model.initialize()
 
 t1 = time()
 testModel()
@@ -126,7 +118,7 @@ y_fmri = computeMeanRepresentativeSteps(step)
 
 # Probability of correct responses
 figure(figsize = (11,8))
-ion()
+
 params = {'backend':'pdf',
           'axes.labelsize':10,
           'text.fontsize':10,

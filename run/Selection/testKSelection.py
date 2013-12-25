@@ -1,119 +1,107 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
+Test for Keramati Selection
 
-to test keramati model
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
-import os
-from optparse import OptionParser
 import numpy as np
-#from pylab import *
-sys.path.append("../src")
+sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
-from HumanLearning import HLearning
-from Models import *
+from Selection import KSelection
 from matplotlib import *
 from pylab import *
-from Sweep import Optimization
-from Selection import KSelection
-# -----------------------------------
-# ARGUMENT MANAGER
-# -----------------------------------
-#if not sys.argv[1:]:
-#    sys.stdout.write("Sorry: you must specify at least 1 argument")
-#    sys.stdout.write("More help avalaible with -h or --help option")
-#    sys.exit(0)
-parser = OptionParser()
-parser.add_option("-i", "--input", action="store", help="The name of the directory to load", default=False)
-(options, args) = parser.parse_args() 
-# -----------------------------------
+from HumanLearning import HLearning
+from time import time
+
 
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-
 def testModel():
+    model.startExp()
     for i in xrange(nb_blocs):
-        sys.stdout.write("\r Testing model | Blocs : %i" % i); sys.stdout.flush()                        
         cats.reinitialize()
-        selection.initialize()
+        model.startBloc()
         for j in xrange(nb_trials):
+            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
             state = cats.getStimulus(j)
-            action = selection.chooseAction(state)
+            action = model.chooseAction(state)
             reward = cats.getOutcome(state, action)
-            selection.updateValue(reward)
-    selection.state = convertStimulus(np.array(selection.state))
-    selection.action = convertAction(np.array(selection.action))
-    selection.responses = np.array(selection.responses)
-    selection.rrate = np.array(selection.rrate)
-    selection.vpi = np.array(selection.vpi)
-    selection.model_used = np.array(selection.model_used)
-    selection.n_inf = np.array(selection.n_inf)
+            model.updateValue(reward)
+
+    model.state = convertStimulus(np.array(model.state))
+    model.action = convertAction(np.array(model.action))
+    model.responses = np.array(model.responses)
+    model.reaction = np.array(model.reaction)
+    
+
+
 # -----------------------------------
 
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI',39)}))
+human = HLearning(dict({'meg':('/home/guillaume/Gohal/PEPS_GoHaL/Beh_Model/',48), 'fmri':('/home/guillaume/Gohal/fMRI',39)}))
 # -----------------------------------
+
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-eta = 0.0001     # variance of evolution noise v
-var_obs = 0.05   # variance of observation noise n
-gamma = 0.95     # discount factor
-init_cov = 10   # initialisation of covariance matrice
-kappa = 0.1      # unscentered transform parameters
-beta = 1.5    
-noise_width = 0.01
-length_memory = 10
-sigma = 0.1
-tau = 0.05
+parameters = dict({'noise':0.0001,
+                    'length':10,
+                    'eta':0.0001,
+                    'beta':3.0,
+                    'gamma':0.9,
+                    'threshold':0.8,
+                    'sigma':0.5})
 
-nb_trials = human.responses['meg'].shape[1]
-nb_blocs = human.responses['meg'].shape[0]
-
-
+nb_trials = 42
+nb_blocs = 100
 cats = CATS(nb_trials)
 
-selection = KSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-                       BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0),
-                       sigma, tau)
-                       
-
-opt = Optimization(human, cats, nb_trials, nb_blocs)
-
-data = dict()
+model = KSelection(cats.states, cats.actions, parameters)
 
 # -----------------------------------
 
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
-
+t1 = time()
 testModel()
+t2 = time()
 
-data['keramati'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
-data['used'] = extractStimulusPresentation(selection.model_used, selection.state, selection.action, selection.responses)
-data['r'] = extractStimulusPresentation(selection.rrate, selection.state, selection.action, selection.responses)
-tmp =getRepresentativeSteps(selection.n_inf, selection.state, selection.action, selection.responses)
-data['rt'] = computeMeanRepresentativeSteps(tmp[0])
+print "\n"
+print t2-t1
 # -----------------------------------
-data['vpi'] = dict()
-for i in xrange(len(cats.actions)):
-    data['vpi'][cats.actions[i]] = extractStimulusPresentation(selection.vpi[:,:,i], selection.state, selection.action, selection.responses)
 
 
 # -----------------------------------
 #order data
 # -----------------------------------
-data['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
+pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+
+# thr = extractStimulusPresentation(model.thr, model.state, model.action, model.responses)
+# thr_free = extractStimulusPresentation(model.thr_free, model.state, model.action, model.responses)
+
+step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+rt_fmri = computeMeanRepresentativeSteps(step) 
+
+step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
+rt = computeMeanRepresentativeSteps(step)
+
+# step, indice = getRepresentativeSteps(model.thr, model.state, model.action, model.responses)
+# thr_step = computeMeanRepresentativeSteps(step) 
+
+# step, indice = getRepresentativeSteps(model.thr_free, model.state, model.action, model.responses)
+# thr_free_step = computeMeanRepresentativeSteps(step) 
+
 
 # -----------------------------------
 
@@ -121,54 +109,73 @@ data['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus
 # -----------------------------------
 # Plot
 # -----------------------------------
-ion()
-fig = figure(figsize=(14, 5))
+figure(figsize = (9,7))
 params = {'backend':'pdf',
-          'axes.labelsize':9,
+          'axes.labelsize':10,
           'text.fontsize':10,
           'legend.fontsize':10,
           'xtick.labelsize':8,
           'ytick.labelsize':8,
-          'text.usetex':False}
-dashes = ['-', '--', ':']
-
+          'text.usetex':False}          
+#rcParams.update(params)                  
+colors = ['blue', 'red', 'green']
+subplot(2,2,1)
 for i in xrange(3):
-    subplot(4,3,i+1)
-    plot(range(1, len(data['keramati']['mean'][i])+1), data['keramati']['mean'][i], linewidth = 2, color = 'black')
-    errorbar(range(1, len(data['keramati']['mean'][i])+1), data['keramati']['mean'][i], data['keramati']['sem'][i], linewidth = 2, color = 'black')
-    plot(range(1, len(data['meg']['mean'][i])+1), data['meg']['mean'][i], linewidth = 2, color = 'black', linestyle = '--')
-    errorbar(range(1, len(data['meg']['mean'][i])+1), data['meg']['mean'][i], data['meg']['sem'][i], linewidth = 2, color = 'black', linestyle = '--')
-    legend()
+    plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+    errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+    plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
+    #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
+    ylabel("Probability correct responses")
+    legend(loc = 'lower right')
+    xticks(range(2,11,2))
+    xlabel("Trial")
+    xlim(0.8, 10.2)
+    ylim(-0.05, 1.05)
+    yticks(np.arange(0, 1.2, 0.2))
+    title('A')
     grid()
-    ylim(0,1)
-    xlim(0,10)
-    title("Stimulus "+str(i+1))
 
-for i,j in zip([4,5,6], xrange(3)):
-    subplot(4,3,i)
-    plot(range(1, len(data['r']['mean'][j])+1),data['r']['mean'][j], linewidth = 2, linestyle = '--')
-    for a in cats.actions:
-        plot(range(1, len(data['vpi'][a]['mean'][j])+1),data['vpi'][a]['mean'][j], linewidth = 2, label = a)
-        errorbar(range(1, len(data['vpi'][a]['mean'][j])+1),data['vpi'][a]['mean'][j], data['vpi'][a]['sem'][j], linewidth = 2)
-    grid()
-    xlim(0,10)
-    legend()
 
-for i,j in zip([7,8,9], xrange(3)):
-    subplot(4,3,i)
-    plot(range(1, len(data['used']['mean'][j])+1),data['used']['mean'][j], 'o-', linewidth = 2)
-    grid()
-    xlim(0,10)
-    legend()
-    ylabel("$N^{Based}_a / N^{Free}_a$")
+ax1 = plt.subplot(2,2,2)
+ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
 
-subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86, hspace = 0.35)
+ax2 = ax1.twinx()
+ax2.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
+ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
+ax2.set_ylabel("Inference Level")
+#x2.set_ylim(-5, 15)
+ax1.grid()
+############
 
-subplot(4,2,7)
-#rrorbar(range(1, len(data['rt'][0])+1), data['rt'][0], data['rt'][1], 'o-', linewidth = 2)
-plot(range(1, len(data['rt'][0])+1), data['rt'][0], 'o-', linewidth = 2)
-xlabel("Representative Steps")
-ylabel("$Length * R(B/F)r")
-grid()
-#fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig2.pdf', bbox_inches='tight')
+# subplot(2,2,3)
+# for i in xrange(3):
+#     plot(range(1, len(thr['mean'][i])+1), thr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+#     errorbar(range(1, len(thr['mean'][i])+1), thr['mean'][i], thr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+#     plot(range(1, len(thr_free['mean'][i])+1), thr_free['mean'][i], linewidth = 2, linestyle = '--', color = colors[i], label= 'Stim '+str(i+1))    
+#     errorbar(range(1, len(thr_free['mean'][i])+1), thr_free['mean'][i], thr_free['sem'][i], linewidth = 2, linestyle = '--', color = colors[i])
+#     ylabel("H(p(r/s))")
+#     xticks(range(2,11,2))
+#     xlabel("Trial")
+#     xlim(0.8, 10.2)
+#     ylim(-0.05, model.max_entropy+0.2)
+#     #yticks(np.arange(0, 1.2, 0.2))    
+#     grid()
+# subplot(2,2,4)
+# plot(range(1, len(thr_step[0])+1), thr_step[0], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
+# errorbar(range(1, len(thr_step[0])+1), thr_step[0], thr_step[1], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
+# plot(range(1, len(thr_free_step[0])+1), thr_free_step[0], linewidth = 2, linestyle = '-', color = 'grey', alpha = 0.9)
+# errorbar(range(1, len(thr_free_step[0])+1), thr_free_step[0], thr_free_step[1], linewidth = 2, linestyle = '-', color = 'grey', alpha = 0.9)
+# ylim(-0.05, model.max_entropy+0.2)
+# ylabel("H(p(r/s))")
+# xlabel("Representative step")
+# grid()
+
+
+
+
+subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
+
+#savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testSelection.pdf', bbox_inches='tight')
+#savefig('/home/viejo/Desktop/figure_guillaume_a_tord.pdf', bbox_inches='tight')
 show()

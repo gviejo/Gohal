@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
-Test for Fusionnnnn Selection
+Test for Fusion Selection
 
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
@@ -23,19 +23,15 @@ from time import time
 # FONCTIONS
 # -----------------------------------
 def testModel():
-    model.initializeList()
+    model.startExp()
     for i in xrange(nb_blocs):
         cats.reinitialize()
-        model.initialize()
+        model.startBloc()
         for j in xrange(nb_trials):
             sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
             state = cats.getStimulus(j)
-            # print "STATE",state
             action = model.chooseAction(state)
-            # print "ACTION",action
             reward = cats.getOutcome(state, action)
-            # print "REWARD",reward,"\n"
-            # print cats.asso, "\n"
             model.updateValue(reward)
 
     model.state = convertStimulus(np.array(model.state))
@@ -57,28 +53,32 @@ human = HLearning(dict({'meg':('/home/guillaume/Gohal/PEPS_GoHaL/Beh_Model/',48)
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-noise = 0.0001
-length = 10
-alpha = 0.8
-beta = 3.1
-gamma = 0.4
-threshold = 4.0
-gain = 2.0
+parameters = dict({'noise':0.0001,
+                    'length':10,
+                    'alpha':0.8,
+                    'beta':3.0,
+                    'gamma':0.4,
+                    'threshold':4.0,
+                    'gain':2.0})
+# noise = 0.1
+# length = 9
+# alpha = 0.39
+# beta = 10.12
+# gamma = 0.81
+# threshold = 56.0
+# gain = 84.0
 
 nb_trials = 42
 nb_blocs = 100
 cats = CATS(nb_trials)
 
-model = FSelection("test", cats.states, cats.actions, alpha, beta, gamma, length, noise, threshold, gain)
+model = FSelection(cats.states, cats.actions, parameters)
 
 # -----------------------------------
 
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
-model.initializeList()
-model.initialize()
-
 t1 = time()
 testModel()
 t2 = time()

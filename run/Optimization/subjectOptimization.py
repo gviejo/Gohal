@@ -60,16 +60,16 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 eta = 0.0001            # variance of evolution noise v
 var_obs = 0.05          # variance of observation noise n
-gamma = 0.95            # discount factor
+gamma = 0.81            # discount factor
 init_cov = 10           # initialisation of covariance matrice
 kappa = 0.1             # unscentered transform parameters
-beta = 5.5              # temperature for kalman soft-max
-noise = 0.000           # variance of white noise for working memory
-length_memory = 7       # size of working memory
-threshold = 1           # inference threshold
+beta = 10.12              # temperature for kalman soft-max
+noise = 0.1           # variance of white noise for working memory
+length_memory = 9       # size of working memory
+threshold = 56.0           # inference threshold
 sigma = 0.00002         # updating rate of the average reward
-gain = 0.5
-alpha = 0.5 
+gain = 84.0
+alpha = 0.39
 #########################
 #optimization parameters
 n_run = 1
@@ -99,9 +99,9 @@ opt = Likelihood(human, models[options.model], options.fonction, n_run, n_grid, 
 t1 = time()
 opt.current_subject = options.subject
 #p = np.array([1.93, 9.0, 0.96])
-p = np.array([10, 0.0, 0.5, 2.0, 1.0, 2.0, 0.3])
+#p = np.array([10, 0.0, 0.5, 2.0, 1.0, 2.0, 0.3])
 #llh = opt.computeLikelihood(p)
-rt = opt.computeFullLikelihood(p)
+rt = opt.computeFullLikelihood()
 #print llh
 #opt.optimize(options.subject)
 #opt.save(options.output+options.subject+"_"+options.model+"_"+options.fonction+"_"+str(datetime.datetime.now()).replace(" ", "_"))

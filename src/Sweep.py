@@ -147,119 +147,55 @@ class Sweep_performances():
         return tmp
 
 
-class Optimization():
+class Sferes():
     """
-    class to optimize parameters for differents models
-    try to minimize the difference between human and models data
+    class for multi-objective optimization
+    to interface with sferes2 : see
+    http://sferes2.isir.upmc.fr/
+    fitness function is made of Bayesian Information Criterion
+    and either Linear Regression
+    or possible Reaction Time Likelihood
+
+    Optimization is made for one subject
+
     """
+    def __init__(self, data, subject, ptr_model):
+        self.model = ptr_model
+        self.subject = subject
+        self.data = data                
+        self.rt = list()
+        self.rt_model = list()
+        self.normalizeRT()        
 
-    def __init__(self, human, ptr_cats, nb_trials, nb_blocs):
-        self.ptr_h = human
-        self.human = human.responses['meg']
-        self.data_human = extractStimulusPresentation2(self.ptr_h.responses['meg'], self.ptr_h.stimulus['meg'], self.ptr_h.action['meg'], self.ptr_h.responses['meg'])
-        self.cats = ptr_cats
-        self.nb_trials = nb_trials
-        self.nb_blocs = nb_blocs
-        self.correlation = "Z"
-        
-    def simulatedAnnealing(self, model, measure="Z"):
-        self.correlation = measure
-        p = model.getAllParameters()
-        p_opt = p
-        f_opt = self.evaluate(model, p_opt)
-        T_finale = 1
-        T = 100
-        R = 100
-        alpha = 0.95
-        while T > T_finale:
-            for i in xrange(R):
-                new_p = self.generateSolution(p)
-                print T, i, f_opt
-                f_new = self.evaluate(model, new_p)
-                f_old = self.evaluate(model, p)
-                delta = f_new - f_old
-                if delta < 0:
-                    p = new_p
-                    if f_new < f_opt:
-                        p_opt = p
-                        f_opt = f_new
-                elif np.random.rand() <= np.exp(-(delta/T)):
-                    p = new_p                    
-            T *= alpha
-            
-        return p_opt
+    def getFitness(self):
+        llh = 0.0
+        lrs = 0.0
+        self.model.startExp()
+        for bloc in self.data.iterkeys():
+            self.model.startBloc()            
+            for trial in self.data[bloc]['sar']:
+                true_action = trial[1]-1
+                values = self.model.computeValue(self.model.states[trial[0]-1])
+                llh = llh + np.log(values[trial[1]-1])
+                self.model.current_action = trial[1]-1
+                self.model.updateValue(trial[2])                                                        
+                self.rt_model.append(float(self.model.reaction[-1][-1]))
 
-    def stochasticOptimization(self, model, measure ="Z", nb_iter=100):
-        self.correlation = measure
-        p = model.getAllParameters()
-        f = self.evaluate(model, p)
-        for i in xrange(nb_iter):
-            new_p = self.generateRandomSolution(p)
-            new_f = self.evaluate(model, new_p)
-            print i, new_f, f
-            if new_f < f:
-                p = new_p
-                f = new_f
-        return p
+        self.rt_model = np.array(self.rt_model)
+        self.rt_model = self.rt_model-np.min(self.rt_model)        
+        if np.max(self.rt_model):
+            self.rt_model = self.rt_model/np.max(self.rt_model)
+        lrs = np.sum(np.power((self.rt_model-self.rt),2))        
+        return -llh, lrs
 
-    def generateRandomSolution(self, p):
-        tmp = dict()
-        for i in p.iterkeys():
-            tmp[i] = p[i]
-            tmp[i][1] = np.random.uniform(p[i][0],p[i][2])
-        return tmp
-
-    def generateSolution(self, p, width = 1):
-        tmp = dict()
-        for i in p.iterkeys():
-            tmp[i] = p[i]
-            tmp[i][1] = np.random.normal(p[i][1], width)
-            tmp[i][1] = tmp[i][2] if tmp[i][1] > tmp[i][2] else tmp[i][1]
-            tmp[i][1] = tmp[i][0] if tmp[i][1] < tmp[i][0] else tmp[i][1]                      
-        return tmp
-
-    def evaluate(self, model, p, correlation):
-        model.setAllParameters(p)
-        self.testModel(model)
-        model.state = convertStimulus(np.array(model.state))
-        model.action = convertAction(np.array(model.action))
-        model.responses = np.array(model.responses)
-        data = extractStimulusPresentation2(model.responses, model.state, model.action, model.responses)
-        return self.computeCorrelation(data, correlation)
-        #return self.computeAbsoluteDifference(data)
-        
-    def testModel(self, ptr_model):
-        ptr_model.initializeList()
-        for i in xrange(self.nb_blocs):
-            #sys.stdout.write("\r Testing model | Blocs : %i" % i); sys.stdout.flush()                        
-            self.cats.reinitialize()
-            ptr_model.initialize()
-            for j in xrange(self.nb_trials):
-                self.iterationStep(j, ptr_model, False)
-        
-    def iterationStep(self, iteration, model, display = True):
-        state = self.cats.getStimulus(iteration)
-        action = model.chooseAction(state)
-        reward = self.cats.getOutcome(state, action)
-        model.updateValue(reward)
-
-    def computeCorrelation(self, model, correlation):
-        """ Input should be dict(1:[], 2:[], 3:[])
-        Return similarity estimate.
-        """
-        tmp = 0.0
-        for i in [1,2,3]:
-            m,n = self.data_human[i].shape
-            for j in xrange(n):
-                tmp += computeSingleCorrelation(self.data_human[i][:,j], model[i][:,j], correlation)
-        return tmp
-
-    def computeAbsoluteDifference(self, model):
-        tmp = 0.0
-        for i in [1,2,3]:
-            tmp += np.sum((np.mean(self.data_human[i], 0)-np.mean(model[i], 0))**2)
-        return tmp
-
+    def normalizeRT(self):
+        for i in self.data.iterkeys():
+            for  j in self.data[i]['rt']:
+                self.rt.append(j[0])
+        self.rt = np.array(self.rt)
+        self.rt = self.rt - np.min(self.rt)
+        self.rt = self.rt/np.max(self.rt)
+    
 
 class Likelihood():
     """

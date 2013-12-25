@@ -22,21 +22,16 @@ from time import time
 # FONCTIONS
 # -----------------------------------
 def testModel():    
-    model.initializeList()
+    model.startExp()
     for i in xrange(nb_blocs):
-        sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()   
         cats.reinitialize()
-        model.initialize()
+        model.startBloc()
         for j in xrange(nb_trials):
+            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()
             state = cats.getStimulus(j)
             action = model.chooseAction(state)
             reward = cats.getOutcome(state, action)
-            #print state
-            #print action
-            #print reward
             model.updateValue(reward)
-            #print model.values
-            #sys.stdin.readline()
     model.state = convertStimulus(np.array(model.state))
     model.action = convertAction(np.array(model.action))
     model.responses = np.array(model.responses)
@@ -55,15 +50,15 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-alpha = 1.3
-gamma = 0.1  # discount factor
-beta = 3.0
+parameters = dict({'alpha':0.9,
+                    'beta':2.0,
+                    'gamma':0.3})
 
 nb_trials = 42
 nb_blocs = 400
 cats = CATS()
 
-model = QLearning('k', cats.states, cats.actions, gamma, alpha, beta)
+model = QLearning(cats.states, cats.actions, parameters)
 
 
 # -----------------------------------
@@ -71,9 +66,13 @@ model = QLearning('k', cats.states, cats.actions, gamma, alpha, beta)
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
-
-
+t1 = time()
 testModel()
+t2 = time()
+
+print "\n"
+print t2-t1
+
 
 
 # -----------------------------------

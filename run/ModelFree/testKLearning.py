@@ -22,12 +22,12 @@ from time import time
 # FONCTIONS
 # -----------------------------------
 def testModel():
-    kalman.initializeList()
+    kalman.startExp()
     for i in xrange(nb_blocs):
-        sys.stdout.write("\r Blocs : %i" % i); sys.stdout.flush()                    
         cats.reinitialize()
-        kalman.initialize()
+        kalman.startBloc()
         for j in xrange(nb_trials):
+            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()
             state = cats.getStimulus(j)
             action = kalman.chooseAction(state)
             reward = cats.getOutcome(state, action)
@@ -37,7 +37,6 @@ def testModel():
     kalman.responses = np.array(kalman.responses)
     kalman.reaction = np.array(kalman.reaction)
     
-
 # -----------------------------------
 
 # -----------------------------------
@@ -50,27 +49,21 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-eta = 0.0001     # variance of evolution noise v
-var_obs = 0.05   # variance of observation noise n
-gamma = 0.43     # discount factor
-init_cov = 10    # initialisation of covariance matrice
-kappa = 0.1      # unscentered transform parameters
-beta = 2.2
+parameters = dict({'gamma':0.43,
+                    'eta':0.0001,
+                    'beta':2.2})
 
 nb_trials = 42
 nb_blocs = 100
 cats = CATS()
 
-kalman = KalmanQLearning('k', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa)
-
+kalman = KalmanQLearning(cats.states, cats.actions, parameters)
 
 # -----------------------------------
 
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
-kalman.initializeList()
-kalman.initialize()
 t1 = time()
 testModel()
 t2 = time()
