@@ -125,6 +125,8 @@ class FSelection():
         w = (self.max_entropy-self.Hb)/self.max_entropy
         self.values_net = w*self.p_a_mb+(1-w)*self.values_mf[self.current_state]
         self.p_a = SoftMaxValues(self.values_net, self.parameters['beta'])
+        tmp = np.exp(self.values_net*self.parameters['beta'])
+        self.p_a = tmp/np.sum(tmp)
 
     def computeValue(self, state):
         self.state[-1].append(state)
@@ -137,8 +139,7 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        self.fusionModule()
-        self.current_action = self.sample(self.p_a)            
+        self.fusionModule()        
         self.value[-1].append(self.p_a)
         self.reaction[-1].append(self.nb_inferences+1)
         return self.p_a
