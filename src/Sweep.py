@@ -186,7 +186,10 @@ class Sferes():
         if np.max(self.rt_model):
             self.rt_model = self.rt_model/np.max(self.rt_model)
         lrs = np.sum(np.power((self.rt_model-self.rt),2))        
-        return -llh, lrs
+        max_llh = -float(len(self.rt_model))*np.log(0.2)
+        max_lrs = float(len(self.rt_model))
+        #return -llh, lrs
+        return max_llh+llh, max_lrs-lrs
 
     def normalizeRT(self):
         for i in self.data.iterkeys():
