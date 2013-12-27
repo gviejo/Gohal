@@ -40,7 +40,7 @@ models = dict({'bayesian':"BayesianWorkingMemory(['s1', 's2', 's3'], ['thumb', '
                'qlearning':"QLearning(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], vars(options))",
                'fusion':"FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], vars(options))",
                'kalman':"KalmanQLearning(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], vars(options))",
-               'Keramati':"KSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], vars(options))",
+               'keramati':"KSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], vars(options))",
               })
 # -----------------------------------
 # -----------------------------------                                                 
@@ -63,14 +63,14 @@ f.writelines("#PBS -l walltime="+options.time+"\n")
 f.writelines(("#PBS -l ncpus=1\n"))
 f.writelines("#PBS -d /home/viejo\n")
 f.writelines("#PBS -v PYTHONPATH=/home/viejo/lib/python/lib/python\n")
-f.writelines("sferes2/trunk/build/debug/exp/gohal_opt/gohal_opt --subject="+s+" --model="+options.model+" --data="+options.data+" --nparams="+str(n_params)+"\n")
+f.writelines("sferes2/trunk/build/debug/exp/"+options.model+"/"+options.model+" --subject="+s+" --data="+options.data+"\n")
 f.close()
 #-----------------------------------
 
 # ----------------------------------                                                  
 # GENERATE PYTHON SCRIPTS                                                             
 # ----------------------------------                                                  
-pythonfile = "/home/viejo/sferes2/trunk/exp/gohal_opt/sferes_"+options.model+"_"+options.data+"_"+s+".py"
+pythonfile = "/home/viejo/sferes2/trunk/exp/"+options.model+"/sferes_"+options.model+"_"+options.data+"_"+s+".py"
 pf = open(pythonfile, 'w')                                                          
 pf.write("""#!/usr/bin/python                                                       
 # encoding: utf-8                                                                   
@@ -103,8 +103,11 @@ print llh, lrs
 """)                                                                          
 pf.close()                                                                          
 
-
-
+# ------------------------------------
+# CREATE DIRECTORY RESULTS
+# ------------------------------------
+os.system("rm -r "+options.model)
+os.system("mkdir "+options.model)
 # ------------------------------------                                                
 # SUBMIT                                                                              
 # ------------------------------------                                                
