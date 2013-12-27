@@ -28,7 +28,7 @@ class FSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[1.0, 10.0],
+                            "beta":[1.0, 6.0],
                             "alpha":[0.0, 2.0],
                             "length":[5, 20],
                             "threshold":[0.0, 40.0], 
@@ -123,9 +123,8 @@ class FSelection():
 
     def fusionModule(self):
         w = (self.max_entropy-self.Hb)/self.max_entropy
-        self.values_net = w*self.p_a_mb+(1-w)*self.values_mf[self.current_state]
-        self.p_a = SoftMaxValues(self.values_net, self.parameters['beta'])
-        tmp = np.exp(self.values_net*self.parameters['beta'])
+        self.values_net = w*self.p_a_mb+(1.0-w)*self.values_mf[self.current_state]
+        tmp = np.exp(self.values_net*float(self.parameters['beta']))
         self.p_a = tmp/np.sum(tmp)
 
     def computeValue(self, state):
