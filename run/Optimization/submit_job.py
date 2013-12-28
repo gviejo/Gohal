@@ -43,6 +43,13 @@ models = dict({'bayesian':"BayesianWorkingMemory(['s1', 's2', 's3'], ['thumb', '
                'keramati':"KSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], vars(options))",
               })
 # -----------------------------------
+
+# ------------------------------------
+# CREATE DIRECTORY RESULTS
+# ------------------------------------
+os.system("rm -r "+options.model)
+os.system("mkdir "+options.model)
+
 # -----------------------------------                                                 
 # GENERATE BASH SCRIPTS                                                               
 # -----------------------------------                                                 
@@ -50,18 +57,18 @@ list_subject = human.subject[options.data].keys()
 n_params = len(models[options.model].split("options"))-1
 
 #s = list_subject[0]
-for s in list_subject[0:1]:
+for s in list_subject:
 	filename = "submit_"+options.model+"_"+options.data+"_"+s+".sh"
 	f = open(filename, "w")
 	f.writelines("#!/bin/sh\n")
 	f.writelines("#PBS -N sferes_"+options.model+"_"+options.data+"_"+s+"\n")
-	f.writelines("#PBS -o /home/viejo/log/sferes_"+options.model+"_"+options.data+"_"+options.time+"_"+s
-	f.writelines("#PBS -b /home/viejo/log/sferes_"+options.model+"_"+options.data+"_"+options.time+"_"+s
+	f.writelines("#PBS -o /home/viejo/log/sferes_"+options.model+"_"+options.data+"_"+options.time+"_"+s+".out\n")
+	f.writelines("#PBS -b /home/viejo/log/sferes_"+options.model+"_"+options.data+"_"+options.time+"_"+s+".err\n")
 	f.writelines("#PBS -m abe\n")
 	f.writelines("#PBS -M guillaume.viejo@gmail.com\n")
 	f.writelines("#PBS -l walltime="+options.time+"\n")
-	#f.writelines("#PBS -l nodes=1:ppn=8"+"\n")                                           
-	f.writelines(("#PBS -l ncpus=1\n"))
+	f.writelines("#PBS -l nodes=1:ppn=8"+"\n")                                           
+	#f.writelines(("#PBS -l ncpus=1\n"))
 	f.writelines("#PBS -d /home/viejo\n")
 	f.writelines("#PBS -v PYTHONPATH=/home/viejo/lib/python/lib/python\n")
 	f.writelines("sferes2/trunk/build/debug/exp/"+options.model+"/"+options.model+" --subject="+s+" --data="+options.data+"\n")
@@ -93,26 +100,18 @@ parser.add_option("-g", "--gamma", action="store", type = 'float')
 parser.add_option("-z", "--gain", action="store", type = 'float')
 parser.add_option("-s", "--sigma", action = "store", type = 'float')                                
 (options, args) = parser.parse_args()                                               
-human = HLearning(dict({'meg':('/home/viejo/Beh/MEG/Beh_Model/',48), 'fmri':('/home/viejo/Beh/fMRI',39)}))\n
-	""")                                                                                
+human = HLearning(dict({'meg':('/home/viejo/Beh/MEG/Beh_Model/',48), 'fmri':('/home/viejo/Beh/fMRI',39)}))\n""")
 	pf.writelines("model = "+models[options.model]+"\n")                                
-	pf.writelines("opt = Sferes(human.subject['"+options.data+"']['"+s+"'], '"+s+"', model)")
-	pf.writelines("""
-	llh, lrs = opt.getFitness()
-	print llh, lrs
-	""")                                                                          
+	pf.writelines("opt = Sferes(human.subject['"+options.data+"']['"+s+"'], '"+s+"', model)\n")
+	pf.writelines("""llh, lrs = opt.getFitness()
+print llh, lrs""")
 	pf.close()                                                                          
 
-	# ------------------------------------
-	# CREATE DIRECTORY RESULTS
-	# ------------------------------------
-	os.system("rm -r "+options.model)
-	os.system("mkdir "+options.model)
 	# ------------------------------------                                                
 	# SUBMIT                                                                              
 	# ------------------------------------                                                
 	os.system("chmod +x "+filename)
-	os.system("qsub "+filename)
+        os.system("qsub "+filename)
 	os.system("rm "+filename)
 
 
