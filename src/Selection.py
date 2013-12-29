@@ -209,7 +209,7 @@ class KSelection():
                             "beta":[1.0, 10.0],
                             "eta":[0.00001, 0.001],
                             "length":[5, 20],
-                            "threshold":[0.0, 40.0], 
+                            "threshold":[0.0, -np.log2(1./self.n_action)], 
                             "noise":[0.0, 0.01],
                             "sigma":[0.0,1.0]})
         #Probability Initialization
@@ -322,13 +322,21 @@ class KSelection():
         self.reward_rate[self.current_state] = (1.0-self.parameters['sigma'])*self.reward_rate[self.current_state]+self.parameters['sigma']*reward
         self.rrate[-1].append(self.reward_rate[self.current_state])
 
+    def softMax(self, values):
+        tmp = np.exp(values*float(self.parameters['beta']))
+        return tmp/float(np.sum(tmp))
+
+    def sample(self, values):
+        tmp = [np.sum(values[0:i]) for i in range(len(values))]
+        return np.sum(np.array(tmp) < np.random.rand())-1        
+        
     def computeValue(self, state):
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
         self.nb_inferences = 0
         self.predictionStep()
-        values = self.values_mf[self.current_state]
-        t =self.n_action*self.current_state
+        values = self.softMax(self.values_mf[self.current_state])
+        t = self.n_action*self.current_state
         vpi = computeVPIValues(self.values_mf[self.current_state], self.covariance['cov'].diagonal()[t:t+self.n_action])
         self.vpi[-1].append(vpi)
         if np.sum(vpi > self.reward_rate[self.current_state]):
@@ -338,7 +346,7 @@ class KSelection():
             while self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element:
                 self.inferenceModule()
                 self.evaluationModule()
-            values = self.p_a_mb        
+            values = self.p_a_mb/np.sum(self.p_a_mb)
         self.value[-1].append(values)        
         self.reaction[-1].append(self.nb_inferences+1)        
         return self.value[-1][-1]
@@ -348,7 +356,7 @@ class KSelection():
         self.current_state = convertStimulus(state)-1
         self.nb_inferences = 0
         self.predictionStep()
-        values = self.values_mf[self.current_state]
+        values = self.softMax(self.values_mf[self.current_state])
         t =self.n_action*self.current_state
         vpi = computeVPIValues(self.values_mf[self.current_state], self.covariance['cov'].diagonal()[t:t+self.n_action])
         self.vpi[-1].append(vpi)
@@ -359,8 +367,8 @@ class KSelection():
             while self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element:
                 self.inferenceModule()
                 self.evaluationModule()
-            values = self.p_a_mb
-        self.current_action = self.sampleSoftMax(values)
+            values = self.p_a_mb/np.sum(self.p_a_mb)
+        self.current_action = self.sample(values)
         self.value[-1].append(values)
         self.action[-1].append(self.actions[self.current_action])
         self.reaction[-1].append(self.nb_inferences+1)        

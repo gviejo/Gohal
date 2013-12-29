@@ -31,6 +31,7 @@ class HLearning():
         self.reaction = dict()
         self.indice = dict()
         self.subject = dict()
+        self.length = dict()
         for k in self.directory.iterkeys():
             self.responses[k] = []
             self.stimulus[k] = []
@@ -46,7 +47,8 @@ class HLearning():
                 sys.stderr.write("Unknow directory provided : "+str(self.directory[k]))
                 sys.exit(0)
             self.extractData(data, k, self.directory[k][1])
-
+        self.getExpLength()
+        
     def extractData(self, data, case, size):
         for i in data.iterkeys():            
             self.subject[case][i] = dict()
@@ -69,7 +71,7 @@ class HLearning():
         data = dict()
         line = "ls "+direct
         p = os.popen(line, "r").read()
-        files = p.split('\n')[:-1]    
+        files = p.split('\n')[:-1]
         for i in files:
             data[i] = dict()
             tmp = scipy.io.loadmat(direct+i+'/beh.mat')['beh']
@@ -175,3 +177,13 @@ class HLearning():
                 size+=len(self.subject['meg'][s][i]['sar'][:,2])
             indi[s] = tmp/size
         return indi
+
+    def getExpLength(self):
+        for k in self.subject.iterkeys():
+            self.length[k] = dict()
+            for s in self.subject[k].iterkeys():
+                tmp = 0
+                for t in self.subject[k][s].iterkeys():
+                    tmp = tmp+len(self.subject[k][s][t]['rt'])
+                self.length[k][s] = float(tmp)
+
