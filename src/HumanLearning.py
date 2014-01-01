@@ -45,13 +45,20 @@ class HLearning():
                 data = self.loadDirectoryfMRI(self.directory[k][0])
             else:
                 sys.stderr.write("Unknow directory provided : "+str(self.directory[k]))
-                sys.exit(0)
+                sys.exit(0)            
             self.extractData(data, k, self.directory[k][1])
         self.getExpLength()
         
     def extractData(self, data, case, size):
         for i in data.iterkeys():            
             self.subject[case][i] = dict()
+            
+            tmp = np.array([data[i][j]['RT'].flatten()[0:size] for j in data[i].iterkeys()])
+            tmp = tmp-np.min(tmp)
+            tmp = tmp/np.max(tmp)
+            for j,k in zip(data[i].iterkeys(),tmp):
+                data[i][j]['RT'] = k
+            
             for j in data[i].iterkeys():
                 self.responses[case].append(data[i][j]['sar'][0:size,2])
                 self.stimulus[case].append(data[i][j]['sar'][0:size,0])
