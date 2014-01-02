@@ -156,7 +156,7 @@ for m in data.iterkeys():
         uniq = np.array(list(set(tuple(r) for r in pareto)))        
         owa = OWA(uniq, [0.5, 0.5])
         ########################################
-        tche = Tchebychev(uniq, [0.5, 0.5], 0.01)
+        tche = Tchebychev(uniq, [0.8, 0.2], 0.1)
         ########################################        
         ax1.scatter(uniq[:,0], uniq[:,1], c = tche)        
         #ax1.plot(ideal[0], ideal[1], 'o', markersize = 5, color = model_params['colors'][m])
@@ -171,7 +171,7 @@ for m in data.iterkeys():
         ind_opt[m][s] = possible[((pareto[:,0] == uniq[np.argmin(tche)][0])*(pareto[:,1] == uniq[np.argmin(tche)][1]))]
         
 ax1.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
-fig1.show()
+#fig1.show()
 
 # ----------------------------------
 # Espaces des solutions
@@ -200,7 +200,7 @@ for i in xrange(n_model):
             s = solutions[m].keys()[k]
             scatter(solutions[m][s][:,j], np.ones(len(solutions[m][s][:,j]))*(k+1))
         xlim(p_bounds[m][p][0], p_bounds[m][p][1])
-fig2.show()            
+#fig2.show()            
 
 
 
@@ -227,6 +227,6 @@ if options.output:
 # # TEsting solution
 # # ------------------------------
 
-# os.system("python subjectTest.py -i "+options.output+" -o sferes_fmri.pickle")
-# os.system("python plot_test.py -i sferes_fmri.pickle")
-# os.system("evince test.pdf")
+os.system("python subjectTest.py -i "+options.output+" -o sferes_fmri.pickle")
+os.system("python plot_test.py -i sferes_fmri.pickle")
+#os.system("evince test.pdf")

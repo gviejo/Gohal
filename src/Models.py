@@ -331,6 +331,7 @@ class BayesianWorkingMemory():
             self.evaluationModule()        
             #self.decisionModule()
         self.entropies[-1].append(self.entropy.copy())
+        self.reaction[-1].append(float(self.nb_inferences))
         self.sample_p_r_s[-1].append(self.p_r_s[1].copy())
         self.sample_nb_inf[-1].append(self.nb_inferences)
         self.value[-1].append(list(self.values))
