@@ -194,11 +194,18 @@ class Sferes():
     def normalizeRT(self):
         for i in self.data.iterkeys():
             for  j in self.data[i]['rt']:
-                self.rt.append(j[0])
+                self.rt.append(j)
         self.rt = np.array(self.rt)
         self.rt = self.rt - np.min(self.rt)
         self.rt = self.rt/np.max(self.rt)
     
+    def normalizeRT2(self):
+        for i in self.data.iterkeys():
+            self.data[i]['rt'] = self.data[i]['rt']-np.min(self.data[i]['rt'])
+            self.data[i]['rt'] = self.data[i]['rt']/np.max(self.data[i]['rt'])
+            for j in self.data[i]['rt']:
+                self.rt.append(j)
+        self.rt = np.array(self.rt)
 
 class Likelihood():
     """
