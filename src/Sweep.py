@@ -197,7 +197,7 @@ class Sferes():
                 self.rt.append(j)
         self.rt = np.array(self.rt)
         self.rt = self.rt - np.min(self.rt)
-        self.rt = self.rt/np.max(self.rt)
+        self.rt = (self.rt/np.max(self.rt)).flatten()
     
     def normalizeRT2(self):
         for i in self.data.iterkeys():

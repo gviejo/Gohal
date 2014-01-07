@@ -122,10 +122,13 @@ class FSelection():
         return np.random.uniform(0,1) > self.pA
 
     def fusionModule(self):
+        np.seterr(invalid='ignore')
         w = (self.max_entropy-self.Hb)/self.max_entropy
         self.values_net = w*self.p_a_mb+(1.0-w)*self.values_mf[self.current_state]
         tmp = np.exp(self.values_net*float(self.parameters['beta']))
         self.p_a = tmp/np.sum(tmp)
+        if True in np.isnan(self.p_a):
+            self.p_a = np.isnan(self.p_a)*0.995+0.001
 
     def computeValue(self, state):
         self.state[-1].append(state)
