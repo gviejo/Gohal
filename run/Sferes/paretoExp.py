@@ -1,9 +1,9 @@
 #!/usr/bin/python
 # encoding: utf-8
 """
-subjectTest.py
+paretoExp.py
 
-load and and plot multi objective results from Sferes 2 optimisation 
+load and explore pareto frontier for one model
 
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
@@ -41,24 +41,18 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def loadData():
+def loadData(m):
     model_in_folders = os.listdir(options.input)
     if len(model_in_folders) == 0:
         sys.exit("No model found in directory "+options.input)
     data = dict()
-    for m in model_in_folders:
-        data[m] = dict()
+    if m in model_in_folders:
         list_subject = os.listdir(options.input+"/"+m)
         for s in list_subject:
             k = s.split("_")[-1].split(".")[0]
-            data[m][k] = np.genfromtxt(options.input+"/"+m+"/"+s)
-    if options.model and options.model in model_in_folders:
-        return dict({options.model:data[options.model]})
-    elif options.model and options not in model_in_folders:
-        sys.exit("Model "+options.model+" is not found in directory "+options.input)
-    else:
-        return data
-  
+            data[k] = np.genfromtxt(options.input+"/"+m+"/"+s)
+    return data
+
 def OWA(value, w):
     # return utility 
     m,n = value.shape
@@ -78,26 +72,28 @@ def Tchebychev(value, lambdaa, epsilon):
     tmp = lambdaa*((ideal-value)/(ideal-nadir))
     return np.max(tmp, 1)+epsilon*np.sum(tmp,1)
 
-def writing(data_):
-    target = open(options.output, 'w')
-    target.write(str(data_))
-    target.close()
+def rescaling(order, scale):
+    for s in data.keys():
+        for p in order:        
+            data[s][:,order.index(p)+4] = scale[0][order.index(p)]+data[s][:,order.index(p)+4]*scale[1][order.index(p)]        
+    
+def rankSolution(m, good):
+    pareto = dict()
+    for s in data.iterkeys():
+        pareto[s] = data[s][data[s][:,0] == np.max(data[s][:,0])]
+        tmp = np.tile(np.array([good[p] for p in p_order[m]]), (len(pareto[s]), 1))
+        #score = np.vstack(np.sum(np.power(pareto[s][:,4:]-tmp,2),1))
+        score = np.vstack(np.argsort(pareto[s][:,4]))
+        pareto[s] = np.hstack((pareto[s], score))
+    return pareto
 
-
-def plot_both(final):
-    tmp = dict({p:[] for p in p_order['fusion']})
-    for s in final.iterkeys():
-        for p in final[s].iterkeys():
-            tmp[p].append(final[s][p])
+def plot_both(m, pareto, good):
+    tmp = dict({p:[] for p in p_order[m]})
+    for p in tmp.iterkeys():
+        for s in pareto.iterkeys():
+            tmp[p].append(pareto[s][pareto[s][:,-1]==np.max(pareto[s][:,-1]), p_order[m].index(p)+4][0])
     for p in tmp.iterkeys():
         tmp[p] = np.array(tmp[p])
-    good = dict({'alpha': 0.8,
-                 'beta': 3.0,
-                 'gain': 2.0,
-                 'gamma': 0.4,
-                 'length': 10,
-                 'noise': 0.0001,
-                 'threshold': 4.0})
     figure()
     for p in tmp.keys():
         subplot(4,2,tmp.keys().index(p)+1)
@@ -105,7 +101,8 @@ def plot_both(final):
         axhline(good[p], 0, 1, linewidth = 4, color = 'black')
         title(p)
     show()
-    return parameters
+    return tmp
+
 
 
 # -----------------------------------
@@ -119,7 +116,8 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-#data = loadData()
+m = 'fusion'
+data = loadData(m)
 
 # -----------------------------------
 # PLOTTING
@@ -166,94 +164,24 @@ params = {'backend':'pdf',
           'xtick.labelsize':8,
           'ytick.labelsize':8,
           'text.usetex':False}
+
 # -----------------------------------
 # Espace des critères 
 # -----------------------------------
-ind_opt = dict()
-fig1 = figure(figsize = (12, 9))
-ion()
-for m in data.iterkeys():
-    ind_opt[m] = dict()
-    for i in xrange(len(data[m].keys())):
-        s = data[m].keys()[i]
-        gen = data[m][s][:,0]
-        ind = data[m][s][:,1] 
-        values = data[m][s][:,2:4]
-        pareto = data[m][s][:,2:4][gen == np.max(gen)]
-        possible = data[m][s][:,4:][gen == np.max(gen)]
-        ideal = np.max(pareto, 0)
-        nadir = np.min(pareto, 0)
-        ax1 = fig1.add_subplot(4,4,i+1)
-        # PARETO FRONT
-        uniq = np.array(list(set(tuple(r) for r in pareto)))        
-        owa = OWA(uniq, [0.5, 0.5])
-        ########################################
-        tche = Tchebychev(uniq, [0.5, 0.5], 0.1)
-        ########################################        
-        ax1.scatter(uniq[:,0], uniq[:,1], c = tche)        
-        #ax1.plot(ideal[0], ideal[1], 'o', markersize = 5, color = model_params['colors'][m])
-        #ax1.plot(nadir[0], nadir[1], 'o', markersize = 5, color = model_params['colors'][m])
-        #ax1.plot([nadir[0], ideal[0]], [nadir[1], ideal[1]], '--', linewidth = 3.0, color = model_params['colors'][m])
-        ax1.plot(uniq[np.argmin(tche),0], uniq[np.argmin(tche),1], 'o', markersize = 15, color = model_params['colors'][m], label = m, alpha = 0.8)        
-        # ax1.plot(uniq[np.argmax(owa),0], uniq[np.argmax(owa),1], 'o', markersize = 15)
-        #xlim(0, -human.length['fmri'][s]*np.log(0.2))
-        #ylim(0, human.length['fmri'][s])
-        ax1.grid()
-        # SAVING Optimal solutions        
-        ind_opt[m][s] = possible[((pareto[:,0] == uniq[np.argmin(tche)][0])*(pareto[:,1] == uniq[np.argmin(tche)][1]))]
-        
-ax1.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
-fig1.show()
+good = dict({'alpha': 0.8,
+             'beta': 3.0,
+             'gain': 2.0,
+             'gamma': 0.4,
+             'length': 10,
+             'noise': 0.0001,
+             'threshold': 4.0})
 
+rescaling(p_order[m], p_scale[m])
+pareto = rankSolution(m, good)
+best = plot_both(m, pareto, good)
 # ----------------------------------
 # Espaces des solutions
 # ----------------------------------
-solutions = dict()
-for m in data.iterkeys():
-    solutions[m] = dict()
-    for s in data[m].iterkeys():
-        solutions[m][s] = dict()
-        l,n = ind_opt[m][s].shape
-        assert n == len(p_scale[m][0]) == len(p_scale[m][1]) == len(p_order[m])
-        solutions[m][s] = p_scale[m][0]+ind_opt[m][s]*p_scale[m][1]
-
-
-fig2 = figure(figsize = (12, 9))
-#rc.update(params)
-n_params_max = np.max([len(t) for t in [p_order[m] for m in solutions]])
-n_model = len(solutions.keys())
-            
-for i in xrange(n_model):
-    m = solutions.keys()[i]
-    for j in xrange(len(p_order[m])):
-        p = p_order[m][j]
-        subplot(n_params_max, n_model, i+1+n_model*j)
-        for k in xrange(len(solutions[m].keys())):
-            s = solutions[m].keys()[k]
-            scatter(solutions[m][s][:,j], np.ones(len(solutions[m][s][:,j]))*(k+1))
-        xlim(p_bounds[m][p][0], p_bounds[m][p][1])
-fig2.show()            
-
-
-
-# ---------------------------------
-# Writing optimal solution 
-# ---------------------------------
-
-p_final = dict()
-
-for m in solutions:
-    p_final[m] = dict()
-    for s in solutions[m]:
-        p_final[m][s] = dict()
-        tmp = np.mean(solutions[m][s],0)
-        for i in xrange(len(p_order[m])):
-            p = p_order[m][i]
-            p_final[m][s][p] = np.round(tmp[i], 3)
-
-if options.output:
-    writing(p_final)
-
 
 # # -----------------------------
 # # TEsting solution

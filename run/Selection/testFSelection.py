@@ -53,13 +53,21 @@ human = HLearning(dict({'meg':('/home/guillaume/Gohal/PEPS_GoHaL/Beh_Model/',48)
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-parameters = dict({'noise':0.0001,
+very_good_parameters = dict({'noise':0.0001,
                     'length':10,
                     'alpha':0.8,
                     'beta':3.0,
                     'gamma':0.4,
                     'threshold':4.0,
                     'gain':2.0})
+parameters = dict({'noise':0.0001,
+                    'length':20,
+                    'alpha':0.8,
+                    'beta':2.0,
+                    'gamma':0.4,
+                    'threshold':4.0,
+                    'gain':2.0})
+
 # noise = 0.1
 # length = 9
 # alpha = 0.39
