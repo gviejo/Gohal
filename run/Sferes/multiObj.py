@@ -119,7 +119,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-#data = loadData()
+data = loadData()
 
 # -----------------------------------
 # PLOTTING
@@ -166,6 +166,35 @@ params = {'backend':'pdf',
           'xtick.labelsize':8,
           'ytick.labelsize':8,
           'text.usetex':False}
+
+def test(data):
+    m = 'fusion'
+    parameters = dict({k:[] for k in p_order[m]})
+
+    for s in data[m].keys():
+        for p in p_order[m]:
+            parameters[p].append(list(data[m][s][data[m][s][:,0] == np.max(data[m][s][:,0]),4+p_order[m].index(p)]))
+
+    for p in parameters.keys():
+        parameters[p] = np.hstack(np.array(parameters[p]))
+        parameters[p] = p_scale[m][0][p_order[m].index(p)]+parameters[p]*p_scale[m][1][p_order[m].index(p)]
+
+    good = dict({'alpha': 0.8,
+                 'beta': 3.0,
+                 'gain': 2.0,
+                 'gamma': 0.4,
+                 'length': 10,
+                 'noise': 0.0001,
+                 'threshold': 4.0})
+    figure()
+    for p in parameters.keys():
+        subplot(4,2,parameters.keys().index(p)+1)
+        hist(parameters[p], 20)
+        axvline(good[p], 0, 1, linewidth = 4, color = 'black')
+        title(p)
+    show()
+    return parameters
+
 # -----------------------------------
 # Espace des critères 
 # -----------------------------------

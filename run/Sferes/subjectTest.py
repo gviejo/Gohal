@@ -101,7 +101,7 @@ cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions, {'alpha':0.0,'beta':0.0,'gamma':0.0,'length':0.0,'noise':0.0,'threshold':0.0,'gain':0.0}),
               "qlearning":QLearning(cats.states, cats.actions, {'alpha':0.0, 'beta':0.0, 'gamma':0.0}),
               "bayesian":BayesianWorkingMemory(cats.states, cats.actions, {'length':0.0, 'noise':0.0, 'threshold':0.0}),
-              "keramati":KSelection(cats.states, cats.action,{"gamma":0.0,"beta":1.0,"eta":0.0001,"length":10.0,"threshold":0.0,"noise":0.0,"sigma":0.0})})
+              "keramati":KSelection(cats.states, cats.actions,{"gamma":0.0,"beta":1.0,"eta":0.0001,"length":10.0,"threshold":0.0,"noise":0.0,"sigma":0.0})})
 
 # ------------------------------------
 # Parameters testing

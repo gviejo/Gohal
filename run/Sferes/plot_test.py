@@ -86,8 +86,8 @@ rcParams['figure.figsize'] = 7.3,4.2
 # Performance
 ax1 = fig.add_subplot(2,2,1)
 [errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', color = colors[t], alpha = 0.7) for t in xrange(3)]    
-for m in ['qlearning', 'bayesian']:
-    [errorbar(range(1, len(pcr[m]['mean'][t])+1), pcr[m]['mean'][t], pcr[m]['sem'][t], linewidth = 1.5, elinewidth = 1.5, capsize = 0.8, linestyle = '-', color = colors[t], alpha = 1) for t in xrange(3)]    
+# for m in ['qlearning', 'bayesian']:
+#     [errorbar(range(1, len(pcr[m]['mean'][t])+1), pcr[m]['mean'][t], pcr[m]['sem'][t], linewidth = 1.5, elinewidth = 1.5, capsize = 0.8, linestyle = '-', color = colors[t], alpha = 1) for t in xrange(3)]    
 ax1.set_xticks(range(2,len(pcr_human['mean'][0])+1,2))
 ax1.set_xlabel("Trial")
 ax1.set_xlim(0.8, len(pcr_human['mean'][0])+1.02)
@@ -114,8 +114,8 @@ ax2.grid()
 ax3 = fig.add_subplot(2,2,2)
 ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
 ax4 = ax3.twinx()
-for m in ['qlearning','bayesian']:
-    ax4.errorbar(range(1, len(rt[m][0])+1), rt[m][0], rt[m][1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)
+# for m in ['qlearning','bayesian']:
+#     ax4.errorbar(range(1, len(rt[m][0])+1), rt[m][0], rt[m][1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)
 ax3.grid()
 ax3.xaxis.set_major_locator(MaxNLocator(5))
 ax3.set_ylabel("Reaction time (s)")

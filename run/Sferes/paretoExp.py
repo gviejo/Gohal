@@ -83,26 +83,25 @@ def rankSolution(m, good):
         pareto[s] = data[s][data[s][:,0] == np.max(data[s][:,0])]
         tmp = np.tile(np.array([good[p] for p in p_order[m]]), (len(pareto[s]), 1))
         #score = np.vstack(np.sum(np.power(pareto[s][:,4:]-tmp,2),1))
-        score = np.vstack(np.argsort(pareto[s][:,4]))
-        pareto[s] = np.hstack((pareto[s], score))
+        #pareto[s] = np.hstack((pareto[s], score))
+        pareto[s] = pareto[s][np.argsort(pareto[s][:,4])]
     return pareto
 
-def plot_both(m, pareto, good):
-    tmp = dict({p:[] for p in p_order[m]})
-    for p in tmp.iterkeys():
-        for s in pareto.iterkeys():
-            tmp[p].append(pareto[s][pareto[s][:,-1]==np.max(pareto[s][:,-1]), p_order[m].index(p)+4][0])
-    for p in tmp.iterkeys():
-        tmp[p] = np.array(tmp[p])
+def plot_both(order, pareto, good):
+    tmp = np.array([pareto[s][-1][4:] for s in pareto.keys()])
     figure()
-    for p in tmp.keys():
-        subplot(4,2,tmp.keys().index(p)+1)
-        scatter(np.arange(len(tmp[p])), tmp[p])
+    for p in order:
+        subplot(4,2,order.index(p)+1)
+        scatter(np.arange(len(tmp)), tmp[:,order.index(p)])
         axhline(good[p], 0, 1, linewidth = 4, color = 'black')
         title(p)
     show()
     return tmp
 
+def writing(data_):
+    target = open(options.output, 'w')
+    target.write(str(data_))
+    target.close()
 
 
 # -----------------------------------
@@ -178,7 +177,8 @@ good = dict({'alpha': 0.8,
 
 rescaling(p_order[m], p_scale[m])
 pareto = rankSolution(m, good)
-best = plot_both(m, pareto, good)
+best = plot_both(p_order[m], pareto, good)
+
 # ----------------------------------
 # Espaces des solutions
 # ----------------------------------
@@ -186,7 +186,17 @@ best = plot_both(m, pareto, good)
 # # -----------------------------
 # # TEsting solution
 # # ------------------------------
+p_final = dict({m:dict()})
 
-# os.system("python subjectTest.py -i "+options.output+" -o sferes_fmri.pickle")
-# os.system("python plot_test.py -i sferes_fmri.pickle")
-# os.system("evince test.pdf")
+for s in pareto.keys():
+    p_final[m][s] = dict()
+    for p in p_order[m]:
+        p_final[m][s][p] = np.round(best[pareto.keys().index(s),p_order[m].index(p)], 3)
+
+if options.output:
+    writing(p_final)
+
+
+os.system("python subjectTest.py -i "+options.output+" -o test_pareto_front.pickle")
+os.system("python plot_test.py -i test_pareto_front.pickle")
+os.system("evince test.pdf")
