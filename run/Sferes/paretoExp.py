@@ -89,6 +89,7 @@ def rankSolution(m, good):
 
 def plot_both(order, pareto, good):
     tmp = np.array([pareto[s][-1][4:] for s in pareto.keys()])
+    front = np.array([pareto[s][-1][2:4] for s in pareto.keys()])
     figure()
     for p in order:
         subplot(4,2,order.index(p)+1)
@@ -96,7 +97,7 @@ def plot_both(order, pareto, good):
         axhline(good[p], 0, 1, linewidth = 4, color = 'black')
         title(p)
     show()
-    return tmp
+    return tmp, front
 
 def writing(data_):
     target = open(options.output, 'w')
@@ -177,7 +178,7 @@ good = dict({'alpha': 0.8,
 
 rescaling(p_order[m], p_scale[m])
 pareto = rankSolution(m, good)
-best = plot_both(p_order[m], pareto, good)
+best, front = plot_both(p_order[m], pareto, good)
 
 # ----------------------------------
 # Espaces des solutions
@@ -197,6 +198,4 @@ if options.output:
     writing(p_final)
 
 
-os.system("python subjectTest.py -i "+options.output+" -o test_pareto_front.pickle")
-os.system("python plot_test.py -i test_pareto_front.pickle")
-os.system("evince test.pdf")
+# os.system("python subjectTest.py -i "+options.output+" -o test_pareto_front.pickle")

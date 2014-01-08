@@ -61,6 +61,7 @@ class FSelection():
         self.responses = list()
         self.reaction = list()
         self.value = list()
+        self.pdf = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -80,6 +81,7 @@ class FSelection():
         self.responses.append([])
         self.reaction.append([])
         self.value.append([])
+        self.pdf.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -89,7 +91,7 @@ class FSelection():
         self.current_state = None
         self.current_action = None
         self.Hb = self.max_entropy
-        self.Hf = self.max_entropy
+        self.Hf = self.max_entropy        
 
     def startExp(self):                
         self.state = list()
@@ -97,6 +99,7 @@ class FSelection():
         self.responses = list()
         self.reaction = list()
         self.value = list()        
+        self.pdf = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -119,7 +122,14 @@ class FSelection():
     def sigmoideModule(self):
         x = 2*self.max_entropy-self.Hb-self.Hf
         self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
+        self.pdf[-1][-1][self.nb_inferences] = self.pA
         return np.random.uniform(0,1) > self.pA
+
+    def predictPDF(self):
+        while self.nb_inferences < self.n_element:
+            self.inferenceModule()
+            self.evaluationModule()
+            self.sigmoideModule()
 
     def fusionModule(self):
         np.seterr(invalid='ignore')
@@ -132,6 +142,7 @@ class FSelection():
 
     def computeValue(self, state):
         self.state[-1].append(state)
+        self.pdf[-1].append(np.zeros(int(self.parameters['length'])+1))
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy
@@ -141,9 +152,10 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
+        self.reaction[-1].append(self.nb_inferences+1)
+        #self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(self.p_a)
-        self.reaction[-1].append(self.nb_inferences+1)
         return self.p_a
 
     def chooseAction(self, state):
@@ -190,7 +202,6 @@ class FSelection():
         r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
         delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
         self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
-
 
 
 class KSelection():

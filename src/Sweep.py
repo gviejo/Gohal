@@ -165,7 +165,7 @@ class Sferes():
         self.data = data                
         self.rt = list()
         self.rt_model = list()
-        self.normalizeRT()        
+        self.normalizeRT3()        
 
     def getFitness(self):
         llh = 0.0
@@ -182,12 +182,14 @@ class Sferes():
                 self.rt_model.append(float(self.model.reaction[-1][-1]))
 
         self.rt_model = np.array(self.rt_model)
-        self.rt_model = self.rt_model-np.min(self.rt_model)        
-        if np.max(self.rt_model):
-            self.rt_model = self.rt_model/np.max(self.rt_model)
+        #self.rt_model = self.rt_model-np.min(self.rt_model)        
+        self.rt_model = self.rt_model-np.mean(self.rt_model)
+        self.rt_model = self.rt_model/np.std(self.rt_model)
+        # if np.max(self.rt_model):
+        #     self.rt_model = self.rt_model/np.max(self.rt_model)
         lrs = np.sum(np.power((self.rt_model-self.rt),2))        
         max_llh = -float(len(self.rt_model))*np.log(0.2)
-        max_lrs = float(len(self.rt_model))
+        max_lrs = float(len(self.rt_model))*2
         #return -llh, lrs
         return max_llh+llh, max_lrs-lrs
 
@@ -206,6 +208,14 @@ class Sferes():
             for j in self.data[i]['rt']:
                 self.rt.append(j)
         self.rt = np.array(self.rt)
+
+    def normalizeRT3(self):
+        for i in self.data.iterkeys():
+            for  j in self.data[i]['rt']:
+                self.rt.append(j)
+        self.rt = np.array(self.rt)
+        self.rt = self.rt - np.mean(self.rt)
+        self.rt = (self.rt/np.std(self.rt)).flatten()    
 
 class Likelihood():
     """
