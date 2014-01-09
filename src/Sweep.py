@@ -184,7 +184,8 @@ class Sferes():
         self.rt_model = np.array(self.rt_model)
         #self.rt_model = self.rt_model-np.min(self.rt_model)        
         self.rt_model = self.rt_model-np.mean(self.rt_model)
-        self.rt_model = self.rt_model/np.std(self.rt_model)
+        if np.std(self.rt_model):
+            self.rt_model = self.rt_model/np.std(self.rt_model)
         # if np.max(self.rt_model):
         #     self.rt_model = self.rt_model/np.max(self.rt_model)
         lrs = np.sum(np.power((self.rt_model-self.rt),2))        
