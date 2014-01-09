@@ -69,12 +69,11 @@ def testParameters():
                     action = model.chooseAction(state)
                     reward = cats.getOutcome(state, action)
                     model.updateValue(reward)            
-            tmp = np.array(model.reaction[-nb_blocs:])
-            tmp = tmp-np.min(tmp)
-            tmp = tmp/float(np.max(tmp))
-            for i,j in zip(xrange(-nb_blocs, 0), xrange(len(tmp))):
-                model.reaction[i] = list(tmp[j])
-            sys.exit()
+            #tmp = np.array(model.reaction[-nb_blocs:])
+            #tmp = tmp-np.min(tmp)
+            #tmp = tmp/float(np.max(tmp))
+            #for i,j in zip(xrange(-nb_blocs, 0), xrange(len(tmp))):
+            #    model.reaction[i] = list(tmp[j])
         model.state = convertStimulus(np.array(model.state))
         model.action = convertAction(np.array(model.action))
         model.responses = np.array(model.responses)

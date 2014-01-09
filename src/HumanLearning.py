@@ -53,11 +53,11 @@ class HLearning():
         for i in data.iterkeys():            
             self.subject[case][i] = dict()
             
-            # tmp = np.array([data[i][j]['RT'].flatten()[0:size] for j in data[i].iterkeys()])
-            # tmp = tmp-np.min(tmp)
-            # tmp = tmp/np.max(tmp)
-            # for j,k in zip(data[i].iterkeys(),tmp):
-            #     data[i][j]['RT'] = k
+            tmp = np.array([data[i][j]['RT'].flatten()[0:size] for j in data[i].iterkeys()])
+            tmp = tmp-np.mean(tmp)
+            tmp = tmp/np.std(tmp)
+            for j,k in zip(data[i].iterkeys(),tmp):
+                data[i][j]['RT'] = k
             
             for j in data[i].iterkeys():
                 self.responses[case].append(data[i][j]['sar'][0:size,2])

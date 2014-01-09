@@ -29,7 +29,7 @@ class FSelection():
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
                             "beta":[1.0, 6.0],
-                            "alpha":[0.0, 2.0],
+                            "alpha":[0.0, 1.0],
                             "length":[5, 20],
                             "threshold":[0.0, 40.0], 
                             "noise":[0.0, 0.01],
@@ -122,7 +122,7 @@ class FSelection():
     def sigmoideModule(self):
         x = 2*self.max_entropy-self.Hb-self.Hf
         self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
-        self.pdf[-1][-1][self.nb_inferences] = self.pA
+        #self.pdf[-1][-1][self.nb_inferences] = self.pA
         return np.random.uniform(0,1) > self.pA
 
     def predictPDF(self):
@@ -142,7 +142,7 @@ class FSelection():
 
     def computeValue(self, state):
         self.state[-1].append(state)
-        self.pdf[-1].append(np.zeros(int(self.parameters['length'])+1))
+        #self.pdf[-1].append(np.zeros(int(self.parameters['length'])+1))
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy

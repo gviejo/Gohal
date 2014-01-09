@@ -16,13 +16,12 @@ import numpy as np
 
 sys.path.append("../../src")
 from fonctions import *
-from ColorAssociationTasks import CATS
-from HumanLearning import HLearning
+
 from Models import *
 from matplotlib import *
 from pylab import *
-import matplotlib.pyplot as plt
-from time import time
+
+from Sferes import pareto
 
 # -----------------------------------
 # ARGUMENT MANAGER
@@ -39,255 +38,17 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 
 # -----------------------------------
-# FONCTIONS
-# -----------------------------------
-def loadData():
-    model_in_folders = os.listdir(options.input)
-    if len(model_in_folders) == 0:
-        sys.exit("No model found in directory "+options.input)
-    data = dict()
-    for m in model_in_folders:
-        data[m] = dict()
-        list_subject = os.listdir(options.input+"/"+m)
-        for s in list_subject:
-            k = s.split("_")[-1].split(".")[0]
-            data[m][k] = np.genfromtxt(options.input+"/"+m+"/"+s)
-    if options.model and options.model in model_in_folders:
-        return dict({options.model:data[options.model]})
-    elif options.model and options not in model_in_folders:
-        sys.exit("Model "+options.model+" is not found in directory "+options.input)
-    else:
-        return data
-  
-def OWA(value, w):
-    # return utility 
-    m,n = value.shape
-    assert m>=n
-    assert len(w) == n
-    assert np.sum(w) == 1
-    return np.sum(np.sort(value)*w, 1)
-
-def Tchebychev(value, lambdaa, epsilon):
-    m,n = value.shape
-    assert m>=n
-    assert len(lambdaa) == n
-    assert np.sum(lambdaa) == 1
-    assert epsilon < 1.0
-    ideal = np.max(value, 0)
-    nadir = np.min(value, 0)
-    tmp = lambdaa*((ideal-value)/(ideal-nadir))
-    return np.max(tmp, 1)+epsilon*np.sum(tmp,1)
-
-def writing(data_):
-    target = open(options.output, 'w')
-    target.write(str(data_))
-    target.close()
-
-
-def plot_both(final):
-    tmp = dict({p:[] for p in p_order['fusion']})
-    for s in final.iterkeys():
-        for p in final[s].iterkeys():
-            tmp[p].append(final[s][p])
-    for p in tmp.iterkeys():
-        tmp[p] = np.array(tmp[p])
-    good = dict({'alpha': 0.8,
-                 'beta': 3.0,
-                 'gain': 2.0,
-                 'gamma': 0.4,
-                 'length': 10,
-                 'noise': 0.0001,
-                 'threshold': 4.0})
-    figure()
-    for p in tmp.keys():
-        subplot(4,2,tmp.keys().index(p)+1)
-        scatter(np.arange(len(tmp[p])), tmp[p])
-        axhline(good[p], 0, 1, linewidth = 4, color = 'black')
-        title(p)
-    show()
-    return parameters
-
-
-# -----------------------------------
-
-# -----------------------------------
-# HUMAN LEARNING
-# -----------------------------------
-human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
-# -----------------------------------
-
-# -----------------------------------
 # LOADING DATA
 # -----------------------------------
-data = loadData()
-
-# -----------------------------------
-# PLOTTING
-# -----------------------------------
-p_scale = dict({'qlearning':([0.0,1.0,0.0],[1.0,10.0,1.0]),
-                'bayesian':([5.0,0.0,0.0],[15.0,0.01,2.3]),
-                'fusion':([0.0,1.0,0.0,0.0,5.0,0.0,0.0],[1.0,6.0,1.0,0.01,15.0,40.0,40.0]),
-                'keramati':([0.0,1.0,0.0001,5.0,0.0,0.0,0.0],[1.0,10.0,0.001,20.0,2.3,0.01,1.0])})
-p_bounds = dict({'fusion':{"gamma":[0.0, 1.0],
-                                "beta":[1.0, 6.0],
-                                "alpha":[0.0, 2.0],
-                                "length":[5, 20],
-                                "threshold":[0.0, 40.0], 
-                                "noise":[0.0, 0.01],
-                                "gain":[0.0,40.0]},
-                    'bayesian':{"length":[5, 20], 
-                                "threshold":[0.0, 2.3], 
-                                "noise":[0.0, 0.1]},
-                    'qlearning':{"gamma":[0.0, 1.0],
-                                "beta":[1.0, 10.0],
-                                "alpha":[0.0, 2.0]},
-                    'keramati':{"gamma":[0.0, 1.0],
-                                "beta":[1.0, 10.0],
-                                "eta":[0.00001, 0.001],
-                                "length":[5, 20],
-                                "threshold":[0.0, 2.3], 
-                                "noise":[0.0, 0.01],
-                                "sigma":[0.0,1.0]}})
-
-p_order = dict({'fusion':['alpha','beta','gamma','noise','length','threshold','gain'],
-                'qlearning':['alpha','beta','gamma'],
-                'bayesian':['length','noise','threshold'],
-                'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
-
-model_params = {'colors':{'bayesian':'red',
-                          'fusion':'green',
-                          'qlearning':'blue',
-                          'keramati':'grey'}}
-#ion()
-params = {'backend':'pdf',
-          'axes.labelsize':10,
-          'text.fontsize':10,
-          'legend.fontsize':10,
-          'xtick.labelsize':8,
-          'ytick.labelsize':8,
-          'text.usetex':False}
-
-def test(data):
-    m = 'fusion'
-    parameters = dict({k:[] for k in p_order[m]})
-
-    for s in data[m].keys():
-        for p in p_order[m]:
-            parameters[p].append(list(data[m][s][data[m][s][:,0] == np.max(data[m][s][:,0]),4+p_order[m].index(p)]))
-
-    for p in parameters.keys():
-        parameters[p] = np.hstack(np.array(parameters[p]))
-        parameters[p] = p_scale[m][0][p_order[m].index(p)]+parameters[p]*p_scale[m][1][p_order[m].index(p)]
-
-    good = dict({'alpha': 0.8,
-                 'beta': 3.0,
-                 'gain': 2.0,
-                 'gamma': 0.4,
-                 'length': 10,
-                 'noise': 0.0001,
-                 'threshold': 4.0})
-    figure()
-    for p in parameters.keys():
-        subplot(4,2,parameters.keys().index(p)+1)
-        hist(parameters[p], 20)
-        axvline(good[p], 0, 1, linewidth = 4, color = 'black')
-        title(p)
-    show()
-    return parameters
-
-# -----------------------------------
-# Espace des critères 
-# -----------------------------------
-ind_opt = dict()
-fig1 = figure(figsize = (12, 9))
-ion()
-for m in data.iterkeys():
-    ind_opt[m] = dict()
-    for i in xrange(len(data[m].keys())):
-        s = data[m].keys()[i]
-        gen = data[m][s][:,0]
-        ind = data[m][s][:,1] 
-        values = data[m][s][:,2:4]
-        pareto = data[m][s][:,2:4][gen == np.max(gen)]
-        possible = data[m][s][:,4:][gen == np.max(gen)]
-        ideal = np.max(pareto, 0)
-        nadir = np.min(pareto, 0)
-        ax1 = fig1.add_subplot(4,4,i+1)
-        # PARETO FRONT
-        uniq = np.array(list(set(tuple(r) for r in pareto)))        
-        owa = OWA(uniq, [0.5, 0.5])
-        ########################################
-        tche = Tchebychev(uniq, [0.5, 0.5], 0.1)
-        ########################################        
-        ax1.scatter(uniq[:,0], uniq[:,1], c = tche)        
-        #ax1.plot(ideal[0], ideal[1], 'o', markersize = 5, color = model_params['colors'][m])
-        #ax1.plot(nadir[0], nadir[1], 'o', markersize = 5, color = model_params['colors'][m])
-        #ax1.plot([nadir[0], ideal[0]], [nadir[1], ideal[1]], '--', linewidth = 3.0, color = model_params['colors'][m])
-        ax1.plot(uniq[np.argmin(tche),0], uniq[np.argmin(tche),1], 'o', markersize = 15, color = model_params['colors'][m], label = m, alpha = 0.8)        
-        # ax1.plot(uniq[np.argmax(owa),0], uniq[np.argmax(owa),1], 'o', markersize = 15)
-        #xlim(0, -human.length['fmri'][s]*np.log(0.2))
-        #ylim(0, human.length['fmri'][s])
-        ax1.grid()
-        # SAVING Optimal solutions        
-        ind_opt[m][s] = possible[((pareto[:,0] == uniq[np.argmin(tche)][0])*(pareto[:,1] == uniq[np.argmin(tche)][1]))]
-        
-ax1.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
-fig1.show()
-
-# ----------------------------------
-# Espaces des solutions
-# ----------------------------------
-solutions = dict()
-for m in data.iterkeys():
-    solutions[m] = dict()
-    for s in data[m].iterkeys():
-        solutions[m][s] = dict()
-        l,n = ind_opt[m][s].shape
-        assert n == len(p_scale[m][0]) == len(p_scale[m][1]) == len(p_order[m])
-        solutions[m][s] = p_scale[m][0]+ind_opt[m][s]*p_scale[m][1]
-
-
-fig2 = figure(figsize = (12, 9))
-#rc.update(params)
-n_params_max = np.max([len(t) for t in [p_order[m] for m in solutions]])
-n_model = len(solutions.keys())
-            
-for i in xrange(n_model):
-    m = solutions.keys()[i]
-    for j in xrange(len(p_order[m])):
-        p = p_order[m][j]
-        subplot(n_params_max, n_model, i+1+n_model*j)
-        for k in xrange(len(solutions[m].keys())):
-            s = solutions[m].keys()[k]
-            scatter(solutions[m][s][:,j], np.ones(len(solutions[m][s][:,j]))*(k+1))
-        xlim(p_bounds[m][p][0], p_bounds[m][p][1])
-fig2.show()            
-
-
-
-# ---------------------------------
-# Writing optimal solution 
-# ---------------------------------
-
-p_final = dict()
-
-for m in solutions:
-    p_final[m] = dict()
-    for s in solutions[m]:
-        p_final[m][s] = dict()
-        tmp = np.mean(solutions[m][s],0)
-        for i in xrange(len(p_order[m])):
-            p = p_order[m][i]
-            p_final[m][s][p] = np.round(tmp[i], 3)
-
-if options.output:
-    writing(p_final)
-
+front = pareto(options.input)
+#front.plotParetoFront()
+#front.plotSolutions()
+#front.writeOptimal(options.output)
+front.rankFront()
+front.quickTest('fusion')
 
 # # -----------------------------
 # # TEsting solution
 # # ------------------------------
 
-# os.system("python subjectTest.py -i "+options.output+" -o sferes_fmri.pickle")
-# os.system("python plot_test.py -i sferes_fmri.pickle")
-# os.system("evince test.pdf")
+#os.system("python subjectTest.py -i "+options.output+" -o sferes_fmri.pickle")

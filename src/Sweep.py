@@ -218,6 +218,7 @@ class Sferes():
         self.rt = self.rt - np.mean(self.rt)
         self.rt = (self.rt/np.std(self.rt)).flatten()    
 
+
 class Likelihood():
     """
     Optimization with the function you have to choose carefully my friend
