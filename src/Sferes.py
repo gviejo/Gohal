@@ -151,7 +151,6 @@ class pareto():
         return np.max(tmp, 1)+epsilon*np.sum(tmp,1)
 
     def plotParetoFront(self):
-        self.rankFront()
         self.fig_pareto = figure(figsize = (12,9))
         for m in self.data.iterkeys():
             for i in xrange(len(self.data[m].keys())):
@@ -165,7 +164,7 @@ class pareto():
         ax.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
         self.fig_pareto.show()
 
-    def rankFront(self):
+    def rankFront(self, w):
         for m in self.data.iterkeys():
             self.opt[m] = dict()
             self.pareto[m] = dict()
@@ -180,7 +179,7 @@ class pareto():
                 nadir = np.min(pareto, 0)
                 uniq = np.array(list(set(tuple(r) for r in pareto)))
                 #owa = self.OWA(uniq,[0.5,0.5])
-                tche = self.Tchebychev(uniq, ideal, nadir, [0.5, 0.5], 0.01)
+                tche = self.Tchebychev(uniq, ideal, nadir, w, 0.01)
                 self.opt[m][s] = possible[((pareto[:,0] == uniq[np.argmin(tche)][0])*(pareto[:,1] == uniq[np.argmin(tche)][1]))]
                 self.pareto[m][s] = uniq
                 self.rank[m][s] = tche            
@@ -216,8 +215,12 @@ class pareto():
             target.write(str(self.final))
             target.close()
 
+    def _convertStimulus(self, s):
+        return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
+
+
     def quickTest(self, model_to_test):
-        nb_blocs = 10        
+        nb_blocs = 4
         nb_trials = self.human.responses['fmri'].shape[1]
         cats = CATS(nb_trials)
         m = model_to_test
@@ -229,17 +232,21 @@ class pareto():
             model.setAllParameters(self.final[m][s])
             for i in xrange(nb_blocs):
                 cats.reinitialize()
+                cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
                 model.startBloc()
+                #for j in xrange(len(cats.stimuli)):
                 for j in xrange(nb_trials):
                     state = cats.getStimulus(j)
                     action = model.chooseAction(state)
                     reward = cats.getOutcome(state, action)
                     model.updateValue(reward)
-            # tmp = np.array(model.reaction[-nb_blocs:])
-            # tmp = tmp-np.mean(tmp)
-            # tmp = tmp/np.std(tmp)
-            # for i,j in zip(xrange(-nb_blocs, 0), xrange(len(tmp))):
-            #     model.reaction[i] = list(tmp[j])
+            
+            tmp = np.array(model.reaction[-nb_blocs:])
+            tmp = tmp-np.mean(tmp)
+            if np.std(tmp):
+                tmp = tmp/np.std(tmp)
+            for i,j in zip(xrange(-nb_blocs, 0), xrange(len(tmp))):
+                model.reaction[i] = list(tmp[j])
         model.state = convertStimulus(np.array(model.state))
         model.action = convertAction(np.array(model.action))
         model.responses = np.array(model.responses)

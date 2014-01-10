@@ -41,10 +41,10 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # LOADING DATA
 # -----------------------------------
 front = pareto(options.input)
-#front.plotParetoFront()
-#front.plotSolutions()
+front.rankFront([0.9,0.1])
+front.plotParetoFront()
+front.plotSolutions()
 #front.writeOptimal(options.output)
-front.rankFront()
 front.quickTest('fusion')
 
 # # -----------------------------
