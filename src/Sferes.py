@@ -22,6 +22,10 @@ from Models import *
 from pylab import *
 from HumanLearning import HLearning
 from ColorAssociationTasks import CATS
+import scipy.optimize as optimization
+
+def func(x, a, b):
+    return a*x+b
 
 class EA():
     """
@@ -31,9 +35,8 @@ class EA():
         self.model = ptr_model
         self.subject = subject
         self.data = data                
-        self.rt = list()
-        self.rt_model = list()
-        self.normalizeRT3()        
+        self.rt = np.hstack(np.array([self.data[i]['rt'].flatten() for i in [1,2,3,4]]).flat)
+        self.rt_model = None
 
     def getFitness(self):
         llh = 0.0
@@ -46,20 +49,27 @@ class EA():
                 llh = llh + np.log(values[trial[1]-1])
                 self.model.current_action = trial[1]-1
                 self.model.updateValue(trial[2])                                                        
-                self.rt_model.append(float(self.model.reaction[-1][-1]))
+        self.rt_model = np.hstack(np.array(self.model.reaction).flat)
 
-        self.rt_model = np.array(self.rt_model)
-        #self.rt_model = self.rt_model-np.min(self.rt_model)        
+        self.centerReduct()
+        self.leastSquares()
+
+        lrs = np.sum(np.power((self.rt_model-self.rt),2))
+        #max_llh = -float(len(self.rt_model))*np.log(0.2)
+        #max_lrs = float(len(self.rt_model))*2
+        return -np.abs(llh), -np.abs(lrs)
+
+    def centerReduct(self):
+        self.rt = self.rt-np.mean(self.rt)
         self.rt_model = self.rt_model-np.mean(self.rt_model)
         if np.std(self.rt_model):
             self.rt_model = self.rt_model/np.std(self.rt_model)
-        # if np.max(self.rt_model):
-        #     self.rt_model = self.rt_model/np.max(self.rt_model)
-        lrs = np.sum(np.power((self.rt_model-self.rt),2))        
-        max_llh = -float(len(self.rt_model))*np.log(0.2)
-        max_lrs = float(len(self.rt_model))*2
-        #return -llh, lrs
-        return max_llh+llh, max_lrs-lrs
+        if np.std(self.rt):
+            self.rt = self.rt/np.std(self.rt)
+
+    def leastSquares(self):
+        ab, v = optimization.curve_fit(func, self.rt_model, self.rt)        
+        self.rt_model = func(self.rt_model, ab[0], ab[1])
 
     def normalizeRT(self):
         for i in self.data.iterkeys():
@@ -77,13 +87,6 @@ class EA():
                 self.rt.append(j)
         self.rt = np.array(self.rt)
 
-    def normalizeRT3(self):
-        for i in self.data.iterkeys():
-            for  j in self.data[i]['rt']:
-                self.rt.append(j)
-        self.rt = np.array(self.rt)
-        self.rt = self.rt - np.mean(self.rt)
-        self.rt = (self.rt/np.std(self.rt)).flatten()    
 
 
 class pareto():
@@ -234,13 +237,13 @@ class pareto():
                 cats.reinitialize()
                 cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
                 model.startBloc()
-                #for j in xrange(len(cats.stimuli)):
-                for j in xrange(nb_trials):
+                for j in xrange(len(cats.stimuli)):
+                #for j in xrange(nb_trials):
                     state = cats.getStimulus(j)
                     action = model.chooseAction(state)
                     reward = cats.getOutcome(state, action)
                     model.updateValue(reward)
-            
+            sys.exit()
             tmp = np.array(model.reaction[-nb_blocs:])
             tmp = tmp-np.mean(tmp)
             if np.std(tmp):
