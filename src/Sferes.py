@@ -23,6 +23,12 @@ from pylab import *
 from HumanLearning import HLearning
 from ColorAssociationTasks import CATS
 import scipy.optimize as optimization
+from itertools import product, tee, izip
+from scipy.stats import pearsonr
+from multiprocessing import Pool, Process
+
+def unwrap_self_multi_agregate(arg, **kwarg):
+    return pareto.multi_agregate(*arg, **kwarg)
 
 def func(x, a, b):
     return a*x+b
@@ -151,7 +157,21 @@ class pareto():
         ideal = np.max(value, 0)
         nadir = np.min(value, 0)
         tmp = lambdaa*((ideal-value)/(ideal-nadir))
-        return np.max(tmp, 1)+epsilon*np.sum(tmp,1)
+        return np.max(tmp, 1)+epsilon*np.sum(tmp,1) 
+
+    def JSD(self, model):
+        np.seterr(all='ignore')
+        tmp = np.dstack((self.human.responses['fmri'], self.models[model].responses))
+        p = np.mean(tmp, 0)
+        m = np.mean(p,1)
+        P = np.dstack((p,1-p))
+        M = np.transpose(np.vstack((m,1-m)))
+        kld = np.vstack((np.sum(P[:,0]*np.log2(P[:,0]/M),1), np.sum(P[:,1]*np.log2(P[:,1]/M),1)))
+        kld[np.isnan(kld)] = 1.0
+        return np.sum(1-np.mean(kld, 0))
+
+    def Pearson(self, model):
+        return np.sum(np.array(map(pearsonr, self.human.reaction['fmri'], self.models[model].reaction))[:,0])
 
     def plotParetoFront(self):
         self.fig_pareto = figure(figsize = (12,9))
@@ -175,7 +195,6 @@ class pareto():
             self.final[m] = dict()
             for s in self.data[m].iterkeys():
                 gen = self.data[m][s][:,0]                
-                values = self.data[m][s][:,2:4]
                 pareto = self.data[m][s][:,2:4][gen == np.max(gen)]
                 possible = self.data[m][s][:,4:][gen == np.max(gen)]
                 ideal = np.max(pareto, 0)
@@ -191,7 +210,6 @@ class pareto():
                 for p in self.p_order[m]:
                     self.final[m][s][p] = np.round(tmp[self.p_order[m].index(p)], 3)
             
-
     def plotSolutions(self):
         self.fig_solution = figure(figsize= (12,9))
         n_params_max = np.max([len(t) for t in [self.p_order[m] for m in self.opt.keys()]])
@@ -221,8 +239,7 @@ class pareto():
     def _convertStimulus(self, s):
         return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
 
-
-    def quickTest(self, model_to_test):
+    def quickTest(self, model_to_test, plot=True):
         nb_blocs = 4
         nb_trials = self.human.responses['fmri'].shape[1]
         cats = CATS(nb_trials)
@@ -237,13 +254,12 @@ class pareto():
                 cats.reinitialize()
                 cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
                 model.startBloc()
-                for j in xrange(len(cats.stimuli)):
-                #for j in xrange(nb_trials):
+                #for j in xrange(len(cats.stimuli)):
+                for j in xrange(nb_trials):
                     state = cats.getStimulus(j)
                     action = model.chooseAction(state)
                     reward = cats.getOutcome(state, action)
                     model.updateValue(reward)
-            sys.exit()
             tmp = np.array(model.reaction[-nb_blocs:])
             tmp = tmp-np.mean(tmp)
             if np.std(tmp):
@@ -254,22 +270,61 @@ class pareto():
         model.action = convertAction(np.array(model.action))
         model.responses = np.array(model.responses)
         model.reaction = np.array(model.reaction)
-        
-        pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
-        step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
-        rt = computeMeanRepresentativeSteps(step)
-        pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
-        step, indice = getRepresentativeSteps(self.human.reaction['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
-        rt_human = computeMeanRepresentativeSteps(step) 
-        colors = ['blue', 'red', 'green']
-        self.fig_quick = figure(figsize=(10,5))
-        ax1 = self.fig_quick.add_subplot(1,2,1)
-        [ax1.errorbar(range(1, len(pcr['mean'][t])+1), pcr['mean'][t], pcr['sem'][t], linewidth = 1.5, elinewidth = 1.5, capsize = 0.8, linestyle = '-', alpha = 1, color = colors[t]) for t in xrange(3)]
-        [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
-        ax2 = self.fig_quick.add_subplot(1,2,2)
-        ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-        ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
-        show()
+        if plot:
+            pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
+            step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
+            rt = computeMeanRepresentativeSteps(step)
+            pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
+            step, indice = getRepresentativeSteps(self.human.reaction['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
+            rt_human = computeMeanRepresentativeSteps(step) 
+            colors = ['blue', 'red', 'green']
+            self.fig_quick = figure(figsize=(10,5))
+            ax1 = self.fig_quick.add_subplot(1,2,1)
+            [ax1.errorbar(range(1, len(pcr['mean'][t])+1), pcr['mean'][t], pcr['sem'][t], linewidth = 1.5, elinewidth = 1.5, capsize = 0.8, linestyle = '-', alpha = 1, color = colors[t]) for t in xrange(3)]
+            [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
+            ax2 = self.fig_quick.add_subplot(1,2,2)
+            ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
+            ax3 = ax2.twinx()        
+            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            show()
 
+    def aggregate(self, m, plot = False):
+        self.comb_rank = list()
+        self.final[m] = dict()
+        self.combinaison = list()
+        self.all_front = dict({m:dict()})
+        for s in self.data[m].iterkeys():
+            self.all_front[m][s] = dict()
+            pareto = self.data[m][s][self.data[m][s][:,0] == np.max(self.data[m][s][:,0])]
+            self.combinaison.append([])
+            for line in pareto:
+                self.all_front[m][s][str(int(line[1]))] = dict({self.p_order[m][i]:line[4+i] for i in xrange(len(self.p_order[m]))})
+                self.combinaison[-1].append(s+"_"+str(int(line[1])))
+        n_core = 4
+        pool = Pool(n_core)
+        ite = list(tee(product(*self.combinaison), n_core))
+        ite = iter(map(iter, tee(product(*self.combinaison), n_core)))
 
+        self.m = m
+        self.comb_rank = pool.map(unwrap_self_multi_agregate, zip([self]*n_core, ite))
 
+        # for combi in product(*self.combinaison):
+        #     print combi
+        #     for ss in combi:
+        #         s,solution=ss.split("_")
+        #         self.final[m][s] = self.all_front[m][s][solution]
+        #     self.quickTest(m, plot=False)
+        #     self.comb_rank.append([combi, self.JSD(m), self.Pearson(m)])
+
+    def multi_agregate(self, iterator):
+        print iterator
+        return iterator
+        comb_rank = []
+        for combi in iterator:            
+            for ss in combi:
+                s, solution = ss.split("_")
+                self.final[self.m][s] = self.all_front[self.m][s][solution]
+            self.quickTest(self.m, plot=False)
+            comb_rank.append((combi, self.JSD(self.m), self.Pearson(self.m)))
+            print comb_rank[-1]
+        return comb_rank
