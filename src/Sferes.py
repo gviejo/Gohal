@@ -22,7 +22,6 @@ from Models import *
 from pylab import *
 from HumanLearning import HLearning
 from ColorAssociationTasks import CATS
-import scipy.optimize as optimization
 from itertools import product, tee, izip
 from scipy.stats import pearsonr
 from multiprocessing import Pool, Process
@@ -56,26 +55,19 @@ class EA():
                 self.model.current_action = trial[1]-1
                 self.model.updateValue(trial[2])                                                        
         self.rt_model = np.hstack(np.array(self.model.reaction).flat)
-
-        self.centerReduct()
         self.leastSquares()
-
         lrs = np.sum(np.power((self.rt_model-self.rt),2))
         #max_llh = -float(len(self.rt_model))*np.log(0.2)
         #max_lrs = float(len(self.rt_model))*2
         return -np.abs(llh), -np.abs(lrs)
 
-    def centerReduct(self):
-        self.rt = self.rt-np.mean(self.rt)
-        self.rt_model = self.rt_model-np.mean(self.rt_model)
+    def leastSquares(self):            
         if np.std(self.rt_model):
             self.rt_model = self.rt_model/np.std(self.rt_model)
         if np.std(self.rt):
-            self.rt = self.rt/np.std(self.rt)
-
-    def leastSquares(self):
-        ab, v = optimization.curve_fit(func, self.rt_model, self.rt)        
-        self.rt_model = func(self.rt_model, ab[0], ab[1])
+            self.rt = self.rt/np.std(self.rt)                
+        a = np.sum(self.rt*self.rt_model)/np.sum(self.rt_model**2)
+        self.rt_model = a*self.rt_model
 
     def normalizeRT(self):
         for i in self.data.iterkeys():
@@ -239,16 +231,29 @@ class pareto():
     def _convertStimulus(self, s):
         return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
 
-    def quickTest(self, model_to_test, plot=True):
+    def leastSquares(self, m, n_subject, n_blocs, n_trials):                
+        x = np.reshape(self.models[m].reaction, (n_subject, n_blocs*n_trials))        
+        tmp = np.std(x, 1)
+        tmp[tmp == 0.0] = 1.0
+        x = x/np.tile(np.vstack(tmp), n_blocs*n_trials)
+        y = np.reshape(self.human.reaction['fmri'], (n_subject, n_blocs*n_trials))     
+        tmp = np.std(y, 1)
+        tmp[tmp == 0.0] = 1.0
+        y = y/np.tile(np.vstack(tmp), n_blocs*n_trials)
+        a = np.vstack((np.sum(y*x,1))/(np.sum(x**2,1)))
+        x = np.tile(a,n_blocs*n_trials)*x
+        self.models[m].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
+        self.human.reaction['fmri'] = np.reshape(y, (n_subject*n_blocs, n_trials))        
+
+    def quickTest(self, m, plot=True):
         nb_blocs = 4
         nb_trials = self.human.responses['fmri'].shape[1]
         cats = CATS(nb_trials)
-        m = model_to_test
         pcr = dict()
         rt = dict()
         model = self.models[m]
         model.startExp()
-        for s in self.final[m].iterkeys():
+        for s in self.final[m].iterkeys():            
             model.setAllParameters(self.final[m][s])
             for i in xrange(nb_blocs):
                 cats.reinitialize()
@@ -260,17 +265,12 @@ class pareto():
                     action = model.chooseAction(state)
                     reward = cats.getOutcome(state, action)
                     model.updateValue(reward)
-            tmp = np.array(model.reaction[-nb_blocs:])
-            tmp = tmp-np.mean(tmp)
-            if np.std(tmp):
-                tmp = tmp/np.std(tmp)
-            for i,j in zip(xrange(-nb_blocs, 0), xrange(len(tmp))):
-                model.reaction[i] = list(tmp[j])
         model.state = convertStimulus(np.array(model.state))
         model.action = convertAction(np.array(model.action))
         model.responses = np.array(model.responses)
         model.reaction = np.array(model.reaction)
-        if plot:
+        if plot:            
+            self.leastSquares(m, len(self.final[m].keys()), nb_blocs, nb_trials)
             pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
             step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
             rt = computeMeanRepresentativeSteps(step)
@@ -284,8 +284,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            ax3 = ax2.twinx()        
-            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            #ax3 = ax2.twinx()        
+            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     def aggregate(self, m, plot = False):
@@ -302,9 +302,9 @@ class pareto():
                 self.combinaison[-1].append(s+"_"+str(int(line[1])))
         n_core = 4
         pool = Pool(n_core)
-        ite = list(tee(product(*self.combinaison), n_core))
-        ite = iter(map(iter, tee(product(*self.combinaison), n_core)))
-
+        #ite = list(tee(product(*self.combinaison), n_core))
+        #ite = iter(map(iter, tee(product(*self.combinaison), n_core)))
+        sys.exit()
         self.m = m
         self.comb_rank = pool.map(unwrap_self_multi_agregate, zip([self]*n_core, ite))
 

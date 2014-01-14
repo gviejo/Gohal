@@ -121,8 +121,8 @@ class FSelection():
 
     def sigmoideModule(self):
         x = 2*self.max_entropy-self.Hb-self.Hf
-        #self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
-        self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
+        self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
+        #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
         #self.pdf[-1][-1][self.nb_inferences] = self.pA
         return np.random.uniform(0,1) > self.pA
 
@@ -153,7 +153,7 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        self.reaction[-1].append(self.nb_inferences+1)
+        self.reaction[-1].append(self.nb_inferences+1.0)
         #self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(self.p_a)
@@ -174,7 +174,7 @@ class FSelection():
         self.current_action = self.sample(self.p_a)            
         self.value[-1].append(self.p_a)
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(self.nb_inferences+1)        
+        self.reaction[-1].append(self.nb_inferences+1.0)        
         return self.action[-1][-1]
 
     def updateValue(self, reward):

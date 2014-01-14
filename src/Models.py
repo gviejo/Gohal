@@ -351,7 +351,7 @@ class BayesianWorkingMemory():
         self.current_action = self.sample(self.values)            
         self.value[-1].append(self.values)
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(self.nb_inferences)
+        self.reaction[-1].append(float(self.nb_inferences))
         self.entropies[-1].append(self.entropy)
         return self.action[-1][-1]
 
