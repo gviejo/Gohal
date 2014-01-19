@@ -44,9 +44,12 @@ class EA():
         self.model = ptr_model
         self.subject = subject
         self.data = data                
-        self.rt = np.hstack(np.array([self.data[i]['rt'].flatten() for i in [1,2,3,4]]).flat)
+        self.rt = np.hstack(np.array([self.data[i]['rt'][:,0] for i in [1,2,3,4]]).flat)
         self.rt_model = None
-
+        self.w = np.hstack(np.array([self.data[i]['rt'][:,1] for i in [1,2,3,4]]).flat)
+        self.w[self.w == 2] = 0.1
+        self.w[self.w == 1] = 1.0
+        
     def getFitness(self):
         llh = 0.0
         lrs = 0.0
@@ -54,24 +57,26 @@ class EA():
         for bloc in self.data.iterkeys():
             self.model.startBloc()            
             for trial in self.data[bloc]['sar']:
-                values = self.model.computeValue(self.model.states[trial[0]-1])
+                values = self.model.computeValue(self.model.states[int(trial[0])-1])
                 llh = llh + np.log(values[trial[1]-1])
                 self.model.current_action = trial[1]-1
                 self.model.updateValue(trial[2])                                                        
         self.rt_model = np.hstack(np.array(self.model.reaction).flat)
         self.leastSquares()
-        lrs = np.sum(np.power((self.rt_model-self.rt),2))
+        lrs = np.sum(np.power((self.rt_model-self.rt),2)*self.w)
         #max_llh = -float(len(self.rt_model))*np.log(0.2)
         #max_lrs = float(len(self.rt_model))*2
         return -np.abs(llh), -np.abs(lrs)
 
-    def leastSquares(self):            
+    def leastSquares(self):
+        self.rt_model = self.rt_model-np.mean(self.rt_model)
+        self.rt = self.rt-np.mean(self.rt)
         if np.std(self.rt_model):
             self.rt_model = self.rt_model/np.std(self.rt_model)
-        if np.std(self.rt):
-            self.rt = self.rt/np.std(self.rt)                
-        a = np.sum(self.rt*self.rt_model)/np.sum(self.rt_model**2)
-        self.rt_model = a*self.rt_model
+        self.rt = self.rt/np.std(self.rt)                
+        #a = np.sum(self.rt*self.rt_model)/np.sum(self.rt_model**2)
+        #self.rt_model = a*self.rt_model
+
 
     def normalizeRT(self):
         for i in self.data.iterkeys():
@@ -81,14 +86,6 @@ class EA():
         self.rt = self.rt - np.min(self.rt)
         self.rt = (self.rt/np.max(self.rt)).flatten()
     
-    def normalizeRT2(self):
-        for i in self.data.iterkeys():
-            self.data[i]['rt'] = self.data[i]['rt']-np.min(self.data[i]['rt'])
-            self.data[i]['rt'] = self.data[i]['rt']/np.max(self.data[i]['rt'])
-            for j in self.data[i]['rt']:
-                self.rt.append(j)
-        self.rt = np.array(self.rt)
-
 
 
 class pareto():

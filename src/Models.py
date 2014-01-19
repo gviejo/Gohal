@@ -85,7 +85,7 @@ class QLearning():
         self.current_action = self.sampleSoftMax(self.values[self.current_state])
         self.action[-1].append(self.actions[self.current_action])
         self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.parameters['beta']))
-        self.value[-1].append(self.values[self.current_state])
+        self.value[-1].append(list(self.values[self.current_state]))
         return self.action[-1][-1]
     
     def updateValue(self, reward):

@@ -30,7 +30,7 @@ class FSelection():
         self.bounds = dict({"gamma":[0.0, 1.0],
                             "beta":[1.0, 6.0],
                             "alpha":[0.0, 1.0],
-                            "length":[5, 20],
+                            "length":[5, 15],
                             "threshold":[0.0001, 1.0], 
                             "noise":[0.0, 0.01],
                             "gain":[0.00001,1.0]})
@@ -136,8 +136,9 @@ class FSelection():
 
     def fusionModule(self):
         np.seterr(invalid='ignore')
-        w = (self.max_entropy-self.Hb)/self.max_entropy
-        self.values_net = w*self.p_a_mb+(1.0-w)*self.values_mf[self.current_state]
+        #w = (self.max_entropy-self.Hb)/self.max_entropy
+        #self.values_net = w*self.p_a_mb+(1.0-w)*self.values_mf[self.current_state]
+        self.values_net = self.p_a_mb+self.values_mf[self.current_state]
         tmp = np.exp(self.values_net*float(self.parameters['beta']))
         self.p_a = tmp/np.sum(tmp)
         if True in np.isnan(self.p_a):
@@ -158,7 +159,7 @@ class FSelection():
         self.reaction[-1].append(self.nb_inferences+1.0)
         #self.predictPDF()
         self.fusionModule()        
-        self.value[-1].append(self.p_a)
+        self.value[-1].append(list(self.p_a))
         return self.p_a
 
     def chooseAction(self, state):
@@ -174,7 +175,7 @@ class FSelection():
             self.evaluationModule()
         self.fusionModule()
         self.current_action = self.sample(self.p_a)            
-        self.value[-1].append(self.p_a)
+        self.value[-1].append(list(self.p_a))
         self.action[-1].append(self.actions[self.current_action])
         self.reaction[-1].append(self.nb_inferences+1.0)        
         return self.action[-1][-1]
