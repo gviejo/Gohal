@@ -22,6 +22,7 @@ from matplotlib import *
 from pylab import *
 
 from Sferes import pareto
+from itertools import *
 
 # -----------------------------------
 # ARGUMENT MANAGER
@@ -41,14 +42,16 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # LOADING DATA
 # -----------------------------------
 front = pareto(options.input)
-front.rankFront([0.9,0.1])
+front.rankFront([0.2,0.8])
 front.plotParetoFront()
 front.plotSolutions()
+front.plotFrontEvolution()
+front.quickTest('fusion_EpsMOEA')
 #front.writeOptimal(options.output)
-front.quickTest('fusion')
+
 
 # # -----------------------------
-# # TEsting solution
+# # Testing solution
 # # ------------------------------
 
 #os.system("python subjectTest.py -i "+options.output+" -o sferes_fmri.pickle")

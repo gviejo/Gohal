@@ -46,7 +46,7 @@ def testModel():
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('/home/guillaume/Gohal/PEPS_GoHaL/Beh_Model/',48), 'fmri':('/home/guillaume/Gohal/fMRI',39)}))
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 
 
@@ -80,7 +80,7 @@ nb_trials = 42
 nb_blocs = 100
 cats = CATS(nb_trials)
 
-model = FSelection(cats.states, cats.actions, parameters)
+model = FSelection(cats.states, cats.actions, very_good_parameters)
 
 # -----------------------------------
 

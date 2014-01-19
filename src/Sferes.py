@@ -22,16 +22,20 @@ from Models import *
 from pylab import *
 from HumanLearning import HLearning
 from ColorAssociationTasks import CATS
-from itertools import product, tee, izip
+#from itertools import product,izip_longest, tee
 from scipy.stats import pearsonr
-from multiprocessing import Pool, Process
+#from multiprocessing import Pool, Process
 
-def unwrap_self_multi_agregate(arg, **kwarg):
-    return pareto.multi_agregate(*arg, **kwarg)
+# def unwrap_self_multi_agregate(arg, **kwarg):
+#     return pareto.multi_agregate(*arg, **kwarg)
 
-def func(x, a, b):
-    return a*x+b
-
+# _marker = object()
+# def chunked(iterable, n):
+#     for group in (list(g) for g in izip_longest(*[iter(iterable)]*n,fillvalue=_marker)):
+#         if group[-1] is _marker:
+#             del group[group.index(_marker):]
+#         yield group
+        
 class EA():
     """
     Optimization is made for one subject
@@ -97,11 +101,12 @@ class pareto():
         self.data = dict()
         self.states = ['s1', 's2', 's3']
         self.actions = ['thumb', 'fore', 'midd', 'ring', 'little']
-        self.models = dict({"fusion":FSelection(self.states, self.actions, {'alpha':0.0,'beta':0.0,'gamma':0.0,'length':0.0,'noise':0.0,'threshold':0.0,'gain':0.0}),
-                            "qlearning":QLearning(self.states, self.actions, {'alpha':0.0, 'beta':0.0, 'gamma':0.0}),
-                            "bayesian":BayesianWorkingMemory(self.states, self.actions, {'length':0.0, 'noise':0.0, 'threshold':0.0}),
-                            "keramati":KSelection(self.states, self.actions,{"gamma":0.0,"beta":1.0,"eta":0.0001,"length":10.0,"threshold":0.0,"noise":0.0,"sigma":0.0})})
-        self.p_order = dict({'fusion':['alpha','beta','gamma','noise','length','threshold','gain'],
+        self.models = dict({"fusion":FSelection(self.states, self.actions),
+                            "qlearning":QLearning(self.states, self.actions),
+                            "bayesian":BayesianWorkingMemory(self.states, self.actions),
+                            "keramati":KSelection(self.states, self.actions)})
+        self.p_order = dict({#'fusion':['alpha','beta','gamma','noise','length','gain'],
+                            'fusion':['alpha','beta','gamma','noise','length','threshold','gain'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
@@ -111,7 +116,7 @@ class pareto():
                                      'gamma': 0.4,
                                      'length': 10,
                                      'noise': 0.0001,
-                                     'threshold': 4.0}})
+                                     'threshold': 1.0}})
         self.opt = dict()
         self.pareto = dict()
         self.rank = dict()
@@ -125,8 +130,8 @@ class pareto():
         for m in model_in_folders:
             self.data[m] = dict()
             list_subject = os.listdir(self.directory+"/"+m)
-            order = self.p_order[m]
-            scale = self.models[m].bounds
+            order = self.p_order[m.split("_")[0]]
+            scale = self.models[m.split("_")[0]].bounds
             for s in list_subject:
                 k = s.split("_")[-1].split(".")[0]
                 self.data[m][k] = np.genfromtxt(self.directory+"/"+m+"/"+s)
@@ -177,7 +182,33 @@ class pareto():
         rcParams['xtick.labelsize'] = 6
         rcParams['ytick.labelsize'] = 6                
         ax.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
+        #self.fig_pareto.show()
+        self.fig_pareto.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
+        #fig.tight_layout(pad = 1.3)
         self.fig_pareto.show()
+        #self.fig_pareto.savefig('/home/viejo/Desktop/pareto_front.pdf')
+
+    def plotFrontEvolution(self):
+        self.fig_evolution = figure(figsize = (12,9))
+        for m in self.data.iterkeys():
+            for i in xrange(len(self.data[m].keys())):
+                s = self.data[m].keys()[i]                
+                ax = self.fig_evolution.add_subplot(4,4,i+1)
+                gen = self.data[m][s][:,0]
+                
+                for i in np.unique(gen):
+                    ax.scatter(self.data[m][s][gen==i,2], self.data[m][s][gen==i,3], c=np.vstack([np.random.rand(0,100)]*len(np.unique(gen)==i)))
+
+                ax.grid()
+        rcParams['xtick.labelsize'] = 6
+        rcParams['ytick.labelsize'] = 6                
+        ax.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
+        #self.fig_pareto.show()
+        self.fig_evolution.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
+        #fig.tight_layout(pad = 1.3)
+        self.fig_evolution.show()
+        #self.fig_pareto.savefig('/home/viejo/Desktop/pareto_front.pdf')
+
 
     def rankFront(self, w):
         for m in self.data.iterkeys():
@@ -193,34 +224,35 @@ class pareto():
                 nadir = np.min(pareto, 0)
                 uniq = np.array(list(set(tuple(r) for r in pareto)))
                 #owa = self.OWA(uniq,[0.5,0.5])
-                tche = self.Tchebychev(uniq, ideal, nadir, w, 0.01)
+                tche = self.Tchebychev(uniq, ideal, nadir, w, 0.1)
                 self.opt[m][s] = possible[((pareto[:,0] == uniq[np.argmin(tche)][0])*(pareto[:,1] == uniq[np.argmin(tche)][1]))]
                 self.pareto[m][s] = uniq
                 self.rank[m][s] = tche            
                 self.final[m][s] = dict()
                 tmp = np.mean(self.opt[m][s],0)
-                for p in self.p_order[m]:
-                    self.final[m][s][p] = np.round(tmp[self.p_order[m].index(p)], 3)
+                for p in self.p_order[m.split("_")[0]]:
+                    self.final[m][s][p] = np.round(tmp[self.p_order[m.split("_")[0]].index(p)], 3)
             
     def plotSolutions(self):
         self.fig_solution = figure(figsize= (12,9))
-        n_params_max = np.max([len(t) for t in [self.p_order[m] for m in self.opt.keys()]])
+        n_params_max = np.max([len(t) for t in [self.p_order[m.split("_")[0]] for m in self.opt.keys()]])
         n_model = len(self.opt.keys())
         for i in xrange(n_model):
             m = self.opt.keys()[i]
-            for j in xrange(len(self.p_order[m])):
-                p = self.p_order[m][j]
+            for j in xrange(len(self.p_order[m.split("_")[0]])):
+                p = self.p_order[m.split("_")[0]][j]
                 ax = self.fig_solution.add_subplot(n_params_max, n_model, i+1+n_model*j)
                 for k in xrange(len(self.opt[m].keys())):
                     s = self.opt[m].keys()[k]
                     ax.scatter(self.opt[m][s][:,j],np.ones(len(self.opt[m][s][:,j]))*(k+1))
-                    ax.axvline(self.good[m][p], 0, 1, linewidth = 2)
-                ax.set_xlim(self.models[m].bounds[p][0],self.models[m].bounds[p][1])
+                    ax.axvline(self.good[m.split("_")[0]][p], 0, 1, linewidth = 2)
+                ax.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
                 ax.set_xlabel(p)
         rcParams['xtick.labelsize'] = 6
         rcParams['ytick.labelsize'] = 6
         self.fig_solution.subplots_adjust(hspace = 0.8, top = 0.98, bottom = 0.1)
         self.fig_solution.show()
+
 
     def writeOptimal(self, output=False):
         if output:
@@ -232,17 +264,21 @@ class pareto():
         return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
 
     def leastSquares(self, m, n_subject, n_blocs, n_trials):                
-        x = np.reshape(self.models[m].reaction, (n_subject, n_blocs*n_trials))        
+        x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
+        y = np.reshape(self.human.reaction['fmri'], (n_subject, n_blocs*n_trials))     
+        x = x-np.vstack(np.mean(x,1))        
+        y = y-np.vstack(np.mean(y,1))
         tmp = np.std(x, 1)
         tmp[tmp == 0.0] = 1.0
-        x = x/np.tile(np.vstack(tmp), n_blocs*n_trials)
-        y = np.reshape(self.human.reaction['fmri'], (n_subject, n_blocs*n_trials))     
+        x = x/np.tile(np.vstack(tmp), n_blocs*n_trials)        
         tmp = np.std(y, 1)
         tmp[tmp == 0.0] = 1.0
         y = y/np.tile(np.vstack(tmp), n_blocs*n_trials)
-        a = np.vstack((np.sum(y*x,1))/(np.sum(x**2,1)))
-        x = np.tile(a,n_blocs*n_trials)*x
-        self.models[m].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
+
+        #a = np.vstack((np.sum(y*x,1))/(np.sum(x**2,1)))
+        #x = np.tile(a,n_blocs*n_trials)*x
+
+        self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
         self.human.reaction['fmri'] = np.reshape(y, (n_subject*n_blocs, n_trials))        
 
     def quickTest(self, m, plot=True):
@@ -251,7 +287,7 @@ class pareto():
         cats = CATS(nb_trials)
         pcr = dict()
         rt = dict()
-        model = self.models[m]
+        model = self.models[m.split("_")[0]]
         model.startExp()
         for s in self.final[m].iterkeys():            
             model.setAllParameters(self.final[m][s])
@@ -288,43 +324,44 @@ class pareto():
             ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
-    def aggregate(self, m, plot = False):
-        self.comb_rank = list()
-        self.final[m] = dict()
-        self.combinaison = list()
-        self.all_front = dict({m:dict()})
-        for s in self.data[m].iterkeys():
-            self.all_front[m][s] = dict()
-            pareto = self.data[m][s][self.data[m][s][:,0] == np.max(self.data[m][s][:,0])]
-            self.combinaison.append([])
-            for line in pareto:
-                self.all_front[m][s][str(int(line[1]))] = dict({self.p_order[m][i]:line[4+i] for i in xrange(len(self.p_order[m]))})
-                self.combinaison[-1].append(s+"_"+str(int(line[1])))
-        n_core = 4
-        pool = Pool(n_core)
-        #ite = list(tee(product(*self.combinaison), n_core))
-        #ite = iter(map(iter, tee(product(*self.combinaison), n_core)))
-        sys.exit()
-        self.m = m
-        self.comb_rank = pool.map(unwrap_self_multi_agregate, zip([self]*n_core, ite))
+    # def aggregate(self, m, plot = False):
+    #     self.comb_rank = list()
+    #     self.final[m] = dict()
+    #     self.combinaison = list()
+    #     self.all_front = dict({m:dict()})
+    #     for s in self.data[m].iterkeys():
+    #         self.all_front[m][s] = dict()
+    #         pareto = self.data[m][s][self.data[m][s][:,0] == np.max(self.data[m][s][:,0])]
+    #         self.combinaison.append([])
+    #         for line in pareto:
+    #             self.all_front[m][s][str(int(line[1]))] = dict({self.p_order[m][i]:line[4+i] for i in xrange(len(self.p_order[m]))})
+    #             self.combinaison[-1].append(s+"_"+str(int(line[1])))
+    #     n_core = 5
+    #     pool = Pool(n_core)
+    #     self.combinaison = map(lambda x:x[0:2], self.combinaison)
+                
+    #     ite = chunked(product(*self.combinaison), np.prod(map(len, self.combinaison))/n_core)
+    #     print np.prod(map(len, self.combinaison))/n_core
+    #     self.m = m
+    #     sys.exit()
+    #     self.comb_rank = pool.map(unwrap_self_multi_agregate, zip([self]*n_core, ite))
 
-        # for combi in product(*self.combinaison):
-        #     print combi
-        #     for ss in combi:
-        #         s,solution=ss.split("_")
-        #         self.final[m][s] = self.all_front[m][s][solution]
-        #     self.quickTest(m, plot=False)
-        #     self.comb_rank.append([combi, self.JSD(m), self.Pearson(m)])
+    #     # for combi in product(*self.combinaison):
+    #     #     print combi
+    #     #     for ss in combi:
+    #     #         s,solution=ss.split("_")
+    #     #         self.final[m][s] = self.all_front[m][s][solution]
+    #     #     self.quickTest(m, plot=False)
+    #     #     self.comb_rank.append([combi, self.JSD(m), self.Pearson(m)])
 
-    def multi_agregate(self, iterator):
-        print iterator
-        return iterator
-        comb_rank = []
-        for combi in iterator:            
-            for ss in combi:
-                s, solution = ss.split("_")
-                self.final[self.m][s] = self.all_front[self.m][s][solution]
-            self.quickTest(self.m, plot=False)
-            comb_rank.append((combi, self.JSD(self.m), self.Pearson(self.m)))
-            print comb_rank[-1]
-        return comb_rank
+    # def multi_agregate(self, iterator):
+    #     front1 = [] 
+    #     front2 = []
+    #     comb_rank = []
+    #     for combi in iterator:            
+    #         for ss in combi:
+    #             s, solution = ss.split("_")
+    #             self.final[self.m][s] = self.all_front[self.m][s][solution]
+    #         self.quickTest(self.m, plot=False)
+    #         comb_rank.append((combi, self.JSD(self.m), self.Pearson(self.m)))            
+    #     return comb_rank

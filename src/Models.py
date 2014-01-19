@@ -16,7 +16,7 @@ class QLearning():
     """Class that implement a Qlearning
     """
     
-    def __init__(self, states, actions, parameters):
+    def __init__(self, states, actions, parameters={}):
         # State action space
         self.states=states
         self.actions=actions
@@ -217,7 +217,7 @@ class BayesianWorkingMemory():
 
     """
 
-    def __init__(self, states, actions, parameters):
+    def __init__(self, states, actions, parameters={'length':1}):
         # State Action Space        
         self.states=states
         self.actions=actions        

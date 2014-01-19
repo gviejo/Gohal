@@ -19,7 +19,7 @@ class FSelection():
     Specially tuned for Brovelli experiment so beware
 
     """
-    def __init__(self, states, actions, parameters):
+    def __init__(self, states, actions, parameters={"length":1}):
         #State Action Spaces
         self.states=states
         self.actions=actions
@@ -31,9 +31,9 @@ class FSelection():
                             "beta":[1.0, 6.0],
                             "alpha":[0.0, 1.0],
                             "length":[5, 20],
-                            "threshold":[0.0, 40.0], 
+                            "threshold":[0.0001, 1.0], 
                             "noise":[0.0, 0.01],
-                            "gain":[0.0,40.0]})
+                            "gain":[0.00001,1.0]})
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
@@ -121,8 +121,10 @@ class FSelection():
 
     def sigmoideModule(self):
         x = 2*self.max_entropy-self.Hb-self.Hf
-        self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
+        #elf.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
+        #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x/self.parameters['gain']))        
+        self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
         #self.pdf[-1][-1][self.nb_inferences] = self.pA
         return np.random.uniform(0,1) > self.pA
 
@@ -209,7 +211,7 @@ class KSelection():
     """Class that implement Keramati models for action selection
     Specially tuned for Brovelli experiment so beware
     """
-    def __init__(self, states, actions, parameters, var_obs = 0.05, init_cov = 10, kappa = 0.1):
+    def __init__(self, states, actions, parameters={"length":1,"eta":0.0001}, var_obs = 0.05, init_cov = 10, kappa = 0.1):
         #State Action Spaces
         self.states=states
         self.actions=actions
