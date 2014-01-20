@@ -1,11 +1,11 @@
-**README.txt**
+*README.txt*
 ------------------------------------------------
 
 ## for GoHal project (Goal-directed & Habit Learning)
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 
-# SOFTWARE VERSIONS
+SOFTWARE VERSIONS
 -------------------------------
 	==> python	: 2.7.3
  	==> numpy  	: 1.7.1
@@ -13,7 +13,7 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 	==> matplotlib 	: 1.1.1
 	==> prettytable
 	
-# INSTALLATION 
+INSTALLATION 
 -------------------------------
 
 git clone https://github.com/gviejo/Gohal.git
