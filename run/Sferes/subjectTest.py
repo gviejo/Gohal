@@ -25,7 +25,6 @@ from Selection import *
 from matplotlib import *
 from pylab import *
 
-import matplotlib.pyplot as plt
 from time import time
 # -----------------------------------
 # ARGUMENT MANAGER
@@ -55,7 +54,7 @@ def testParameters():
     pcr = dict()
     rt = dict()
     for m in data.iterkeys():      
-        model = models[m]
+        model = models[m.split("_")[0]]
         model.startExp()
         for s in data[m].iterkeys():
             model.setAllParameters(data[m][s])
