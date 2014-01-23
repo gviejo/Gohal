@@ -103,7 +103,7 @@ class pareto():
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
         self.p_order = dict({#'fusion':['alpha','beta','gamma','noise','length','gain'],
-                            'fusion':['alpha','beta','gamma','noise','length','threshold','gain'],
+                            'fusion':['alpha','beta','noise','length','threshold','gain'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
@@ -133,7 +133,7 @@ class pareto():
                 k = s.split("_")[-1].split(".")[0]
                 self.data[m][k] = np.genfromtxt(self.directory+"/"+m+"/"+s)
                 for p in order:
-                    self.data[m][k][:,order.index(p)+4] = scale[p][0]+self.data[m][k][:,order.index(p)+4]*scale[p][1]
+                    self.data[m][k][:,order.index(p)+4] = scale[p][0]+self.data[m][k][:,order.index(p)+4]*(scale[p][1]-scale[p][0])
 
     def OWA(self, value, w):
         m,n=value.shape
@@ -206,6 +206,13 @@ class pareto():
         self.fig_evolution.show()
         #self.fig_pareto.savefig('/home/viejo/Desktop/pareto_front.pdf')
 
+    def setParetoFrontier(self, data):
+        data = data[data[:,0].argsort()][::-1]
+        pareto_frontier = [data[0]]
+        for pair in data[1:]:
+            if pair[1] >= pareto_frontier[-1][1]:
+                pareto_frontier.append(pair)
+        return np.array(pareto_frontier)
 
     def rankFront(self, w):
         for m in self.data.iterkeys():
@@ -213,9 +220,12 @@ class pareto():
             self.pareto[m] = dict()
             self.rank[m] = dict()
             self.final[m] = dict()
-            for s in self.data[m].iterkeys():
+            for s in self.data[m].iterkeys():                
                 gen = self.data[m][s][:,0]                
                 pareto = self.data[m][s][:,2:4][gen == np.max(gen)]
+                pareto = pareto[pareto[:,0] != 0]            
+                pareto = pareto[pareto[:,0] != 1]
+                pareto = self.setParetoFrontier(pareto)
                 possible = self.data[m][s][:,4:][gen == np.max(gen)]
                 ideal = np.max(pareto, 0)
                 nadir = np.min(pareto, 0)
@@ -260,26 +270,28 @@ class pareto():
     def _convertStimulus(self, s):
         return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
 
-    def leastSquares(self, m, n_subject, n_blocs, n_trials):                
+    def leastSquares(self, m, n_subject, n_blocs, n_trials):
+        #print n_subject, n_blocs, n_trials
+        #sys.exit()
         x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
-        y = np.reshape(self.human.reaction['fmri'], (n_subject, n_blocs*n_trials))     
+        y = np.reshape(self.human.reaction['fmri'], (14, 4*39))     
         x = x-np.vstack(np.mean(x,1))        
         y = y-np.vstack(np.mean(y,1))
         tmp = np.std(x, 1)
         tmp[tmp == 0.0] = 1.0
-        x = x/np.tile(np.vstack(tmp), n_blocs*n_trials)        
+        x = x/np.vstack(tmp)        
         tmp = np.std(y, 1)
         tmp[tmp == 0.0] = 1.0
-        y = y/np.tile(np.vstack(tmp), n_blocs*n_trials)
+        y = y/np.vstack(tmp)
 
-        #a = np.vstack((np.sum(y*x,1))/(np.sum(x**2,1)))
-        #x = np.tile(a,n_blocs*n_trials)*x
+        # a = np.vstack((np.sum(y*x,1))/(np.sum(x**2,1)))
+        # x = a*x
 
         self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
-        self.human.reaction['fmri'] = np.reshape(y, (n_subject*n_blocs, n_trials))        
+        self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))        
 
     def quickTest(self, m, plot=True):
-        nb_blocs = 4
+        nb_blocs = 40
         nb_trials = self.human.responses['fmri'].shape[1]
         cats = CATS(nb_trials)
         pcr = dict()
@@ -290,7 +302,7 @@ class pareto():
             model.setAllParameters(self.final[m][s])
             for i in xrange(nb_blocs):
                 cats.reinitialize()
-                cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
+                #cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
                 model.startBloc()
                 #for j in xrange(len(cats.stimuli)):
                 for j in xrange(nb_trials):
@@ -317,8 +329,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            #ax3 = ax2.twinx()        
-            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            ax3 = ax2.twinx()        
+            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     # def aggregate(self, m, plot = False):

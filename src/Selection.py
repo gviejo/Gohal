@@ -27,7 +27,7 @@ class FSelection():
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
-        self.bounds = dict({"gamma":[0.0, 1.0],
+        self.bounds = dict({#"gamma":[0.0, 1.0],
                             "beta":[1.0, 6.0],
                             "alpha":[0.0, 1.0],
                             "length":[5, 15],
@@ -121,10 +121,10 @@ class FSelection():
 
     def sigmoideModule(self):
         x = 2*self.max_entropy-self.Hb-self.Hf
-        #elf.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
+        self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x/self.parameters['gain']))        
-        self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
+        #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
         #self.pdf[-1][-1][self.nb_inferences] = self.pA
         return np.random.uniform(0,1) > self.pA
 
@@ -141,8 +141,8 @@ class FSelection():
         self.values_net = self.p_a_mb+self.values_mf[self.current_state]
         tmp = np.exp(self.values_net*float(self.parameters['beta']))
         self.p_a = tmp/np.sum(tmp)
-        if True in np.isnan(self.p_a):
-            self.p_a = np.isnan(self.p_a)*0.995+0.001
+        # if True in np.isnan(self.p_a):
+        #     self.p_a = np.isnan(self.p_a)*0.995+0.001
 
     def computeValue(self, state):
         self.state[-1].append(state)
@@ -156,7 +156,7 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        self.reaction[-1].append(self.nb_inferences+1.0)
+        self.reaction[-1].append(self.nb_inferences+self.Hf)
         #self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(list(self.p_a))
@@ -204,7 +204,8 @@ class FSelection():
         self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0        
         # Updating model free
         r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
-        delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
+        #delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
+        delta = float(r)-self.values_mf[self.current_state, self.current_action]        
         self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
 
 
