@@ -102,8 +102,7 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({#'fusion':['alpha','beta','gamma','noise','length','gain'],
-                            'fusion':['alpha','beta','noise','length','threshold','gain'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
@@ -117,8 +116,9 @@ class pareto():
         self.opt = dict()
         self.pareto = dict()
         self.rank = dict()
-        self.final = dict()
+        self.p_test = dict()
         self.loadData()
+        self.constructParetoFrontier()
 
     def loadData(self):
         model_in_folders = os.listdir(self.directory)
@@ -126,14 +126,51 @@ class pareto():
             sys.exit("No model found in directory "+self.directory)
         for m in model_in_folders:
             self.data[m] = dict()
-            list_subject = os.listdir(self.directory+"/"+m)
+            lrun = os.listdir(self.directory+"/"+m)
             order = self.p_order[m.split("_")[0]]
             scale = self.models[m.split("_")[0]].bounds
-            for s in list_subject:
-                k = s.split("_")[-1].split(".")[0]
-                self.data[m][k] = np.genfromtxt(self.directory+"/"+m+"/"+s)
+            for r in lrun:
+                s = r.split("_")[3]
+                n = int(r.split("_")[4].split(".")[0])
+                if s in self.data[m].keys():
+                    self.data[m][s][n] = np.genfromtxt(self.directory+"/"+m+"/"+r)
+                else :
+                    self.data[m][s] = dict()
+                    self.data[m][s][n] = np.genfromtxt(self.directory+"/"+m+"/"+r)                                
                 for p in order:
-                    self.data[m][k][:,order.index(p)+4] = scale[p][0]+self.data[m][k][:,order.index(p)+4]*(scale[p][1]-scale[p][0])
+                    self.data[m][s][n][:,order.index(p)+4] = scale[p][0]+self.data[m][s][n][:,order.index(p)+4]*(scale[p][1]-scale[p][0])
+
+    def constructParetoFrontier(self):
+        for m in self.data.iterkeys():
+            self.pareto[m] = dict()
+            for s in self.data[m].iterkeys():
+                self.pareto[m][s] = dict()   
+                tmp={n:self.data[m][s][n][self.data[m][s][n][:,0]==np.max(self.data[m][s][n][:,0])] for n in self.data[m][s].iterkeys()}
+                tmp=np.vstack([np.hstack((np.ones((len(tmp[n]),1))*n,tmp[n])) for n in tmp.iterkeys()])
+                ind = tmp[:,3:5] != 0
+                tmp = tmp[ind[:,0]*ind[:,1]]
+                tmp = tmp[tmp[:,3].argsort()][::-1]
+                pareto_frontier = [tmp[0]]
+                for pair in tmp[1:]:
+                    if pair[4] >= pareto_frontier[-1][4]:
+                        pareto_frontier.append(pair)
+                self.pareto[m][s] = np.array(pareto_frontier)
+
+
+    def rankFront(self, w):
+        for m in self.pareto.iterkeys():
+            self.opt[m] = dict()
+            self.p_test[m] = dict()
+            for s in self.pareto[m].iterkeys():
+                self.opt[m][s] = dict()
+                self.p_test[m][s] = dict()
+                #rank = self.OWA(self.pareto[m][s][:,3:5], w)
+                rank = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
+                self.pareto[m][s] = np.hstack((np.vstack(rank),self.pareto[m][s]))
+                #self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.max(self.pareto[m][s][:,0])][0]
+                self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.min(self.pareto[m][s][:,0])][0]
+                for p in self.p_order[m.split("_")[0]]:
+                    self.p_test[m][s][p] = self.opt[m][s][self.p_order[m.split("_")[0]].index(p)+6]
 
     def OWA(self, value, w):
         m,n=value.shape
@@ -142,7 +179,7 @@ class pareto():
         assert np.sum(w) == 1
         return np.sum(np.sort(value)*w,1)
 
-    def Tchebychev(self, value, ideal, nadir, lambdaa, epsilon):
+    def Tchebychev(self, value, lambdaa, epsilon):
         m,n = value.shape
         assert m>=n
         assert len(lambdaa) == n
@@ -153,37 +190,20 @@ class pareto():
         tmp = lambdaa*((ideal-value)/(ideal-nadir))
         return np.max(tmp, 1)+epsilon*np.sum(tmp,1) 
 
-    def JSD(self, model):
-        np.seterr(all='ignore')
-        tmp = np.dstack((self.human.responses['fmri'], self.models[model].responses))
-        p = np.mean(tmp, 0)
-        m = np.mean(p,1)
-        P = np.dstack((p,1-p))
-        M = np.transpose(np.vstack((m,1-m)))
-        kld = np.vstack((np.sum(P[:,0]*np.log2(P[:,0]/M),1), np.sum(P[:,1]*np.log2(P[:,1]/M),1)))
-        kld[np.isnan(kld)] = 1.0
-        return np.sum(1-np.mean(kld, 0))
-
-    def Pearson(self, model):
-        return np.sum(np.array(map(pearsonr, self.human.reaction['fmri'], self.models[model].reaction))[:,0])
-
     def plotParetoFront(self):
         self.fig_pareto = figure(figsize = (12,9))
-        for m in self.data.iterkeys():
+        for m in self.pareto.iterkeys():
             for i in xrange(len(self.data[m].keys())):
                 s = self.data[m].keys()[i]
                 ax = self.fig_pareto.add_subplot(4,4,i+1)
-                ax.scatter(self.pareto[m][s][:,0], self.pareto[m][s][:,1], c=self.rank[m][s])
-                ax.plot(self.pareto[m][s][np.argmin(self.rank[m][s]), 0], self.pareto[m][s][np.argmin(self.rank[m][s]),1], 'o', markersize = 15, label = m, alpha = 0.8)
+                ax.scatter(self.pareto[m][s][:,4], self.pareto[m][s][:,5], c=self.pareto[m][s][:,0])
+                ax.plot(self.opt[m][s][4], self.opt[m][s][5], 'o', markersize = 15, label = m, alpha = 0.8)
                 ax.grid()
         rcParams['xtick.labelsize'] = 6
         rcParams['ytick.labelsize'] = 6                
         ax.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
-        #self.fig_pareto.show()
         self.fig_pareto.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
-        #fig.tight_layout(pad = 1.3)
         self.fig_pareto.show()
-        #self.fig_pareto.savefig('/home/viejo/Desktop/pareto_front.pdf')
 
     def plotFrontEvolution(self):
         self.fig_evolution = figure(figsize = (12,9))
@@ -191,54 +211,14 @@ class pareto():
             for i in xrange(len(self.data[m].keys())):
                 s = self.data[m].keys()[i]                
                 ax = self.fig_evolution.add_subplot(4,4,i+1)
-                gen = self.data[m][s][:,0]
-                
-                for i in np.unique(gen):
-                    ax.scatter(self.data[m][s][gen==i,2], self.data[m][s][gen==i,3], c=np.vstack([np.random.rand(0,100)]*len(np.unique(gen)==i)))
-
+                for j in self.data[m][s].iterkeys():                    
+                    ax.scatter(self.data[m][s][j][:,2], self.data[m][s][j][:,3])
                 ax.grid()
         rcParams['xtick.labelsize'] = 6
         rcParams['ytick.labelsize'] = 6                
         ax.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
-        #self.fig_pareto.show()
         self.fig_evolution.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
-        #fig.tight_layout(pad = 1.3)
         self.fig_evolution.show()
-        #self.fig_pareto.savefig('/home/viejo/Desktop/pareto_front.pdf')
-
-    def setParetoFrontier(self, data):
-        data = data[data[:,0].argsort()][::-1]
-        pareto_frontier = [data[0]]
-        for pair in data[1:]:
-            if pair[1] >= pareto_frontier[-1][1]:
-                pareto_frontier.append(pair)
-        return np.array(pareto_frontier)
-
-    def rankFront(self, w):
-        for m in self.data.iterkeys():
-            self.opt[m] = dict()
-            self.pareto[m] = dict()
-            self.rank[m] = dict()
-            self.final[m] = dict()
-            for s in self.data[m].iterkeys():                
-                gen = self.data[m][s][:,0]                
-                pareto = self.data[m][s][:,2:4][gen == np.max(gen)]
-                pareto = pareto[pareto[:,0] != 0]            
-                pareto = pareto[pareto[:,0] != 1]
-                pareto = self.setParetoFrontier(pareto)
-                possible = self.data[m][s][:,4:][gen == np.max(gen)]
-                ideal = np.max(pareto, 0)
-                nadir = np.min(pareto, 0)
-                uniq = np.array(list(set(tuple(r) for r in pareto)))
-                #owa = self.OWA(uniq,[0.5,0.5])
-                tche = self.Tchebychev(uniq, ideal, nadir, w, 0.1)
-                self.opt[m][s] = possible[((pareto[:,0] == uniq[np.argmin(tche)][0])*(pareto[:,1] == uniq[np.argmin(tche)][1]))]
-                self.pareto[m][s] = uniq
-                self.rank[m][s] = tche            
-                self.final[m][s] = dict()
-                tmp = np.mean(self.opt[m][s],0)
-                for p in self.p_order[m.split("_")[0]]:
-                    self.final[m][s][p] = np.round(tmp[self.p_order[m.split("_")[0]].index(p)], 3)
             
     def plotSolutions(self):
         self.fig_solution = figure(figsize= (12,9))
@@ -251,7 +231,7 @@ class pareto():
                 ax = self.fig_solution.add_subplot(n_params_max, n_model, i+1+n_model*j)
                 for k in xrange(len(self.opt[m].keys())):
                     s = self.opt[m].keys()[k]
-                    ax.scatter(self.opt[m][s][:,j],np.ones(len(self.opt[m][s][:,j]))*(k+1))
+                    ax.scatter(self.opt[m][s][j+6],k+1)
                     ax.axvline(self.good[m.split("_")[0]][p], 0, 1, linewidth = 2)
                 ax.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
                 ax.set_xlabel(p)
@@ -260,11 +240,10 @@ class pareto():
         self.fig_solution.subplots_adjust(hspace = 0.8, top = 0.98, bottom = 0.1)
         self.fig_solution.show()
 
-
     def writeOptimal(self, output=False):
         if output:
             target = open(output, 'w')
-            target.write(str(self.final))
+            target.write(str(self.p_test))
             target.close()
 
     def _convertStimulus(self, s):
@@ -291,18 +270,18 @@ class pareto():
         self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))        
 
     def quickTest(self, m, plot=True):
-        nb_blocs = 40
+        nb_blocs = 4
         nb_trials = self.human.responses['fmri'].shape[1]
         cats = CATS(nb_trials)
         pcr = dict()
         rt = dict()
         model = self.models[m.split("_")[0]]
         model.startExp()
-        for s in self.final[m].iterkeys():            
-            model.setAllParameters(self.final[m][s])
+        for s in self.p_test[m].iterkeys():            
+            model.setAllParameters(self.p_test[m][s])
             for i in xrange(nb_blocs):
                 cats.reinitialize()
-                #cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
+                cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
                 model.startBloc()
                 #for j in xrange(len(cats.stimuli)):
                 for j in xrange(nb_trials):
@@ -315,7 +294,7 @@ class pareto():
         model.responses = np.array(model.responses)
         model.reaction = np.array(model.reaction)
         if plot:            
-            self.leastSquares(m, len(self.final[m].keys()), nb_blocs, nb_trials)
+            self.leastSquares(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
             step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
             rt = computeMeanRepresentativeSteps(step)
@@ -374,3 +353,16 @@ class pareto():
     #         self.quickTest(self.m, plot=False)
     #         comb_rank.append((combi, self.JSD(self.m), self.Pearson(self.m)))            
     #     return comb_rank
+
+    # def JSD(self, model):
+    #         np.seterr(all='ignore')
+    #         tmp = np.dstack((self.human.responses['fmri'], self.models[model].responses))
+    #         p = np.mean(tmp, 0)
+    #         m = np.mean(p,1)
+    #         P = np.dstack((p,1-p))
+    #         M = np.transpose(np.vstack((m,1-m)))
+    #         kld = np.vstack((np.sum(P[:,0]*np.log2(P[:,0]/M),1), np.sum(P[:,1]*np.log2(P[:,1]/M),1)))
+    #         kld[np.isnan(kld)] = 1.0
+    #         return np.sum(1-np.mean(kld, 0))
+        # def Pearson(self, model):
+        # return np.sum(np.array(map(pearsonr, self.human.reaction['fmri'], self.models[model].reaction))[:,0])
