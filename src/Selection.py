@@ -27,13 +27,13 @@ class FSelection():
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
-        self.bounds = dict({#"gamma":[0.0, 1.0],
-                            "beta":[1.0, 6.0],
+        self.bounds = dict({"gamma":[0.0, 1.0],
+                            "beta":[1.0, 4.0],
                             "alpha":[0.0, 1.0],
-                            "length":[5, 15],
-                            "threshold":[0.0001, 1.0], 
+                            "length":[6, 11],
+                            "threshold":[0.0, 1.0], 
                             "noise":[0.0, 0.01],
-                            "gain":[0.00001,1.0]})
+                            "gain":[0.0,1.0]})
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
@@ -123,7 +123,7 @@ class FSelection():
         x = 2*self.max_entropy-self.Hb-self.Hf
         self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
-        #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x/self.parameters['gain']))        
+        #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
         #self.pdf[-1][-1][self.nb_inferences] = self.pA
         return np.random.uniform(0,1) > self.pA
@@ -141,8 +141,8 @@ class FSelection():
         self.values_net = self.p_a_mb+self.values_mf[self.current_state]
         tmp = np.exp(self.values_net*float(self.parameters['beta']))
         self.p_a = tmp/np.sum(tmp)
-        # if True in np.isnan(self.p_a):
-        #     self.p_a = np.isnan(self.p_a)*0.995+0.001
+        if True in np.isnan(self.p_a):
+            self.p_a = np.isnan(self.p_a)*0.995+0.001
 
     def computeValue(self, state):
         self.state[-1].append(state)
@@ -177,7 +177,7 @@ class FSelection():
         self.current_action = self.sample(self.p_a)            
         self.value[-1].append(list(self.p_a))
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(self.nb_inferences+1.0)        
+        self.reaction[-1].append(self.nb_inferences+np.random.beta(10.0, 1.0))
         return self.action[-1][-1]
 
     def updateValue(self, reward):

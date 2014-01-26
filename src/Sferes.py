@@ -102,7 +102,8 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
+        self.p_order = dict({#'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
+                            'fusion':['alpha','beta', 'noise','length','threshold','gain'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
@@ -196,6 +197,7 @@ class pareto():
             for i in xrange(len(self.data[m].keys())):
                 s = self.data[m].keys()[i]
                 ax = self.fig_pareto.add_subplot(4,4,i+1)
+                ax.plot(self.pareto[m][s][:,4], self.pareto[m][s][:,5], "-o")
                 ax.scatter(self.pareto[m][s][:,4], self.pareto[m][s][:,5], c=self.pareto[m][s][:,0])
                 ax.plot(self.opt[m][s][4], self.opt[m][s][5], 'o', markersize = 15, label = m, alpha = 0.8)
                 ax.grid()
@@ -239,12 +241,6 @@ class pareto():
         rcParams['ytick.labelsize'] = 6
         self.fig_solution.subplots_adjust(hspace = 0.8, top = 0.98, bottom = 0.1)
         self.fig_solution.show()
-
-    def writeOptimal(self, output=False):
-        if output:
-            target = open(output, 'w')
-            target.write(str(self.p_test))
-            target.close()
 
     def _convertStimulus(self, s):
         return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
@@ -308,8 +304,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            ax3 = ax2.twinx()        
-            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            #ax3 = ax2.twinx()
+            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     # def aggregate(self, m, plot = False):
