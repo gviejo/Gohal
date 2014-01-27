@@ -47,7 +47,7 @@ class EA():
         self.rt = np.hstack(np.array([self.data[i]['rt'][:,0] for i in [1,2,3,4]]).flat)
         self.rt_model = None
         self.w = np.hstack(np.array([self.data[i]['rt'][:,1] for i in [1,2,3,4]]).flat)
-        self.w[self.w == 2] = 0.1
+        self.w[self.w == 2] = 0.5
         self.w[self.w == 1] = 1.0
         
     def getFitness(self):
@@ -63,7 +63,7 @@ class EA():
                 self.model.updateValue(trial[2])                                                        
         self.rt_model = np.hstack(np.array(self.model.reaction).flat)
         self.leastSquares()
-        lrs = np.sum(np.power((self.rt_model-self.rt),2)*self.w)
+        lrs = np.sum(np.power((self.rt_model-self.rt)*self.w,2))
         #max_llh = -float(len(self.rt_model))*np.log(0.2)
         #max_lrs = float(len(self.rt_model))*2
         return -np.abs(llh), -np.abs(lrs)
@@ -102,8 +102,8 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({#'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
-                            'fusion':['alpha','beta', 'noise','length','threshold','gain'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
+                            #'fusion':['alpha','beta', 'noise','length','threshold','gain'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})

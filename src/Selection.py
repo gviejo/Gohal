@@ -31,9 +31,9 @@ class FSelection():
                             "beta":[1.0, 4.0],
                             "alpha":[0.0, 1.0],
                             "length":[6, 11],
-                            "threshold":[0.0, 1.0], 
+                            "threshold":[0.0, 10.0], 
                             "noise":[0.0, 0.01],
-                            "gain":[0.0,1.0]})
+                            "gain":[0.0,10.0]})
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
@@ -177,7 +177,7 @@ class FSelection():
         self.current_action = self.sample(self.p_a)            
         self.value[-1].append(list(self.p_a))
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(self.nb_inferences+np.random.beta(10.0, 1.0))
+        self.reaction[-1].append(self.nb_inferences+np.abs(np.random.normal(0,1)))
         return self.action[-1][-1]
 
     def updateValue(self, reward):
@@ -204,8 +204,8 @@ class FSelection():
         self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0        
         # Updating model free
         r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
-        #delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
-        delta = float(r)-self.values_mf[self.current_state, self.current_action]        
+        delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
+        #delta = float(r)-self.values_mf[self.current_state, self.current_action]        
         self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
 
 

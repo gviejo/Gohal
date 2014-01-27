@@ -25,7 +25,7 @@ class QLearning():
         self.n_action=len(actions)
         self.n_state=len(states)
         self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[1.0, 10.0],
+                            "beta":[1.0, 5.0],
                             "alpha":[0.0, 2.0]})
         #Values Initialization
         self.values = np.zeros((self.n_state, self.n_action))        
@@ -76,7 +76,8 @@ class QLearning():
     def computeValue(self, state):
         self.current_state = convertStimulus(state)-1
         self.value[-1].append(SoftMaxValues(self.values[self.current_state], self.parameters['beta']))
-        self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.parameters['beta']))
+        #self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.parameters['beta']))
+        self.reaction[-1].append(np.random.normal(0,1))
         return self.value[-1][-1]
 
     def chooseAction(self, state):        
@@ -236,7 +237,7 @@ class BayesianWorkingMemory():
         self.initial_entropy = -np.log2(1./self.n_action)
         self.entropy = self.initial_entropy        
         self.n_element = 0
-        self.bounds = dict({"length":[5, 20], 
+        self.bounds = dict({"length":[6, 11], 
                             "threshold":[0.0, self.initial_entropy], 
                             "noise":[0.0, 0.1]})
         # Optimization init
