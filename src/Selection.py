@@ -28,10 +28,10 @@ class FSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[1.0, 4.0],
-                            "alpha":[0.0, 1.0],
-                            "length":[6, 11],
-                            "threshold":[0.0, 10.0], 
+                            "beta":[2.0, 5.0],
+                            "alpha":[0.5, 1.0],
+                            "length":[6, 10],
+                            "threshold":[0.0, 1.0], 
                             "noise":[0.0, 0.01],
                             "gain":[0.0,10.0]})
         #Probability Initialization
@@ -121,7 +121,8 @@ class FSelection():
 
     def sigmoideModule(self):
         x = 2*self.max_entropy-self.Hb-self.Hf
-        self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
+        self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
+        #self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
@@ -137,7 +138,7 @@ class FSelection():
     def fusionModule(self):
         np.seterr(invalid='ignore')
         #w = (self.max_entropy-self.Hb)/self.max_entropy
-        #self.values_net = w*self.p_a_mb+(1.0-w)*self.values_mf[self.current_state]
+        #self.values_net = w*self.p_a_mb+self.values_mf[self.current_state]
         self.values_net = self.p_a_mb+self.values_mf[self.current_state]
         tmp = np.exp(self.values_net*float(self.parameters['beta']))
         self.p_a = tmp/np.sum(tmp)
@@ -156,7 +157,7 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        self.reaction[-1].append(self.nb_inferences+self.Hf)
+        self.reaction[-1].append(self.nb_inferences+np.random.normal(1,1))
         #self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(list(self.p_a))
@@ -177,7 +178,7 @@ class FSelection():
         self.current_action = self.sample(self.p_a)            
         self.value[-1].append(list(self.p_a))
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(self.nb_inferences+np.abs(np.random.normal(0,1)))
+        self.reaction[-1].append(self.nb_inferences+np.random.normal(1,1))
         return self.action[-1][-1]
 
     def updateValue(self, reward):
@@ -207,7 +208,7 @@ class FSelection():
         delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
         #delta = float(r)-self.values_mf[self.current_state, self.current_action]        
         self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
-
+        
 
 class KSelection():
     """Class that implement Keramati models for action selection

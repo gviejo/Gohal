@@ -47,7 +47,7 @@ class EA():
         self.rt = np.hstack(np.array([self.data[i]['rt'][:,0] for i in [1,2,3,4]]).flat)
         self.rt_model = None
         self.w = np.hstack(np.array([self.data[i]['rt'][:,1] for i in [1,2,3,4]]).flat)
-        self.w[self.w == 2] = 0.5
+        self.w[self.w == 2] = 0.25
         self.w[self.w == 1] = 1.0
         
     def getFitness(self):
@@ -234,7 +234,7 @@ class pareto():
                 for k in xrange(len(self.opt[m].keys())):
                     s = self.opt[m].keys()[k]
                     ax.scatter(self.opt[m][s][j+6],k+1)
-                    ax.axvline(self.good[m.split("_")[0]][p], 0, 1, linewidth = 2)
+                    #ax.axvline(self.good[m.split("_")[0]][p], 0, 1, linewidth = 2)
                 ax.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
                 ax.set_xlabel(p)
         rcParams['xtick.labelsize'] = 6
@@ -246,8 +246,6 @@ class pareto():
         return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
 
     def leastSquares(self, m, n_subject, n_blocs, n_trials):
-        #print n_subject, n_blocs, n_trials
-        #sys.exit()
         x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
         y = np.reshape(self.human.reaction['fmri'], (14, 4*39))     
         x = x-np.vstack(np.mean(x,1))        
