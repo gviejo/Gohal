@@ -32,12 +32,14 @@ class HLearning():
         self.indice = dict()
         self.subject = dict()
         self.length = dict()
+        self.weight = dict()
         for k in self.directory.iterkeys():
             self.responses[k] = []
             self.stimulus[k] = []
             self.action[k] = []
             self.reaction[k] = []
             self.indice[k] = []
+            self.weight[k] = []
             self.subject[k] = dict()
             if k is 'meg':
                 data = self.loadDirectoryMEG(self.directory[k][0])
@@ -64,7 +66,11 @@ class HLearning():
                 self.stimulus[case].append(data[i][j]['sar'][0:size,0])
                 self.action[case].append(data[i][j]['sar'][0:size,1])
                 #self.reaction[case].append(data[i][j]['time'][0:size,1]-data[i][j]['time'][0:size,0])
-                self.reaction[case].append(data[i][j]['RT'].flatten()[0:size])
+                if len(data[i][j]['RT'][0]) == 2:
+                    self.reaction[case].append(data[i][j]['RT'][:,0][0:size])
+                    self.weight[case].append(data[i][j]['RT'][:,1][0:size])
+                else:
+                    self.reaction[case].append(data[i][j]['RT'].flatten()[0:size])
                 #########
                 self.subject[case][i][j] = dict({'sar':data[i][j]['sar'],
                                                  'rt':data[i][j]['RT']})                
@@ -73,6 +79,7 @@ class HLearning():
         self.stimulus[case] = np.array(self.stimulus[case])
         self.action[case] = np.array(self.action[case])
         self.reaction[case] = np.array(self.reaction[case])
+        self.weight[case] = np.array(self.weight[case])
 
     def loadDirectoryMEG(self, direct):
         data = dict()

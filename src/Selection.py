@@ -29,7 +29,7 @@ class FSelection():
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
                             "beta":[2.0, 5.0],
-                            "alpha":[0.5, 1.0],
+                            "alpha":[0.6, 1.0],
                             "length":[6, 10],
                             "threshold":[0.0, 1.0], 
                             "noise":[0.0, 0.01],
@@ -157,7 +157,7 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        self.reaction[-1].append(self.nb_inferences+np.random.normal(1,1))
+        self.reaction[-1].append(self.nb_inferences)
         #self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(list(self.p_a))
@@ -175,10 +175,10 @@ class FSelection():
             self.inferenceModule()
             self.evaluationModule()
         self.fusionModule()
-        self.current_action = self.sample(self.p_a)            
+        self.current_action = self.sample(self.p_a)
         self.value[-1].append(list(self.p_a))
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(self.nb_inferences+np.random.normal(1,1))
+        self.reaction[-1].append(self.nb_inferences)
         return self.action[-1][-1]
 
     def updateValue(self, reward):
@@ -208,6 +208,7 @@ class FSelection():
         delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
         #delta = float(r)-self.values_mf[self.current_state, self.current_action]        
         self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
+        #self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+0.9*delta
         
 
 class KSelection():

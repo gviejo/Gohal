@@ -22,19 +22,8 @@ from Models import *
 from pylab import *
 from HumanLearning import HLearning
 from ColorAssociationTasks import CATS
-#from itertools import product,izip_longest, tee
+#import scipy.optimize as opt
 from scipy.stats import pearsonr
-#from multiprocessing import Pool, Process
-
-# def unwrap_self_multi_agregate(arg, **kwarg):
-#     return pareto.multi_agregate(*arg, **kwarg)
-
-# _marker = object()
-# def chunked(iterable, n):
-#     for group in (list(g) for g in izip_longest(*[iter(iterable)]*n,fillvalue=_marker)):
-#         if group[-1] is _marker:
-#             del group[group.index(_marker):]
-#         yield group
         
 class EA():
     """
@@ -63,6 +52,8 @@ class EA():
                 self.model.updateValue(trial[2])                                                        
         self.rt_model = np.hstack(np.array(self.model.reaction).flat)
         self.leastSquares()
+        self.rt_model = self.rt_model-(np.median(self.rt_model)-np.median(self.rt))
+        
         lrs = np.sum(np.power((self.rt_model-self.rt)*self.w,2))
         #max_llh = -float(len(self.rt_model))*np.log(0.2)
         #max_lrs = float(len(self.rt_model))*2
@@ -76,7 +67,6 @@ class EA():
         self.rt = self.rt/np.std(self.rt)                
         #a = np.sum(self.rt*self.rt_model)/np.sum(self.rt_model**2)
         #self.rt_model = a*self.rt_model
-
 
     def normalizeRT(self):
         for i in self.data.iterkeys():
@@ -102,8 +92,8 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
-                            #'fusion':['alpha','beta', 'noise','length','threshold','gain'],
+        self.p_order = dict({#'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
+                            'fusion':['alpha','beta', 'gamma', 'noise','length'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
@@ -248,15 +238,29 @@ class pareto():
     def leastSquares(self, m, n_subject, n_blocs, n_trials):
         x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
         y = np.reshape(self.human.reaction['fmri'], (14, 4*39))     
-        x = x-np.vstack(np.mean(x,1))        
-        y = y-np.vstack(np.mean(y,1))
-        tmp = np.std(x, 1)
-        tmp[tmp == 0.0] = 1.0
-        x = x/np.vstack(tmp)        
-        tmp = np.std(y, 1)
-        tmp[tmp == 0.0] = 1.0
-        y = y/np.vstack(tmp)
+        w = np.reshape(self.human.weight['fmri'], (14, 4*39))
+        # self.x = x
+        # self.y = y
+        # sys.exit()
+        # x = x-np.vstack(np.mean(x,1))        
+        # y = y-np.vstack(np.mean(y,1))
+        # tmp = np.std(x, 1)
+        # tmp[tmp == 0.0] = 1.0
+        # x = x/np.vstack(tmp)        
+        # tmp = np.std(y, 1)
+        # tmp[tmp == 0.0] = 1.0
+        # y = y/np.vstack(tmp)
 
+        # w[w == 2] = 0.0001
+        # w[w == 1] = 1.0
+
+        # for i in xrange(n_subject):
+        #     a = opt.curve_fit(func, y[i], x[i], p0 = None, sigma = w[i])[0][0]
+        #     x[i] = x[i]*a
+
+        self.x = x
+        self.y = y
+        self.w = w
         # a = np.vstack((np.sum(y*x,1))/(np.sum(x**2,1)))
         # x = a*x
 
@@ -302,8 +306,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            #ax3 = ax2.twinx()
-            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            ax3 = ax2.twinx()
+            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     # def aggregate(self, m, plot = False):
