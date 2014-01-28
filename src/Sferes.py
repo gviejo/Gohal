@@ -93,7 +93,7 @@ class pareto():
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
         self.p_order = dict({#'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
-                            'fusion':['alpha','beta', 'gamma', 'noise','length'],
+                            'fusion':['alpha','beta', 'gamma', 'noise','length', 'mean', 'variance'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
@@ -238,29 +238,30 @@ class pareto():
     def leastSquares(self, m, n_subject, n_blocs, n_trials):
         x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
         y = np.reshape(self.human.reaction['fmri'], (14, 4*39))     
-        w = np.reshape(self.human.weight['fmri'], (14, 4*39))
-        # self.x = x
-        # self.y = y
-        # sys.exit()
-        # x = x-np.vstack(np.mean(x,1))        
-        # y = y-np.vstack(np.mean(y,1))
-        # tmp = np.std(x, 1)
-        # tmp[tmp == 0.0] = 1.0
-        # x = x/np.vstack(tmp)        
-        # tmp = np.std(y, 1)
-        # tmp[tmp == 0.0] = 1.0
-        # y = y/np.vstack(tmp)
+        #w = np.reshape(self.human.weight['fmri'], (14, 4*39))
 
+        x = x-np.vstack(np.mean(x,1))        
+        y = y-np.vstack(np.mean(y,1))
+        tmp = np.std(x, 1)
+        tmp[tmp == 0.0] = 1.0
+        x = x/np.vstack(tmp)        
+        tmp = np.std(y, 1)
+        tmp[tmp == 0.0] = 1.0
+        y = y/np.vstack(tmp)
+
+        self.x = x
+        self.y = y
         # w[w == 2] = 0.0001
         # w[w == 1] = 1.0
 
         # for i in xrange(n_subject):
         #     a = opt.curve_fit(func, y[i], x[i], p0 = None, sigma = w[i])[0][0]
         #     x[i] = x[i]*a
-
-        self.x = x
-        self.y = y
-        self.w = w
+        # self.x = x
+        # self.y = y
+        # sys.exit()
+        
+                
         # a = np.vstack((np.sum(y*x,1))/(np.sum(x**2,1)))
         # x = a*x
 

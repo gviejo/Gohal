@@ -33,7 +33,9 @@ class FSelection():
                             "length":[6, 10],
                             "threshold":[0.0, 1.0], 
                             "noise":[0.0, 0.01],
-                            "gain":[0.0,10.0]})
+                            "gain":[0.0,10.0],
+                            "mean":[0.0, 10.0],
+                            "variance":[0.0, 10.0]})
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
@@ -157,7 +159,7 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        self.reaction[-1].append(self.nb_inferences)
+        self.reaction[-1].append(self.nb_inferences+np.random.normal(self.parameters['mean'],self.parameters['variance']))
         #self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(list(self.p_a))
@@ -178,7 +180,7 @@ class FSelection():
         self.current_action = self.sample(self.p_a)
         self.value[-1].append(list(self.p_a))
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(self.nb_inferences)
+        self.reaction[-1].append(self.nb_inferences+np.random.normal(self.parameters['mean'],self.parameters['variance']))
         return self.action[-1][-1]
 
     def updateValue(self, reward):
