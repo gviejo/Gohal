@@ -93,7 +93,7 @@ class pareto():
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
         self.p_order = dict({#'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
-                            'fusion':['alpha','beta', 'gamma', 'noise','length', 'mean', 'variance'],
+                            'fusion':['alpha','beta', 'gamma', 'noise','length', 'mean'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
@@ -248,6 +248,7 @@ class pareto():
         tmp = np.std(y, 1)
         tmp[tmp == 0.0] = 1.0
         y = y/np.vstack(tmp)
+        x = x - np.vstack(np.median(x, 1)-np.median(y, 1))
 
         self.x = x
         self.y = y
@@ -307,8 +308,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            ax3 = ax2.twinx()
-            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            #ax3 = ax2.twinx()
+            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     # def aggregate(self, m, plot = False):

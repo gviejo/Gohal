@@ -45,7 +45,7 @@ front = pareto(options.input)
 front.rankFront([0.5,0.5])
 #front.plotParetoFront()
 #front.plotFrontEvolution()
-#front.plotSolutions()
+front.plotSolutions()
 
 front.quickTest('fusion')
 
