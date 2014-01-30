@@ -36,8 +36,9 @@ class EA():
         self.rt = np.hstack(np.array([self.data[i]['rt'][:,0] for i in [1,2,3,4]]).flat)
         self.rt_model = None
         self.w = np.hstack(np.array([self.data[i]['rt'][:,1] for i in [1,2,3,4]]).flat)
-        self.w[self.w == 2] = 0.25
+        self.w[self.w == 2] = 0.5
         self.w[self.w == 1] = 1.0
+        self.center = None
         
     def getFitness(self):
         llh = 0.0
@@ -51,13 +52,28 @@ class EA():
                 self.model.current_action = trial[1]-1
                 self.model.updateValue(trial[2])                                                        
         self.rt_model = np.hstack(np.array(self.model.reaction).flat)
-        self.leastSquares()
-        self.rt_model = self.rt_model-(np.median(self.rt_model)-np.median(self.rt))
+        self.center = np.arange(0, np.max(self.rt_model)+1)
+        
+        self.alignToMedian()
         
         lrs = np.sum(np.power((self.rt_model-self.rt)*self.w,2))
         #max_llh = -float(len(self.rt_model))*np.log(0.2)
         #max_lrs = float(len(self.rt_model))*2
         return -np.abs(llh), -np.abs(lrs)
+
+    def rtLikelihood(self):
+        self.model.pdf = np.vstack(map(np.array, self.model.pdf))
+        self.model.pdf = np.exp(self.model.pdf*10.0)
+        self.model.pdf = self.model.pdf/np.sum(self.model.pdf, 1, keepdims=True)
+
+
+    def alignToMedian(self):
+        if (np.percentile(self.rt_model, 75)-np.median(self.rt_model)) != 0:
+            w = (np.percentile(self.rt, 75)-np.median(self.rt))/float((np.percentile(self.rt_model, 75)-np.median(self.rt_model)))
+            self.center = self.center*w        
+            self.rt_model = self.rt_model*w
+        self.center = self.center-(np.median(self.rt_model)-np.median(self.rt))
+        self.rt_model = self.rt_model-(np.median(self.rt_model)-np.median(self.rt))
 
     def leastSquares(self):
         self.rt_model = self.rt_model-np.mean(self.rt_model)
@@ -65,18 +81,6 @@ class EA():
         if np.std(self.rt_model):
             self.rt_model = self.rt_model/np.std(self.rt_model)
         self.rt = self.rt/np.std(self.rt)                
-        #a = np.sum(self.rt*self.rt_model)/np.sum(self.rt_model**2)
-        #self.rt_model = a*self.rt_model
-
-    def normalizeRT(self):
-        for i in self.data.iterkeys():
-            for  j in self.data[i]['rt']:
-                self.rt.append(j)
-        self.rt = np.array(self.rt)
-        self.rt = self.rt - np.min(self.rt)
-        self.rt = (self.rt/np.max(self.rt)).flatten()
-    
-
 
 class pareto():
     """
@@ -248,20 +252,9 @@ class pareto():
         tmp = np.std(y, 1)
         tmp[tmp == 0.0] = 1.0
         y = y/np.vstack(tmp)
-        x = x - np.vstack(np.median(x, 1)-np.median(y, 1))
 
-        self.x = x
-        self.y = y
-        # w[w == 2] = 0.0001
-        # w[w == 1] = 1.0
+        #x = x - np.vstack(np.median(x, 1)-np.median(y, 1))
 
-        # for i in xrange(n_subject):
-        #     a = opt.curve_fit(func, y[i], x[i], p0 = None, sigma = w[i])[0][0]
-        #     x[i] = x[i]*a
-        # self.x = x
-        # self.y = y
-        # sys.exit()
-        
                 
         # a = np.vstack((np.sum(y*x,1))/(np.sum(x**2,1)))
         # x = a*x
@@ -308,8 +301,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            #ax3 = ax2.twinx()
-            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            ax3 = ax2.twinx()
+            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     # def aggregate(self, m, plot = False):

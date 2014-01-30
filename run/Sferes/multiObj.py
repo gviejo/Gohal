@@ -43,7 +43,7 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 front = pareto(options.input)
 front.rankFront([0.5,0.5])
-#front.plotParetoFront()
+front.plotParetoFront()
 #front.plotFrontEvolution()
 front.plotSolutions()
 
@@ -54,3 +54,14 @@ with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickl
 
 
 
+model = front.models['fusion']
+model.pdf = np.array(model.pdf)
+p = np.array(model.pdf[5])
+p = 1-p
+ion()
+
+for i in xrange(len(p)):
+    p[i][1:] = np.cumprod(p[i][:-1])
+    p[i] = p[i]/np.sum(p[i])
+
+i = 0
