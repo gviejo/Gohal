@@ -36,7 +36,7 @@ class EA():
         self.rt = np.hstack(np.array([self.data[i]['rt'][:,0] for i in [1,2,3,4]]).flat)
         self.rt_model = None
         self.w = np.hstack(np.array([self.data[i]['rt'][:,1] for i in [1,2,3,4]]).flat)
-        self.w[self.w == 2] = 0.5
+        self.w[self.w == 2] = 1.0
         self.w[self.w == 1] = 1.0
         self.center = None
         
@@ -56,6 +56,8 @@ class EA():
         
         self.alignToMedian()
         
+        self.rt_model = self.rt_model+np.random.normal(self.model.parameters['mean'], np.std(self.rt), len(self.rt_model))
+
         lrs = np.sum(np.power((self.rt_model-self.rt)*self.w,2))
         #max_llh = -float(len(self.rt_model))*np.log(0.2)
         #max_lrs = float(len(self.rt_model))*2
@@ -96,8 +98,8 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({#'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
-                            'fusion':['alpha','beta', 'gamma', 'noise','length', 'mean'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
+                            #'fusion':['alpha','beta', 'gamma', 'noise','length'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
@@ -239,6 +241,21 @@ class pareto():
     def _convertStimulus(self, s):
         return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
 
+    def alignToMedian(self, m, n_subject, n_blocs, n_trials):
+        x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
+        y = np.reshape(self.human.reaction['fmri'], (14, 4*39))     
+        Ex = np.percentile(x, 75, 1) - np.percentile(x, 1)
+        Ey = np.percentile(y, 75, 1) - np.percentile(y, 1)
+        Ex[Ex == 0.0] = 1.0
+        x = x*np.vstack(Ey/Ex)
+        x = x-np.vstack((np.median(x, 1)-np.median(y,1)))
+        y = y-np.vstack((np.median(x, 1)-np.median(y,1)))
+        self.x = x
+        self.y = y
+        self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
+        self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))
+        
+
     def leastSquares(self, m, n_subject, n_blocs, n_trials):
         x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
         y = np.reshape(self.human.reaction['fmri'], (14, 4*39))     
@@ -287,7 +304,8 @@ class pareto():
         model.responses = np.array(model.responses)
         model.reaction = np.array(model.reaction)
         if plot:            
-            self.leastSquares(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            #self.leastSquares(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
             step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
             rt = computeMeanRepresentativeSteps(step)
