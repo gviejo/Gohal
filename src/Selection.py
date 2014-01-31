@@ -35,7 +35,7 @@ class FSelection():
                             "noise":[0.0, 0.01],
                             "gain":[0.0,40.0],
                             "mean":[-10.0, 10.0],
-                            "sigma":[0.0, 2.0]})
+                            "sigma":[0.0, 1.0]})
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))

@@ -54,9 +54,9 @@ class EA():
         self.rt_model = np.hstack(np.array(self.model.reaction).flat)
         self.center = np.arange(0, np.max(self.rt_model)+1)
         
-        self.alignToMedian()
-        
-        self.rt_model = self.rt_model+np.random.normal(self.model.parameters['mean'], np.std(self.rt), len(self.rt_model))
+        self.rt_model = self.rt_model+np.random.normal(self.model.parameters['mean'], self.model.parameters['sigma'], len(self.rt_model))
+
+        self.alignToMedian()        
 
         lrs = np.sum(np.power((self.rt_model-self.rt)*self.w,2))
         #max_llh = -float(len(self.rt_model))*np.log(0.2)
@@ -98,7 +98,7 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain', 'mean'],
                             #'fusion':['alpha','beta', 'gamma', 'noise','length'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
@@ -289,6 +289,7 @@ class pareto():
         model.startExp()
         for s in self.p_test[m].iterkeys():            
             model.setAllParameters(self.p_test[m][s])
+            model.parameters['sigma'] = np.std(np.hstack([self.human.subject['fmri'][s][i]['rt'][:,0] for i in [1,2,3,4]]))
             for i in xrange(nb_blocs):
                 cats.reinitialize()
                 cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
