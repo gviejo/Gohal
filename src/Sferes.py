@@ -32,49 +32,79 @@ class EA():
     def __init__(self, data, subject, ptr_model):
         self.model = ptr_model
         self.subject = subject
-        self.data = data                
-        self.rt = np.hstack(np.array([self.data[i]['rt'][:,0] for i in [1,2,3,4]]).flat)
+        self.data = data
+        self.n_trials = 39
+        self.n_blocs = 4
+        #self.rt = np.hstack(np.array([self.data[i]['rt'][:,0] for i in [1,2,3,4]]).flat)
+        self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.rt_model = None
         self.w = np.hstack(np.array([self.data[i]['rt'][:,1] for i in [1,2,3,4]]).flat)
         self.w[self.w == 2] = 1.0
         self.w[self.w == 1] = 1.0
         self.center = None
-        
+        self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
+        self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]])
+        self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
+        self.step, self.indice = getRepresentativeSteps(self.rt, self.state, self.action, self.responses)
+
     def getFitness(self):
         llh = 0.0
         lrs = 0.0
-        self.model.startExp()
-        for bloc in self.data.iterkeys():
-            self.model.startBloc()            
-            for trial in self.data[bloc]['sar']:
-                values = self.model.computeValue(self.model.states[int(trial[0])-1])
-                llh = llh + np.log(values[trial[1]-1])
-                self.model.current_action = trial[1]-1
-                self.model.updateValue(trial[2])                                                        
-        self.rt_model = np.hstack(np.array(self.model.reaction).flat)
-        self.center = np.arange(0, np.max(self.rt_model)+1)
-        
-        self.rt_model = self.rt_model+np.random.normal(self.model.parameters['mean'], self.model.parameters['sigma'], len(self.rt_model))
+        for i in xrange(self.n_blocs):
+            self.model.startBloc()
+            for j in xrange(self.n_trials):
+                values = self.model.computeValue(self.model.states[int(self.state[i,j])-1])
+                llh = llh + np.log(values[int(self.action[i,j])-1])
+                self.model.current_action = int(self.action[i,j])-1
+                self.model.updateValue(self.responses[i,j])
+        self.rt_model = np.array([self.model.reaction[i][0:self.n_trials] for i in xrange(4)])
 
-        self.alignToMedian()        
+        # Switch to representative step
+        self.rt = np.array([np.mean(self.rt[self.indice == i]) for i in self.step.iterkeys()])
+        self.rt_model = np.array([np.mean(self.rt_model[self.indice == i]) for i in self.step.iterkeys()])
+        self.alignToMedian()
 
-        lrs = np.sum(np.power((self.rt_model-self.rt)*self.w,2))
-        #max_llh = -float(len(self.rt_model))*np.log(0.2)
-        #max_lrs = float(len(self.rt_model))*2
+        lrs = np.sum(np.power((self.rt_model-self.rt),2))
         return -np.abs(llh), -np.abs(lrs)
+
+
+
+
+    # def getFitness(self):
+    #     llh = 0.0
+    #     lrs = 0.0
+    #     self.model.startExp()
+    #     for bloc in self.data.iterkeys():
+    #         self.model.startBloc()            
+    #         for trial in self.data[bloc]['sar']:
+    #             values = self.model.computeValue(self.model.states[int(trial[0])-1])
+    #             llh = llh + np.log(values[trial[1]-1])
+    #             self.model.current_action = trial[1]-1
+    #             self.model.updateValue(trial[2])                                                        
+    #     #self.rt_model = np.hstack(np.array(self.model.reaction).flat)
+    #     self.rt_model = np.array([self.model.reaction[i][0:self.n_trials] for i in xrange(4)])
+    #     #self.center = np.arange(0, np.max(self.rt_model)+1)
+        
+    #     sys.exit()       
+    #     self.alignToMedian()        
+
+
+    #     #lrs = np.sum(np.power((self.rt_model-self.rt)*self.w,2))
+    #     #max_llh = -float(len(self.rt_model))*np.log(0.2)
+    #     #max_lrs = float(len(self.rt_model))*2
+    #     return -np.abs(llh), -np.abs(lrs)
 
     def rtLikelihood(self):
         self.model.pdf = np.vstack(map(np.array, self.model.pdf))
         self.model.pdf = np.exp(self.model.pdf*10.0)
         self.model.pdf = self.model.pdf/np.sum(self.model.pdf, 1, keepdims=True)
 
-
     def alignToMedian(self):
         if (np.percentile(self.rt_model, 75)-np.median(self.rt_model)) != 0:
             w = (np.percentile(self.rt, 75)-np.median(self.rt))/float((np.percentile(self.rt_model, 75)-np.median(self.rt_model)))
-            self.center = self.center*w        
+            #self.center = self.center*w        
             self.rt_model = self.rt_model*w
-        self.center = self.center-(np.median(self.rt_model)-np.median(self.rt))
+        #self.center = self.center-(np.median(self.rt_model)-np.median(self.rt))
         self.rt_model = self.rt_model-(np.median(self.rt_model)-np.median(self.rt))
 
     def leastSquares(self):
@@ -98,7 +128,7 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain', 'mean'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain', 'mean', 'sigma'],
                             #'fusion':['alpha','beta', 'gamma', 'noise','length'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
