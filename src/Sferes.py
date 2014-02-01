@@ -34,8 +34,7 @@ class EA():
         self.subject = subject
         self.data = data
         self.n_trials = 39
-        self.n_blocs = 4
-        #self.rt = np.hstack(np.array([self.data[i]['rt'][:,0] for i in [1,2,3,4]]).flat)
+        self.n_blocs = 4        
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.rt_model = None
         self.w = np.hstack(np.array([self.data[i]['rt'][:,1] for i in [1,2,3,4]]).flat)
@@ -45,7 +44,7 @@ class EA():
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]])
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
-        self.step, self.indice = getRepresentativeSteps(self.rt, self.state, self.action, self.responses)
+        self.step, self.indice = getRepresentativeSteps(self.rt, self.state, self.action, self.responses)        
 
     def getFitness(self):
         llh = 0.0
@@ -57,18 +56,17 @@ class EA():
                 llh = llh + np.log(values[int(self.action[i,j])-1])
                 self.model.current_action = int(self.action[i,j])-1
                 self.model.updateValue(self.responses[i,j])
-        self.rt_model = np.array([self.model.reaction[i][0:self.n_trials] for i in xrange(4)])
-
+        self.rt_model = np.hstack(np.array([self.model.reaction[i][0:self.n_trials] for i in xrange(4)]).flat)
+        self.alignToMedian()      
         # Switch to representative step
-        self.rt = np.array([np.mean(self.rt[self.indice == i]) for i in self.step.iterkeys()])
-        self.rt_model = np.array([np.mean(self.rt_model[self.indice == i]) for i in self.step.iterkeys()])
-        self.alignToMedian()
-
-        lrs = np.sum(np.power((self.rt_model-self.rt),2))
-        return -np.abs(llh), -np.abs(lrs)
-
-
-
+        self.rt = self.rt.flatten()
+        self.indice = self.indice.flatten()
+        
+        self.rt_step = np.hstack([np.mean(self.rt[self.indice == i]) for i in self.step.iterkeys()])
+        self.rt_model_step = np.array([np.mean(self.rt_model[self.indice == i]) for i in self.step.iterkeys()])
+        
+        lrs = np.sum(np.power((self.rt_model_step-self.rt_step),2))
+        return -np.abs(llh), -np.abs(lrs*10.0)
 
     # def getFitness(self):
     #     llh = 0.0
@@ -128,7 +126,7 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain', 'mean', 'sigma'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
                             #'fusion':['alpha','beta', 'gamma', 'noise','length'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
@@ -336,7 +334,7 @@ class pareto():
         model.reaction = np.array(model.reaction)
         if plot:            
             #self.leastSquares(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
-            self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            #self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
             step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
             rt = computeMeanRepresentativeSteps(step)

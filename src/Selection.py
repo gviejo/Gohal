@@ -29,7 +29,7 @@ class FSelection():
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
                             "beta":[2.0, 5.0],
-                            "alpha":[0.6, 1.0],
+                            "alpha":[0.0, 1.0],
                             "length":[6, 10],
                             "threshold":[0.0, 40.0], 
                             "noise":[0.0, 0.01],
