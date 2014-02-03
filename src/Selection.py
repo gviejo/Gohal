@@ -36,7 +36,8 @@ class FSelection():
                             "gain":[0.0,10.0],
                             "sigma":[0.0, 1.0],
                             "phi":[-1.0, 1.0],
-                            "cste":[-10.0, 10.0]})
+                            "cste":[-10.0, 10.0],
+                            "start":[-10.0, 10.0]})
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -164,8 +165,7 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        #self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1])
-        self.average[-1].append(self.parameters['phi']*self.average[-1][-1])
+        self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1])        
         self.reaction[-1].append(self.nb_inferences+self.average[-1][-1])        
         #self.predictPDF()
         self.fusionModule()        
