@@ -51,7 +51,8 @@ class EA():
         lrs = 0.0
         for i in xrange(self.n_blocs):
             self.model.startBloc()
-            self.model.average[-1].append(self.rt[i,0])
+            #self.model.average[-1].append(self.rt[i,0])
+            self.model.average[-1].append(self.model.parameters['cste'])
             for j in xrange(self.n_trials):
                 values = self.model.computeValue(self.model.states[int(self.state[i,j])-1])
                 llh = llh + np.log(values[int(self.action[i,j])-1])
@@ -104,7 +105,7 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','sigma','phi','cste'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','phi','cste'],
                             #'fusion':['alpha','beta', 'gamma', 'noise','length'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
@@ -295,7 +296,6 @@ class pareto():
         model.startExp()
         for s in self.p_test[m].iterkeys():            
             model.setAllParameters(self.p_test[m][s])            
-            print s
             for i in xrange(nb_blocs):
                 cats.reinitialize()
                 cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
@@ -327,8 +327,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            ax3 = ax2.twinx()
-            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            #ax3 = ax2.twinx()
+            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     # def aggregate(self, m, plot = False):

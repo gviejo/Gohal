@@ -164,8 +164,9 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1])
-        self.reaction[-1].append(self.nb_inferences+self.average[-1][-1])
+        #self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1])
+        self.average[-1].append(self.parameters['phi']*self.average[-1][-1])
+        self.reaction[-1].append(self.nb_inferences+self.average[-1][-1])        
         #self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(list(self.p_a))
@@ -187,7 +188,7 @@ class FSelection():
         self.value[-1].append(list(self.p_a))
         self.action[-1].append(self.actions[self.current_action])
         self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1])
-        self.reaction[-1].append(self.nb_inferences+self.average[-1][-1])
+        self.reaction[-1].append(self.nb_inferences+self.average[-1][-1])    
         return self.action[-1][-1]
 
     def updateValue(self, reward):
