@@ -51,51 +51,24 @@ class EA():
         lrs = 0.0
         for i in xrange(self.n_blocs):
             self.model.startBloc()
+            self.model.average[-1].append(self.rt[i,0])
             for j in xrange(self.n_trials):
                 values = self.model.computeValue(self.model.states[int(self.state[i,j])-1])
                 llh = llh + np.log(values[int(self.action[i,j])-1])
                 self.model.current_action = int(self.action[i,j])-1
                 self.model.updateValue(self.responses[i,j])
         self.rt_model = np.hstack(np.array([self.model.reaction[i][0:self.n_trials] for i in xrange(4)]).flat)
-        self.alignToMedian()      
+        
         # Switch to representative step
         self.rt = self.rt.flatten()
         self.indice = self.indice.flatten()
         
-        self.rt_step = np.hstack([np.mean(self.rt[self.indice == i]) for i in self.step.iterkeys()])
-        self.rt_model_step = np.array([np.mean(self.rt_model[self.indice == i]) for i in self.step.iterkeys()])
-        
-        lrs = np.sum(np.power((self.rt_model_step-self.rt_step),2))
-        return -np.abs(llh), -np.abs(lrs*10.0)
+        self.rt = np.hstack([np.mean(self.rt[self.indice == i]) for i in self.step.iterkeys()])
+        self.rt_model = np.array([np.mean(self.rt_model[self.indice == i]) for i in self.step.iterkeys()])
+        self.alignToMedian()
 
-    # def getFitness(self):
-    #     llh = 0.0
-    #     lrs = 0.0
-    #     self.model.startExp()
-    #     for bloc in self.data.iterkeys():
-    #         self.model.startBloc()            
-    #         for trial in self.data[bloc]['sar']:
-    #             values = self.model.computeValue(self.model.states[int(trial[0])-1])
-    #             llh = llh + np.log(values[trial[1]-1])
-    #             self.model.current_action = trial[1]-1
-    #             self.model.updateValue(trial[2])                                                        
-    #     #self.rt_model = np.hstack(np.array(self.model.reaction).flat)
-    #     self.rt_model = np.array([self.model.reaction[i][0:self.n_trials] for i in xrange(4)])
-    #     #self.center = np.arange(0, np.max(self.rt_model)+1)
-        
-    #     sys.exit()       
-    #     self.alignToMedian()        
-
-
-    #     #lrs = np.sum(np.power((self.rt_model-self.rt)*self.w,2))
-    #     #max_llh = -float(len(self.rt_model))*np.log(0.2)
-    #     #max_lrs = float(len(self.rt_model))*2
-    #     return -np.abs(llh), -np.abs(lrs)
-
-    def rtLikelihood(self):
-        self.model.pdf = np.vstack(map(np.array, self.model.pdf))
-        self.model.pdf = np.exp(self.model.pdf*10.0)
-        self.model.pdf = self.model.pdf/np.sum(self.model.pdf, 1, keepdims=True)
+        lrs = np.sum(np.power((self.rt_model-self.rt),2))
+        return -np.abs(llh), -np.abs(lrs)
 
     def alignToMedian(self):
         if (np.percentile(self.rt_model, 75)-np.median(self.rt_model)) != 0:
@@ -104,6 +77,11 @@ class EA():
             self.rt_model = self.rt_model*w
         #self.center = self.center-(np.median(self.rt_model)-np.median(self.rt))
         self.rt_model = self.rt_model-(np.median(self.rt_model)-np.median(self.rt))
+
+    def rtLikelihood(self):
+        self.model.pdf = np.vstack(map(np.array, self.model.pdf))
+        self.model.pdf = np.exp(self.model.pdf*10.0)
+        self.model.pdf = self.model.pdf/np.sum(self.model.pdf, 1, keepdims=True)
 
     def leastSquares(self):
         self.rt_model = self.rt_model-np.mean(self.rt_model)
