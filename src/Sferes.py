@@ -104,7 +104,7 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','sigma','phi','cste'],
                             #'fusion':['alpha','beta', 'gamma', 'noise','length'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
@@ -167,7 +167,7 @@ class pareto():
             for s in self.pareto[m].iterkeys():
                 self.opt[m][s] = dict()
                 self.p_test[m][s] = dict()
-                #rank = self.OWA(self.pareto[m][s][:,3:5], w)
+                #rank = self.OWA(self.pareto[m][s][:,3:5], w)                
                 rank = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
                 self.pareto[m][s] = np.hstack((np.vstack(rank),self.pareto[m][s]))
                 #self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.max(self.pareto[m][s][:,0])][0]
@@ -294,12 +294,13 @@ class pareto():
         model = self.models[m.split("_")[0]]
         model.startExp()
         for s in self.p_test[m].iterkeys():            
-            model.setAllParameters(self.p_test[m][s])
-            model.parameters['sigma'] = np.std(np.hstack([self.human.subject['fmri'][s][i]['rt'][:,0] for i in [1,2,3,4]]))
+            model.setAllParameters(self.p_test[m][s])            
+            print s
             for i in xrange(nb_blocs):
                 cats.reinitialize()
                 cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
                 model.startBloc()
+                model.average[-1].append(self.human.subject['fmri'][s][i+1]['rt'][0,0])            
                 #for j in xrange(len(cats.stimuli)):
                 for j in xrange(nb_trials):
                     state = cats.getStimulus(j)
@@ -312,7 +313,7 @@ class pareto():
         model.reaction = np.array(model.reaction)
         if plot:            
             #self.leastSquares(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
-            #self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
             step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
             rt = computeMeanRepresentativeSteps(step)
