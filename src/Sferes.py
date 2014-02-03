@@ -107,7 +107,7 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','phi','cste'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','phi','cste','start'],
                             #'fusion':['alpha','beta', 'gamma', 'noise','length'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
@@ -302,7 +302,7 @@ class pareto():
                 cats.reinitialize()
                 cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
                 model.startBloc()
-                model.average[-1].append(self.human.subject['fmri'][s][i+1]['rt'][0,0])            
+                model.average[-1].append(model.parameters['start'])            
                 #for j in xrange(len(cats.stimuli)):
                 for j in xrange(nb_trials):
                     state = cats.getStimulus(j)
