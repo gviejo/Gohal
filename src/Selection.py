@@ -34,10 +34,7 @@ class FSelection():
                             "threshold":[0.0, 10.0], 
                             "noise":[0.0, 0.01],
                             "gain":[0.0,10.0],
-                            "sigma":[0.0, 1.0],
-                            "phi":[0.0, 1.0],
                             "cste":[-10.0, 10.0],
-                            "start":[0.0, 10.0]})
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -165,8 +162,8 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        self.average[-1].append(self.parameters['cste']+(1.0-self.parameters['phi'])*self.average[-1][-1])        
-        self.reaction[-1].append(self.nb_inferences+self.average[-1][-1])        
+        #self.average[-1].append(self.parameters['cste']+(1.0-self.parameters['phi'])*self.average[-1][-1])        
+        self.reaction[-1].append(self.nb_inferences+self.parameters['cste'])        
         #self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(list(self.p_a))
@@ -186,9 +183,10 @@ class FSelection():
         self.fusionModule()
         self.current_action = self.sample(self.p_a)
         self.value[-1].append(list(self.p_a))
-        self.action[-1].append(self.actions[self.current_action])
-        self.average[-1].append(self.parameters['cste']+(1.0-self.parameters['phi'])*self.average[-1][-1])
-        self.reaction[-1].append(self.nb_inferences+self.average[-1][-1])    
+        self.action[-1].append(self.actions[self.current_action])        
+        #self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1])
+        self.reaction[-1].append(self.nb_inferences+self.parameters['cste'])    
+        #self.reaction[-1].append(self.nb_inferences)
         return self.action[-1][-1]
 
     def updateValue(self, reward):

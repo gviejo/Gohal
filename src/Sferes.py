@@ -51,8 +51,6 @@ class EA():
         lrs = 0.0
         for i in xrange(self.n_blocs):
             self.model.startBloc()
-            #self.model.average[-1].append(self.rt[i,0])
-            self.model.average[-1].append(self.model.parameters['start'])
             for j in xrange(self.n_trials):
                 values = self.model.computeValue(self.model.states[int(self.state[i,j])-1])
                 llh = llh + np.log(values[int(self.action[i,j])-1])
@@ -69,8 +67,6 @@ class EA():
         self.alignToMedian()
 
         lrs = np.sum(np.power((self.rt_model-self.rt),2))
-        if lrs > 100:
-            lrs = 100.0
         return -np.abs(llh), -np.abs(lrs)
 
     def alignToMedian(self):
@@ -107,8 +103,7 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','phi','cste','start'],
-                            #'fusion':['alpha','beta', 'gamma', 'noise','length'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','cste'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
@@ -302,7 +297,6 @@ class pareto():
                 cats.reinitialize()
                 cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
                 model.startBloc()
-                model.average[-1].append(model.parameters['start'])            
                 #for j in xrange(len(cats.stimuli)):
                 for j in xrange(nb_trials):
                     state = cats.getStimulus(j)
