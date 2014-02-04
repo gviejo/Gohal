@@ -35,7 +35,7 @@ class FSelection():
                             "noise":[0.0, 0.01],
                             "gain":[0.0,10.0],
                             "sigma":[0.0, 0.1],
-                            "phi":[0.0, 1.0],
+                            "phi":[0.0, 0.5],
                             "cste":[0.0, 10.0]})
 
         #Probability Initialization
