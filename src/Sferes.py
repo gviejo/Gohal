@@ -68,6 +68,8 @@ class EA():
         self.alignToMedian()
 
         lrs = np.sum(np.power((self.rt_model-self.rt),2))
+        if lrs > 1000.0:
+            lrs = 1000.0
         return -np.abs(llh), -np.abs(lrs)
 
     def alignToMedian(self):
@@ -298,6 +300,7 @@ class pareto():
                 cats.reinitialize()
                 cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
                 model.startBloc()
+                model.average[-1].append(model.parameters['cste']*(1.0+model.parameters['phi'])+model.parameters['sigma']**2)
                 #for j in xrange(len(cats.stimuli)):
                 for j in xrange(nb_trials):
                     state = cats.getStimulus(j)
