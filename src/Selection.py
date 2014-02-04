@@ -28,13 +28,15 @@ class FSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[2.0, 5.0],
+                            "beta":[3.0, 5.0],
                             "alpha":[0.6, 1.0],
                             "length":[6, 10],
                             "threshold":[0.0, 10.0], 
                             "noise":[0.0, 0.01],
                             "gain":[0.0,10.0],
-                            "cste":[-10.0, 10.0],
+                            "sigma":[0.0, 0.1],
+                            "phi":[0.0, 1.0],
+                            "cste":[0.0, 10.0]})
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -162,8 +164,8 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        #self.average[-1].append(self.parameters['cste']+(1.0-self.parameters['phi'])*self.average[-1][-1])        
-        self.reaction[-1].append(self.nb_inferences+self.parameters['cste'])        
+        self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
+        self.reaction[-1].append(self.nb_inferences+self.average[-1][-1])        
         #self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(list(self.p_a))
@@ -184,8 +186,8 @@ class FSelection():
         self.current_action = self.sample(self.p_a)
         self.value[-1].append(list(self.p_a))
         self.action[-1].append(self.actions[self.current_action])        
-        #self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1])
-        self.reaction[-1].append(self.nb_inferences+self.parameters['cste'])    
+        self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
+        self.reaction[-1].append(self.nb_inferences+self.average[-1][-1])        
         #self.reaction[-1].append(self.nb_inferences)
         return self.action[-1][-1]
 

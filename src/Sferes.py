@@ -51,6 +51,7 @@ class EA():
         lrs = 0.0
         for i in xrange(self.n_blocs):
             self.model.startBloc()
+            self.model.average[-1].append(self.model.parameters['cste']*(1.0+self.model.parameters['phi'])+self.model.parameters['sigma']**2)
             for j in xrange(self.n_trials):
                 values = self.model.computeValue(self.model.states[int(self.state[i,j])-1])
                 llh = llh + np.log(values[int(self.action[i,j])-1])
@@ -103,7 +104,7 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','cste'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','sigma','phi','cste'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
