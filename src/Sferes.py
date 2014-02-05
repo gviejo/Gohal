@@ -51,7 +51,7 @@ class EA():
         lrs = 0.0
         for i in xrange(self.n_blocs):
             self.model.startBloc()
-            self.model.average[-1].append(self.model.parameters['cste']*(1.0+self.model.parameters['phi'])+self.model.parameters['sigma']**2)
+            self.model.average[-1].append(self.model.parameters['cste']/(1.0-self.model.parameters['phi']))
             for j in xrange(self.n_trials):
                 values = self.model.computeValue(self.model.states[int(self.state[i,j])-1])
                 llh = llh + np.log(values[int(self.action[i,j])-1])
@@ -67,9 +67,9 @@ class EA():
         self.rt_model = np.array([np.mean(self.rt_model[self.indice == i]) for i in self.step.iterkeys()])
         self.alignToMedian()
 
-        lrs = np.sum(np.power((self.rt_model-self.rt),2))
-        if lrs > 1000.0:
-            lrs = 1000.0
+        lrs = 100*np.sum(np.power((self.rt_model-self.rt),2))
+        if lrs > 100000.0:
+            lrs = 100000.0
         return -np.abs(llh), -np.abs(lrs)
 
     def alignToMedian(self):
