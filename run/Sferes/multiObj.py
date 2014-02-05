@@ -43,8 +43,8 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 front = pareto(options.input)
 front.rankFront([0.5,0.5])
-#front.plotParetoFront()
-#front.plotFrontEvolution()
+front.plotParetoFront()
+front.plotFrontEvolution()
 #front.plotSolutions()
 
 front.quickTest('fusion')

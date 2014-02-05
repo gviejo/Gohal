@@ -24,6 +24,8 @@ from HumanLearning import HLearning
 from ColorAssociationTasks import CATS
 #import scipy.optimize as opt
 from scipy.stats import pearsonr
+from scipy.stats import sem
+
         
 class EA():
     """
@@ -51,7 +53,8 @@ class EA():
         lrs = 0.0
         for i in xrange(self.n_blocs):
             self.model.startBloc()
-            self.model.average[-1].append(self.model.parameters['cste']/(1.0-self.model.parameters['phi']))
+            #self.model.average[-1].append(self.model.parameters['cste']/(1.0-self.model.parameters['phi']))
+            self.model.average[-1].append(1.0/(1.0-self.model.parameters['phi']))
             for j in xrange(self.n_trials):
                 values = self.model.computeValue(self.model.states[int(self.state[i,j])-1])
                 llh = llh + np.log(values[int(self.action[i,j])-1])
@@ -251,8 +254,8 @@ class pareto():
     def alignToMedian(self, m, n_subject, n_blocs, n_trials):
         x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
         y = np.reshape(self.human.reaction['fmri'], (14, 4*39))     
-        Ex = np.percentile(x, 75, 1) - np.percentile(x, 1)
-        Ey = np.percentile(y, 75, 1) - np.percentile(y, 1)
+        Ex = np.percentile(x, 75, 1) - np.median(x, 1)
+        Ey = np.percentile(y, 75, 1) - np.median(y, 1)
         Ex[Ex == 0.0] = 1.0
         x = x*np.vstack(Ey/Ex)
         x = x-np.vstack((np.median(x, 1)-np.median(y,1)))
@@ -262,6 +265,31 @@ class pareto():
         self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
         self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))
         
+    def representativeSteps(self, m, s_order, n_blocs, n_trials):
+        x = np.reshape(self.models[m].reaction, (len(s_order), n_blocs, n_trials))
+        y = np.reshape(self.human.reaction['fmri'], (14, 4, 39))
+        s = np.reshape(self.human.stimulus['fmri'], (14, 4, 39))
+        a = np.reshape(self.human.action['fmri'], (14, 4, 39))
+        r = np.reshape(self.human.responses['fmri'], (14, 4, 39))
+        rt = []
+        rt_model = []
+        for i in xrange(len(s_order)):
+            step, indice = getRepresentativeSteps(x[i], s[i], a[i], r[i])
+            rt.append(np.hstack([np.mean(y[i][indice == j]) for j in step.iterkeys()]))
+            rt_model.append(np.hstack([np.mean(x[i][indice == j]) for j in step.iterkeys()]))
+        rt = np.array(rt)    
+        rt_model = np.array(rt_model)
+
+        Ex = np.percentile(rt_model, 75, 1) - np.median(rt_model, 1)
+        Ey = np.percentile(rt, 75, 1) - np.median(rt, 1)
+        Ex[Ex == 0.0] = 1.0
+        rt_model = rt_model*np.vstack(Ey/Ex)
+        rt_model = rt_model-np.vstack((np.median(rt_model, 1)-np.median(rt, 1)))
+
+        rt_model = (np.mean(rt_model, 0), sem(rt_model, 0))
+        rt_human = (np.mean(rt, 0), sem(rt, 0))
+
+        return rt_model, rt_human
 
     def leastSquares(self, m, n_subject, n_blocs, n_trials):
         x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
@@ -290,17 +318,17 @@ class pareto():
         nb_blocs = 4
         nb_trials = self.human.responses['fmri'].shape[1]
         cats = CATS(nb_trials)
-        pcr = dict()
-        rt = dict()
         model = self.models[m.split("_")[0]]
         model.startExp()
-        for s in self.p_test[m].iterkeys():            
+        s_order = []
+        for s in self.p_test[m].iterkeys(): 
+            s_order.append(s)           
             model.setAllParameters(self.p_test[m][s])            
             for i in xrange(nb_blocs):
                 cats.reinitialize()
                 cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
                 model.startBloc()
-                model.average[-1].append(model.parameters['cste']*(1.0+model.parameters['phi'])+model.parameters['sigma']**2)
+                model.average[-1].append(model.parameters['cste']/(1-model.parameters['phi']))
                 #for j in xrange(len(cats.stimuli)):
                 for j in xrange(nb_trials):
                     state = cats.getStimulus(j)
@@ -312,14 +340,20 @@ class pareto():
         model.responses = np.array(model.responses)
         model.reaction = np.array(model.reaction)
         if plot:            
-            #self.leastSquares(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
-            self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            self.leastSquares(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            
+            #rt, rt_human = self.representativeSteps(m, s_order, nb_blocs, nb_trials)
+
             pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
+            pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
+
+            #self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
             rt = computeMeanRepresentativeSteps(step)
-            pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
             step, indice = getRepresentativeSteps(self.human.reaction['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
             rt_human = computeMeanRepresentativeSteps(step) 
+
+
             colors = ['blue', 'red', 'green']
             self.fig_quick = figure(figsize=(10,5))
             ax1 = self.fig_quick.add_subplot(1,2,1)
