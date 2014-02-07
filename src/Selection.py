@@ -34,8 +34,8 @@ class FSelection():
                             "threshold":[0.0, 10.0], 
                             "noise":[0.0, 0.01],
                             "gain":[0.0,10.0],
-                            "sigma":[0.000001, 0.1],
-                            "phi":[0.0, 1.0],
+                            #"sigma":[0.00001, 0.1],
+                            #"phi":[0.0, 1.0],
                             "cste":[0.0, 10.0]})
 
         #Probability Initialization
@@ -66,7 +66,7 @@ class FSelection():
         self.reaction = list()
         self.value = list()
         self.pdf = list()
-        self.average = list()
+        #self.average = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -87,7 +87,7 @@ class FSelection():
         self.reaction.append([])
         self.value.append([])
         self.pdf.append([])
-        self.average.append([])
+        # self.average.append([1.0/(1.0-self.parameters['phi'])])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -106,7 +106,7 @@ class FSelection():
         self.reaction = list()
         self.value = list()        
         self.pdf = list()
-        self.average = list()
+        # self.average = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -165,8 +165,8 @@ class FSelection():
             self.inferenceModule()
             self.evaluationModule()
         #self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
-        self.average[-1].append(1.0+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
-        self.reaction[-1].append(self.nb_inferences+self.average[-1][-1])        
+        # self.average[-1].append(1.0+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
+        self.reaction[-1].append(self.nb_inferences+self.parameters['cste'])        
         #self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(list(self.p_a))
@@ -187,9 +187,8 @@ class FSelection():
         self.current_action = self.sample(self.p_a)
         self.value[-1].append(list(self.p_a))
         self.action[-1].append(self.actions[self.current_action])        
-        #self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
-        self.average[-1].append(1.0+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
-        self.reaction[-1].append(self.nb_inferences+self.average[-1][-1])        
+        # self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
+        self.reaction[-1].append(self.nb_inferences+self.parameters['cste'])        
         #self.reaction[-1].append(self.nb_inferences)
         return self.action[-1][-1]
 
