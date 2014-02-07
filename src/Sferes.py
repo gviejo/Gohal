@@ -68,9 +68,7 @@ class EA():
         self.rt_model = np.array([np.mean(self.rt_model[self.indice == i]) for i in self.step.iterkeys()])
         self.alignToMedian()
 
-        lrs = 100*np.sum(np.power((self.rt_model-self.rt),2)*self.w)
-        if lrs > 100000.0:
-            lrs = 100000.0
+        lrs = 10.0*np.sum(np.power((self.rt_model-self.rt),2)*self.w)
         return -np.abs(llh), -np.abs(lrs)
 
     def alignToMedian(self):
@@ -334,13 +332,13 @@ class pareto():
         model.responses = np.array(model.responses)
         model.reaction = np.array(model.reaction)
         if plot:            
-            self.alignToMean(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            #self.alignToMean(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
             pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])            
             
             #rt, rt_human = self.representativeSteps(m, s_order, nb_blocs, nb_trials)
             
-            #self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
             rt = computeMeanRepresentativeSteps(step)
             step, indice = getRepresentativeSteps(self.human.reaction['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
@@ -354,8 +352,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            #ax3 = ax2.twinx()
-            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            ax3 = ax2.twinx()
+            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     # def aggregate(self, m, plot = False):

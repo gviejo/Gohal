@@ -43,9 +43,9 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 front = pareto(options.input)
 front.rankFront([0.5,0.5])
-#front.plotParetoFront()
-#front.plotFrontEvolution()
-#front.plotSolutions()
+front.plotParetoFront()
+front.plotFrontEvolution()
+front.plotSolutions()
 
 front.quickTest('fusion')
 
@@ -54,10 +54,3 @@ front.quickTest('fusion')
 
 
 
-model = front.models['fusion']
-
-model.average = np.array(model.average)
-model.average = model.average[:,1:]
-model.average = model.average.reshape(14, 4*39)
-
-model.reaction = model.reaction.reshape(14, 4*39)
