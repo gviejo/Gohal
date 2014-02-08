@@ -73,7 +73,8 @@ class EA():
 
     def alignToMedian(self):
         if (np.percentile(self.rt_model, 75)-np.median(self.rt_model)) != 0:
-            w = (np.percentile(self.rt, 75)-np.median(self.rt))/float((np.percentile(self.rt_model, 75)-np.median(self.rt_model)))
+            #w = (np.percentile(self.rt, 75)-np.median(self.rt))/float((np.percentile(self.rt_model, 75)-np.median(self.rt_model)))
+            w = (np.percentile(self.rt, 75)-np.percentile(self.rt, 25))/float((np.percentile(self.rt_model, 75)-np.percentile(self.rt_model, 25)))
             #self.center = self.center*w        
             self.rt_model = self.rt_model*w
         #self.center = self.center-(np.median(self.rt_model)-np.median(self.rt))
@@ -165,6 +166,7 @@ class pareto():
             self.opt[m] = dict()
             self.p_test[m] = dict()
             for s in self.pareto[m].iterkeys():
+                print s
                 self.opt[m][s] = dict()
                 self.p_test[m][s] = dict()
                 #rank = self.OWA(self.pareto[m][s][:,3:5], w)                
@@ -177,14 +179,14 @@ class pareto():
 
     def OWA(self, value, w):
         m,n=value.shape
-        assert m>=n
+        #assert m>=n
         assert len(w) == n
         assert np.sum(w) == 1
         return np.sum(np.sort(value)*w,1)
 
     def Tchebychev(self, value, lambdaa, epsilon):
         m,n = value.shape
-        assert m>=n
+        #assert m>=n
         assert len(lambdaa) == n
         assert np.sum(lambdaa) == 1
         assert epsilon < 1.0
@@ -333,12 +335,12 @@ class pareto():
         model.reaction = np.array(model.reaction)
         if plot:            
             #self.alignToMean(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
             pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])            
             
             #rt, rt_human = self.representativeSteps(m, s_order, nb_blocs, nb_trials)
-            
-            self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+                        
             step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
             rt = computeMeanRepresentativeSteps(step)
             step, indice = getRepresentativeSteps(self.human.reaction['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
@@ -352,8 +354,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            ax3 = ax2.twinx()
-            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            #ax3 = ax2.twinx()
+            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     # def aggregate(self, m, plot = False):
