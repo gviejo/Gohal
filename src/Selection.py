@@ -34,9 +34,7 @@ class FSelection():
                             "threshold":[0.0, 2.0], 
                             "noise":[0.0, 0.01],
                             "gain":[0.0, 2.0],
-                            #"sigma":[0.00001, 0.1],
-                            #"phi":[0.0, 1.0],
-                            "cste":[0.0, 10.0]})
+                            "cste":[0.021, 1.49]})
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -166,7 +164,7 @@ class FSelection():
             self.evaluationModule()
         #self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
         # self.average[-1].append(1.0+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
-        self.reaction[-1].append(self.nb_inferences+self.parameters['cste'])        
+        self.reaction[-1].append(self.nb_inferences)        
         #self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(list(self.p_a))
@@ -188,7 +186,7 @@ class FSelection():
         self.value[-1].append(list(self.p_a))
         self.action[-1].append(self.actions[self.current_action])        
         # self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
-        self.reaction[-1].append(self.nb_inferences+self.parameters['cste'])        
+        self.reaction[-1].append(self.nb_inferences)        
         #self.reaction[-1].append(self.nb_inferences)
         return self.action[-1][-1]
 

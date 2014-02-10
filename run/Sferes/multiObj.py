@@ -42,8 +42,8 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # LOADING DATA
 # -----------------------------------
 front = pareto(options.input)
-front.rankFront([0.3,0.7])
-#front.plotParetoFront()
+front.rankFront([0.5,0.5])
+front.plotParetoFront()
 #front.plotFrontEvolution()
 #front.plotSolutions()
 

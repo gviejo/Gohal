@@ -39,40 +39,45 @@ class EA():
         self.n_blocs = 4        
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.rt_model = None
-        self.center = None
+        self.count = None
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]])
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
+        self.basket = [0.0]
         self.step, self.indice = getRepresentativeSteps(self.rt, self.state, self.action, self.responses)        
         self.w = np.ones(len(self.step.keys()))
-        self.w[6:] = 0.1
-        self.nb_repeat = 1000
-        
+        self.w[6:] = 0.1        
 
     def getFitness(self):
+        np.seterr(all = 'ignore')
         llh = 0.0
         lrs = 0.0
-        for k in xrange(self.nb_repeat):
-            for i in xrange(self.n_blocs):
-                self.model.startBloc()
-                for j in xrange(self.n_trials):
-                    values = self.model.computeValue(self.model.states[int(self.state[i,j])-1])
-                    llh = llh + np.log(values[int(self.action[i,j])-1])
-                    self.model.current_action = int(self.action[i,j])-1
-                    self.model.updateValue(self.responses[i,j])
-        
-        self.rt_model = np.hstack(np.array([self.model.reaction[i][0:self.n_trials] for i in xrange(self.n_blocs*self.nb_repeat)]).flat)
-        
-        # Switch to representative step
+        for i in xrange(self.n_blocs):
+            self.model.startBloc()
+            for j in xrange(self.n_trials):
+                values = self.model.computeValue(self.model.states[int(self.state[i,j])-1])
+                llh = llh + np.log(values[int(self.action[i,j])-1])
+                self.model.current_action = int(self.action[i,j])-1
+                self.model.updateValue(self.responses[i,j])
+        self.rt_model = np.array(self.model.reaction).flatten()
         self.rt = self.rt.flatten()
+
+        nb_max = np.max(self.rt_model)
+        self.d = (np.max(self.rt)-self.model.parameters['cste'])/float(2*nb_max+1)
+        self.basket = np.arange(1,2*nb_max+2,2)*self.d+self.model.parameters['cste']
+        self.basket = np.concatenate(([0.0], self.basket))
+        self.ch = np.array([np.sum((self.rt>self.basket[i])*(self.rt<=self.basket[i+1])) for i in xrange(nb_max+1)])
+        self.cm = np.array([np.sum(self.rt_model==i) for i in xrange(nb_max+1)])
+                    
+        # Switch to representative step    
         self.indice = self.indice.flatten()
         
-        self.rt = np.hstack([np.mean(self.rt[self.indice == i]) for i in self.step.iterkeys()])
-        self.indice = np.tile(self.indice, self.nb_repeat)
+        self.rt = np.hstack([np.mean(self.rt[self.indice == i]) for i in self.step.iterkeys()])        
         self.rt_model = np.array([np.mean(self.rt_model[self.indice == i]) for i in self.step.iterkeys()])
         self.alignToMedian()
 
-        lrs = 100.0*np.sum(np.power((self.rt_model-self.rt),2))
+        lrs = 100.0*np.sum(np.power((self.rt_model-self.rt),2)) + np.sum(np.abs(1.0-(self.cm*1.0)/self.ch))
+
         return -np.abs(llh), -np.abs(lrs)
 
     def alignToMedian(self):
@@ -173,11 +178,11 @@ class pareto():
                 print s
                 self.opt[m][s] = dict()
                 self.p_test[m][s] = dict()
-                #rank = self.OWA(self.pareto[m][s][:,3:5], w)                
-                rank = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
+                rank = self.OWA(self.pareto[m][s][:,3:5], w)                
+                #rank = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
                 self.pareto[m][s] = np.hstack((np.vstack(rank),self.pareto[m][s]))
-                #self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.max(self.pareto[m][s][:,0])][0]
-                self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.min(self.pareto[m][s][:,0])][0]
+                self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.max(self.pareto[m][s][:,0])][0]
+                #self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.min(self.pareto[m][s][:,0])][0]
                 for p in self.p_order[m.split("_")[0]]:
                     self.p_test[m][s][p] = self.opt[m][s][self.p_order[m.split("_")[0]].index(p)+6]
 
@@ -340,8 +345,8 @@ class pareto():
         model.responses = np.array(model.responses)
         model.reaction = np.array(model.reaction)
         if plot:            
-            self.alignToMean(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
-            #self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            #self.alignToMean(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
             pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])            
             
@@ -360,8 +365,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            ax3 = ax2.twinx()
-            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            #ax3 = ax2.twinx()
+            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     # def aggregate(self, m, plot = False):
