@@ -319,6 +319,23 @@ class pareto():
         self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
         self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))        
 
+    def alignToCste(self, m, n_subject, n_blocs, n_trials, s_order):
+        x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
+        y = np.reshape(self.human.reaction['fmri'], (14, 4*39))
+        cste = np.vstack(np.array([self.p_test[m][s]['cste'] for s in s_order]))
+        w = (np.max(y)-cste)/np.vstack(np.max(x+1,1))
+        x = x*w
+        x = x-(np.vstack(np.min(x,1))-cste)
+
+        self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
+        self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))
+
+        # self.w = w
+        # self.s_order = s_order
+        self.x = x
+        self.y = y
+        # sys.exit()
+
     def quickTest(self, m, plot=True):
         nb_blocs = 4
         nb_trials = self.human.responses['fmri'].shape[1]
@@ -345,7 +362,8 @@ class pareto():
         model.reaction = np.array(model.reaction)
         if plot:            
             #self.alignToMean(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
-            self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            #self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
+            self.alignToCste(m, len(self.p_test[m].keys()), nb_blocs, nb_trials, s_order)
             pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
             pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])            
             
@@ -364,8 +382,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            ax3 = ax2.twinx()
-            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            #ax3 = ax2.twinx()
+            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     # def aggregate(self, m, plot = False):
