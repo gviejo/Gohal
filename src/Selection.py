@@ -31,9 +31,9 @@ class FSelection():
                             "beta":[3.0, 5.0],
                             "alpha":[0.6, 1.0],
                             "length":[6, 10],
-                            "threshold":[0.0, 2.0], 
+                            "threshold":[0.0, 10.0], 
                             "noise":[0.0, 0.01],
-                            "gain":[0.0, 2.0],
+                            "gain":[0.0, 10.0],
                             "cste":[0.021, 1.49]})
 
         #Probability Initialization

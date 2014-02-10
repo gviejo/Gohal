@@ -70,23 +70,22 @@ class EA():
         self.cm = np.array([np.sum(self.rt_model==i) for i in xrange(nb_max+1)])
                     
         # Switch to representative step    
-        self.indice = self.indice.flatten()
-        
-        self.rt = np.hstack([np.mean(self.rt[self.indice == i]) for i in self.step.iterkeys()])        
-        self.rt_model = np.array([np.mean(self.rt_model[self.indice == i]) for i in self.step.iterkeys()])
+        # self.indice = self.indice.flatten()        
+        # self.rt = np.hstack([np.mean(self.rt[self.indice == i]) for i in self.step.iterkeys()])        
+        # self.rt_model = np.array([np.mean(self.rt_model[self.indice == i]) for i in self.step.iterkeys()])
         self.alignToMedian()
 
-        lrs = 100.0*np.sum(np.power((self.rt_model-self.rt),2)) + np.sum(np.abs(1.0-(self.cm*1.0)/self.ch))
+        lrs = np.sum(np.power((self.rt_model-self.rt),2)) + np.sum(np.abs(1.0-(self.cm*1.0)/self.ch))
+        if lrs > 1000.0 or np.isnan(lrs):
+            lrs = 1000.0
 
         return -np.abs(llh), -np.abs(lrs)
 
     def alignToMedian(self):
         if (np.percentile(self.rt_model, 75)-np.median(self.rt_model)) != 0:
-            #w = (np.percentile(self.rt, 75)-np.median(self.rt))/float((np.percentile(self.rt_model, 75)-np.median(self.rt_model)))
-            w = (np.percentile(self.rt, 75)-np.percentile(self.rt, 25))/float((np.percentile(self.rt_model, 75)-np.percentile(self.rt_model, 25)))
-            #self.center = self.center*w        
-            self.rt_model = self.rt_model*w
-        #self.center = self.center-(np.median(self.rt_model)-np.median(self.rt))
+            w = (np.percentile(self.rt, 75)-np.median(self.rt))/float((np.percentile(self.rt_model, 75)-np.median(self.rt_model)))
+            #w = (np.percentile(self.rt, 75)-np.percentile(self.rt, 25))/float((np.percentile(self.rt_model, 75)-np.percentile(self.rt_model, 25)))
+            self.rt_model = self.rt_model*w        
         self.rt_model = self.rt_model-(np.median(self.rt_model)-np.median(self.rt))
 
     def rtLikelihood(self):
@@ -365,8 +364,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            #ax3 = ax2.twinx()
-            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            ax3 = ax2.twinx()
+            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
     # def aggregate(self, m, plot = False):
