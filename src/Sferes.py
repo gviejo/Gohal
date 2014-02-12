@@ -23,8 +23,9 @@ from pylab import *
 from HumanLearning import HLearning
 from ColorAssociationTasks import CATS
 #import scipy.optimize as opt
-from scipy.stats import pearsonr
+#from scipy.stats import pearsonr
 from scipy.stats import sem
+from scipy.stats import norm
 
         
 class EA():
@@ -37,16 +38,11 @@ class EA():
         self.data = data
         self.n_trials = 39
         self.n_blocs = 4        
-        self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]])
-        self.rt_model = None
-        self.count = None
+        self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
+        self.rt_model = None        
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]])
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
-        self.basket = [0.0]
-        self.step, self.indice = getRepresentativeSteps(self.rt, self.state, self.action, self.responses)        
-        self.w = np.ones(len(self.step.keys()))
-        self.w[6:] = 0.1        
 
     def getFitness(self):
         np.seterr(all = 'ignore')
@@ -59,25 +55,11 @@ class EA():
                 llh = llh + np.log(values[int(self.action[i,j])-1])
                 self.model.current_action = int(self.action[i,j])-1
                 self.model.updateValue(self.responses[i,j])
-        self.rt_model = np.array(self.model.reaction).flatten()
-        self.rt = self.rt.flatten()
-
-        nb_max = np.max(self.rt_model)
-        self.d = (np.max(self.rt)-self.model.parameters['cste'])/float(2*nb_max+1)
-        self.basket = np.arange(1,2*nb_max+2,2)*self.d+self.model.parameters['cste']
-        self.basket = np.concatenate(([0.0], self.basket))
-        self.ch = np.array([np.sum((self.rt>self.basket[i])*(self.rt<=self.basket[i+1])) for i in xrange(nb_max+1)])
-        self.cm = np.array([np.sum(self.rt_model==i) for i in xrange(nb_max+1)])
-                    
-        # Switch to representative step    
-        # self.indice = self.indice.flatten()        
-        # self.rt = np.hstack([np.mean(self.rt[self.indice == i]) for i in self.step.iterkeys()])        
-        # self.rt_model = np.array([np.mean(self.rt_model[self.indice == i]) for i in self.step.iterkeys()])
+        self.rt_model = np.array(self.model.reaction).flatten()        
         self.alignToMedian()
 
-        lrs = np.sum(np.power((self.rt_model-self.rt),2)) + np.sum(np.abs(1.0-(self.cm*1.0)/self.ch))
-        if lrs > 1000.0 or np.isnan(lrs):
-            lrs = 1000.0
+        self.density = np.array([norm.logpdf(self.rt[i], self.rt_model[i], self.model.parameters['sigma']) for i in xrange(self.n_trials*self.n_blocs)])  
+        lrs = np.sum(self.density)
 
         return -np.abs(llh), -np.abs(lrs)
 

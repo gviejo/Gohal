@@ -34,7 +34,8 @@ class FSelection():
                             "threshold":[0.0, 10.0], 
                             "noise":[0.0, 0.01],
                             "gain":[0.0, 10.0],
-                            "cste":[0.021, 1.49]})
+                            "sigma":[0.0, 0.1]})
+                            
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -131,7 +132,7 @@ class FSelection():
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
-        #self.pdf[-1][-1][self.nb_inferences] = self.pA
+        self.pdf[-1][-1][self.nb_inferences] = self.pA
         return np.random.uniform(0,1) > self.pA
 
     def predictPDF(self):
@@ -152,7 +153,7 @@ class FSelection():
 
     def computeValue(self, state):
         self.state[-1].append(state)
-        #self.pdf[-1].append(np.zeros(int(self.parameters['length'])+1))
+        self.pdf[-1].append(np.zeros(int(self.parameters['length'])+1))
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy
@@ -162,10 +163,8 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        #self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
-        # self.average[-1].append(1.0+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
         self.reaction[-1].append(self.nb_inferences)        
-        #self.predictPDF()
+        self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(list(self.p_a))
         return self.p_a
@@ -184,10 +183,8 @@ class FSelection():
         self.fusionModule()
         self.current_action = self.sample(self.p_a)
         self.value[-1].append(list(self.p_a))
-        self.action[-1].append(self.actions[self.current_action])        
-        # self.average[-1].append(self.parameters['cste']+self.parameters['phi']*self.average[-1][-1]+np.random.normal(0.0, self.parameters['sigma']))
-        self.reaction[-1].append(self.nb_inferences)        
-        #self.reaction[-1].append(self.nb_inferences)
+        self.action[-1].append(self.actions[self.current_action])                
+        self.reaction[-1].append(self.nb_inferences)                
         return self.action[-1][-1]
 
     def updateValue(self, reward):
