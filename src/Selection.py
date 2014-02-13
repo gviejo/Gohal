@@ -132,7 +132,7 @@ class FSelection():
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
-        self.pdf[-1][-1][self.nb_inferences] = self.pA
+        #self.pdf[-1][-1][self.nb_inferences] = self.pA
         return np.random.uniform(0,1) > self.pA
 
     def predictPDF(self):
