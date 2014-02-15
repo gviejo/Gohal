@@ -28,13 +28,14 @@ class FSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[3.0, 5.0],
-                            "alpha":[0.6, 1.0],
-                            "length":[6, 10],
+                            "beta":[1.0, 5.0],
+                            "alpha":[0.0, 1.0],
+                            "length":[5, 11],
                             "threshold":[0.0, 10.0], 
-                            "noise":[0.0, 0.01],
+                            "noise":[0.0, 0.1],
                             "gain":[0.0, 10.0],
-                            "sigma":[0.0, 0.1]})
+                            "sigma_bwm":[0.00001, 1.0],
+                            "sigma_ql":[0.00001, 1.0]})
                             
 
         #Probability Initialization
@@ -65,7 +66,7 @@ class FSelection():
         self.reaction = list()
         self.value = list()
         self.pdf = list()
-        #self.average = list()
+        self.sigma = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -86,7 +87,7 @@ class FSelection():
         self.reaction.append([])
         self.value.append([])
         self.pdf.append([])
-        # self.average.append([1.0/(1.0-self.parameters['phi'])])
+        self.sigma.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -105,7 +106,7 @@ class FSelection():
         self.reaction = list()
         self.value = list()        
         self.pdf = list()
-        # self.average = list()
+        self.sigma = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -163,7 +164,8 @@ class FSelection():
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-        self.reaction[-1].append(self.nb_inferences)        
+        self.reaction[-1].append(self.nb_inferences)
+        self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
         self.predictPDF()
         self.fusionModule()        
         self.value[-1].append(list(self.p_a))
@@ -184,7 +186,8 @@ class FSelection():
         self.current_action = self.sample(self.p_a)
         self.value[-1].append(list(self.p_a))
         self.action[-1].append(self.actions[self.current_action])                
-        self.reaction[-1].append(self.nb_inferences)                
+        self.reaction[-1].append(self.nb_inferences)
+        self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
         return self.action[-1][-1]
 
     def updateValue(self, reward):

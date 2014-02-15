@@ -42,7 +42,8 @@ class EA():
         self.rt_model = None        
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]])
-        self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
+        self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])        
+        self.sigma = None
 
     def getFitness(self):
         np.seterr(all = 'ignore')
@@ -56,11 +57,14 @@ class EA():
                 self.model.current_action = int(self.action[i,j])-1
                 self.model.updateValue(self.responses[i,j])
         self.rt_model = np.array(self.model.reaction).flatten()        
+        self.sigma = np.array(self.model.sigma).flatten()
+        
         self.alignToMedian()
 
-        self.density = np.array([norm.logpdf(self.rt[i], self.rt_model[i], self.model.parameters['sigma']) for i in xrange(self.n_trials*self.n_blocs)])  
+        self.density = np.array([norm.logpdf(self.rt[i], self.rt_model[i], self.sigma[i]) for i in xrange(self.n_trials*self.n_blocs)]) 
         lrs = np.sum(self.density)
-
+        if np.isnan(lrs) or np.isinf(lrs):
+            lrs = -100000.0
         return -np.abs(llh), -np.abs(lrs)
 
     def alignToMedian(self):
