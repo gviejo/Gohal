@@ -276,6 +276,7 @@ class KSelection():
         self.value = list()
         self.vpi = list()
         self.rrate = list()
+        self.sigma = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -297,6 +298,7 @@ class KSelection():
         self.value.append([])
         self.vpi.append([])
         self.rrate.append([])
+        self.sigma.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -315,7 +317,8 @@ class KSelection():
         self.reaction = list()
         self.value = list()   
         self.vpi = list()
-        self.rrate = list()     
+        self.rrate = list() 
+        self.sigma = list()    
 
     def sampleSoftMax(self, values):
         tmp = np.exp(values*float(self.parameters['beta']))
