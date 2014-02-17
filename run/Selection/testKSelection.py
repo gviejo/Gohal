@@ -46,7 +46,7 @@ def testModel():
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('/home/guillaume/Gohal/PEPS_GoHaL/Beh_Model/',48), 'fmri':('/home/guillaume/Gohal/fMRI',39)}))
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 
 
@@ -61,7 +61,7 @@ parameters = dict({'noise':0.0001,
                     'threshold':0.8,
                     'sigma':0.5})
 
-nb_trials = 42
+nb_trials = 39
 nb_blocs = 100
 cats = CATS(nb_trials)
 

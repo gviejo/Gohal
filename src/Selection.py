@@ -238,10 +238,13 @@ class KSelection():
         self.bounds = dict({"gamma":[0.0, 1.0],
                             "beta":[1.0, 10.0],
                             "eta":[0.00001, 0.001],
-                            "length":[5, 20],
+                            "length":[5, 11],
                             "threshold":[0.0, -np.log2(1./self.n_action)], 
                             "noise":[0.0, 0.01],
-                            "sigma":[0.0,1.0]})
+                            "sigma":[0.0,1.0],
+                            "sigma_bwm":[0.00001, 1.0],
+                            "sigma_ql":[0.00001, 1.0]})
+
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
@@ -378,7 +381,8 @@ class KSelection():
                 self.evaluationModule()
             values = self.p_a_mb/np.sum(self.p_a_mb)
         self.value[-1].append(values)        
-        self.reaction[-1].append(self.nb_inferences+1)        
+        self.reaction[-1].append(self.nb_inferences)
+        self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
         return self.value[-1][-1]
 
     def chooseAction(self, state):
@@ -401,7 +405,8 @@ class KSelection():
         self.current_action = self.sample(values)
         self.value[-1].append(values)
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(self.nb_inferences+1)        
+        self.reaction[-1].append(self.nb_inferences)
+        self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
         return self.action[-1][-1]
 
     def updateValue(self, reward):
