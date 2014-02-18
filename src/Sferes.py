@@ -64,7 +64,7 @@ class EA():
         self.density = np.array([norm.logpdf(self.rt[i], self.rt_model[i], self.sigma[i]) for i in xrange(self.n_trials*self.n_blocs)]) 
         lrs = np.sum(np.abs(self.density))
         if np.isnan(lrs) or np.isinf(lrs):
-            lrs = -100000.0
+            lrs = 100000.0
         return -np.abs(llh), -lrs
 
     def alignToMedian(self):
