@@ -62,10 +62,10 @@ class EA():
         self.alignToMedian()
 
         self.density = np.array([norm.logpdf(self.rt[i], self.rt_model[i], self.sigma[i]) for i in xrange(self.n_trials*self.n_blocs)]) 
-        lrs = np.sum(self.density)
+        lrs = np.sum(np.abs(self.density))
         if np.isnan(lrs) or np.isinf(lrs):
             lrs = -100000.0
-        return -np.abs(llh), -np.abs(lrs)
+        return -np.abs(llh), -lrs
 
     def alignToMedian(self):
         if (np.percentile(self.rt_model, 75)-np.median(self.rt_model)) != 0:
@@ -99,11 +99,11 @@ class pareto():
         self.models = dict({"fusion":FSelection(self.states, self.actions),
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
-                            "keramati":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','sigma'],                            
-                            'qlearning':['alpha','beta','gamma'],
-                            'bayesian':['length','noise','threshold'],
-                            'keramati':['gamma','beta','eta','length','threshold','noise','sigma']})
+                            "selection":KSelection(self.states, self.actions)})
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','sigma_bwm', 'sigma_ql'],
+                            'qlearning':['alpha','beta','gamma', 'sigma'],
+                            'bayesian':['length','noise','threshold', 'sigma'],
+                            'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_bwm', 'sigma_ql']})
         self.good = dict({'fusion':{'alpha': 0.8,
                                      'beta': 3.0,
                                      'gain': 2.0,
@@ -159,17 +159,20 @@ class pareto():
         for m in self.pareto.iterkeys():
             self.opt[m] = dict()
             self.p_test[m] = dict()
+            self.rank[m] = dict()
             for s in self.pareto[m].iterkeys():
                 print s
                 self.opt[m][s] = dict()
                 self.p_test[m][s] = dict()
-                rank = self.OWA(self.pareto[m][s][:,3:5], w)                
-                #rank = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
-                self.pareto[m][s] = np.hstack((np.vstack(rank),self.pareto[m][s]))
-                self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.max(self.pareto[m][s][:,0])][0]
+                #rank = self.OWA(self.pareto[m][s][:,3:5], w)                
+                self.rank[m][s] = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
+
+                #self.pareto[m][s] = np.hstack((np.vstack(rank),self.pareto[m][s]))
+                #self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.max(self.pareto[m][s][:,0])][0]
                 #self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.min(self.pareto[m][s][:,0])][0]
+                self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
                 for p in self.p_order[m.split("_")[0]]:
-                    self.p_test[m][s][p] = self.opt[m][s][self.p_order[m.split("_")[0]].index(p)+6]
+                    self.p_test[m][s][p] = self.opt[m][s][self.p_order[m.split("_")[0]].index(p)+5]
 
     def OWA(self, value, w):
         m,n=value.shape
@@ -195,9 +198,10 @@ class pareto():
             for i in xrange(len(self.data[m].keys())):
                 s = self.data[m].keys()[i]
                 ax = self.fig_pareto.add_subplot(4,4,i+1)
-                ax.plot(self.pareto[m][s][:,4], self.pareto[m][s][:,5], "-o")
-                ax.scatter(self.pareto[m][s][:,4], self.pareto[m][s][:,5], c=self.pareto[m][s][:,0])
-                ax.plot(self.opt[m][s][4], self.opt[m][s][5], 'o', markersize = 15, label = m, alpha = 0.8)
+                ax.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o")
+                #ax.scatter(self.pareto[m][s][:,3], self.pareto[m][s][:,4], c=self.pareto[m][s][:,0])
+                ax.scatter(self.pareto[m][s][:,3], self.pareto[m][s][:,4], c=self.rank[m][s])
+                ax.plot(self.opt[m][s][3], self.opt[m][s][4], 'o', markersize = 15, label = m, alpha = 0.8)
                 ax.grid()
         rcParams['xtick.labelsize'] = 6
         rcParams['ytick.labelsize'] = 6                
@@ -231,7 +235,7 @@ class pareto():
                 ax = self.fig_solution.add_subplot(n_params_max, n_model, i+1+n_model*j)
                 for k in xrange(len(self.opt[m].keys())):
                     s = self.opt[m].keys()[k]
-                    ax.scatter(self.opt[m][s][j+6],k+1)
+                    ax.scatter(self.opt[m][s][j+5],k+1)
                     #ax.axvline(self.good[m.split("_")[0]][p], 0, 1, linewidth = 2)
                 ax.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
                 ax.set_xlabel(p)
@@ -346,10 +350,12 @@ class pareto():
         model.action = convertAction(np.array(model.action))
         model.responses = np.array(model.responses)
         model.reaction = np.array(model.reaction)
+        model.sigma = np.array(model.sigma)
         if plot:            
             #self.alignToMean(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             #self.alignToCste(m, len(self.p_test[m].keys()), nb_blocs, nb_trials, s_order)
+            model.reaction = np.random.normal(model.reaction, model.sigma)
             pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
             pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])            
             
