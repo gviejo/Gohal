@@ -164,12 +164,12 @@ class pareto():
                 self.opt[m][s] = dict()
                 self.p_test[m][s] = dict()
                 self.rank[m][s] = self.OWA(self.pareto[m][s][:,3:5], w)                
-                #self.rank[m][s] = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
+                self.rank[m][s] = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
 
                 #self.pareto[m][s] = np.hstack((np.vstack(rank),self.pareto[m][s]))
-                self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
+                #self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
                 #self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.min(self.pareto[m][s][:,0])][0]
-                #self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
+                self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
                 for p in self.p_order[m.split("_")[0]]:
                     self.p_test[m][s][p] = self.opt[m][s][self.p_order[m.split("_")[0]].index(p)+5]
 
