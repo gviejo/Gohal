@@ -78,7 +78,8 @@ class FSelection():
 
     def setAllParameters(self, parameters):
         for i in parameters.iterkeys():
-            self.setParameters(i, parameters[i])
+            if i in self.bounds.keys():
+                self.setParameters(i, parameters[i])
 
     def startBloc(self):
         self.state.append([])
