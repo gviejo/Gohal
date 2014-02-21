@@ -103,13 +103,6 @@ class pareto():
                             'qlearning':['alpha','beta','gamma', 'sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_bwm', 'sigma_ql']})
-        self.good = dict({'fusion':{'alpha': 0.8,
-                                     'beta': 3.0,
-                                     'gain': 2.0,
-                                     'gamma': 0.4,
-                                     'length': 10,
-                                     'noise': 0.0001,
-                                     'threshold': 1.0}})
         self.opt = dict()
         self.pareto = dict()
         self.rank = dict()
@@ -254,10 +247,10 @@ class pareto():
     def alignToMedian(self, m, n_subject, n_blocs, n_trials):
         x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
         y = np.reshape(self.human.reaction['fmri'], (14, 4*39))             
-        # Ex = np.percentile(x, 75, 1) - np.median(x, 1)
-        # Ey = np.percentile(y, 75, 1) - np.median(y, 1)
-        Ex = np.percentile(x, 75, 1) - np.percentile(x, 25, 1)
-        Ey = np.percentile(y, 75, 1) - np.percentile(y, 25, 1)
+        Ex = np.percentile(x, 75, 1) - np.median(x, 1)
+        Ey = np.percentile(y, 75, 1) - np.median(y, 1)
+        #Ex = np.percentile(x, 75, 1) - np.percentile(x, 25, 1)
+        #Ey = np.percentile(y, 75, 1) - np.percentile(y, 25, 1)
         Ex[Ex == 0.0] = 1.0
         x = x*np.vstack(Ey/Ex)
         x = x-np.vstack((np.median(x, 1)-np.median(y,1)))
