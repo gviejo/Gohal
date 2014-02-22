@@ -68,8 +68,8 @@ class EA():
 
     def alignToMedian(self):
         if (np.percentile(self.rt_model, 75)-np.median(self.rt_model)) != 0:
-            w = (np.percentile(self.rt, 75)-np.median(self.rt))/float((np.percentile(self.rt_model, 75)-np.median(self.rt_model)))
-            #w = (np.percentile(self.rt, 75)-np.percentile(self.rt, 25))/float((np.percentile(self.rt_model, 75)-np.percentile(self.rt_model, 25)))
+            #w = (np.percentile(self.rt, 75)-np.median(self.rt))/float((np.percentile(self.rt_model, 75)-np.median(self.rt_model)))
+            w = (np.percentile(self.rt, 75)-np.percentile(self.rt, 25))/float((np.percentile(self.rt_model, 75)-np.percentile(self.rt_model, 25)))
             self.rt_model = self.rt_model*w        
         self.rt_model = self.rt_model-(np.median(self.rt_model)-np.median(self.rt))
 
@@ -247,10 +247,10 @@ class pareto():
     def alignToMedian(self, m, n_subject, n_blocs, n_trials):
         x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
         y = np.reshape(self.human.reaction['fmri'], (14, 4*39))             
-        Ex = np.percentile(x, 75, 1) - np.median(x, 1)
-        Ey = np.percentile(y, 75, 1) - np.median(y, 1)
-        #Ex = np.percentile(x, 75, 1) - np.percentile(x, 25, 1)
-        #Ey = np.percentile(y, 75, 1) - np.percentile(y, 25, 1)
+        #Ex = np.percentile(x, 75, 1) - np.median(x, 1)
+        #Ey = np.percentile(y, 75, 1) - np.median(y, 1)
+        Ex = np.percentile(x, 75, 1) - np.percentile(x, 25, 1)
+        Ey = np.percentile(y, 75, 1) - np.percentile(y, 25, 1)
         Ex[Ex == 0.0] = 1.0
         x = x*np.vstack(Ey/Ex)
         x = x-np.vstack((np.median(x, 1)-np.median(y,1)))
