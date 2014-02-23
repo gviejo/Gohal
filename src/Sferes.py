@@ -99,7 +99,7 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "selection":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','threshold','gain','sigma_bwm', 'sigma_ql'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain','sigma_bwm', 'sigma_ql'],
                             'qlearning':['alpha','beta','gamma', 'sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_bwm', 'sigma_ql']})
