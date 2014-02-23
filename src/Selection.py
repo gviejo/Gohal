@@ -28,8 +28,8 @@ class FSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[0.00001, 5.0],
-                            "alpha":[0.0, 1.0],
+                            "beta":[1.0, 5.0],
+                            "alpha":[0.4, 1.0],
                             "length":[6, 11],
                             #"threshold":[0.00001, 100.0], 
                             "noise":[0.0, 0.01],
@@ -150,8 +150,8 @@ class FSelection():
         self.values_net = self.p_a_mb+self.values_mf[self.current_state]
         tmp = np.exp(self.values_net*float(self.parameters['beta']))
         self.p_a = tmp/np.sum(tmp)
-        if True in np.isnan(self.p_a):
-            self.p_a = np.isnan(self.p_a)*0.995+0.001
+        # if True in np.isnan(self.p_a):
+        #     self.p_a = np.isnan(self.p_a)*0.995+0.001
 
     def computeValue(self, state):
         self.state[-1].append(state)

@@ -134,6 +134,7 @@ class pareto():
         for m in self.data.iterkeys():
             self.pareto[m] = dict()
             for s in self.data[m].iterkeys():
+                print s
                 self.pareto[m][s] = dict()   
                 tmp={n:self.data[m][s][n][self.data[m][s][n][:,0]==np.max(self.data[m][s][n][:,0])] for n in self.data[m][s].iterkeys()}
                 tmp=np.vstack([np.hstack((np.ones((len(tmp[n]),1))*n,tmp[n])) for n in tmp.iterkeys()])
@@ -163,8 +164,10 @@ class pareto():
                 #self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
                 #self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.min(self.pareto[m][s][:,0])][0]
                 if len(self.pareto[m][s]) > 1:
-                    self.rank[m][s] = self.OWA(self.pareto[m][s][:,3:5], w)                
-                    self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
+                    #self.rank[m][s] = self.OWA(self.pareto[m][s][:,3:5], w)                
+                    self.rank[m][s] = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
+                    #self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
+                    self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
                 else:
                     self.rank[m][s] = np.ones(1)
                     self.opt[m][s] = self.pareto[m][s][0]
