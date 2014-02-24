@@ -86,9 +86,6 @@ class FSelection():
         self.action.append([])
         self.responses.append([])
         self.reaction.append([])
-        self.value.append([])
-        self.pdf.append([])
-        self.sigma.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -134,14 +131,9 @@ class FSelection():
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
         self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
-        #self.pdf[-1][-1][self.nb_inferences] = self.pA
+        
         return np.random.uniform(0,1) > self.pA
-
-    def predictPDF(self):
-        while self.nb_inferences < self.n_element:
-            self.inferenceModule()
-            self.evaluationModule()
-            self.sigmoideModule()
+    
 
     def fusionModule(self):
         np.seterr(invalid='ignore')
@@ -149,29 +141,38 @@ class FSelection():
         #self.values_net = w*self.p_a_mb+self.values_mf[self.current_state]
         self.values_net = self.p_a_mb+self.values_mf[self.current_state]
         tmp = np.exp(self.values_net*float(self.parameters['beta']))
-        self.p_a = tmp/np.sum(tmp)
+        self.p_a = tmp/np.sum(tmp)        
         # if True in np.isnan(self.p_a):
         #     self.p_a = np.isnan(self.p_a)*0.995+0.001
 
-    def computeValue(self, state):
-        self.state[-1].append(state)
-        self.pdf[-1].append(np.zeros(int(self.parameters['length'])+1))
-        self.current_state = convertStimulus(state)-1
+    def computeValue(self, s, a):        
+        self.current_state = s
+        self.current_action = a
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy
         self.Hf = computeEntropy(self.values_mf[self.current_state], self.parameters['beta'])
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
-        while self.sigmoideModule():
+        
+        value = np.ones(self.parameters['length']+1)*1./self.n_action
+        pdf = np.zeros(int(self.parameters['length'])+1)
+        sigma = np.zeros(int(self.parameters['length']+1))        
+        d = self.sigmoideModule()
+        pdf[self.nb_inferences] = float(self.pA)
+        sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
+        while self.nb_inferences < self.n_element:                    
             self.inferenceModule()
             self.evaluationModule()
-        self.reaction[-1].append(self.nb_inferences)
-        self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
-        self.predictPDF()
-        self.fusionModule()        
-        self.value[-1].append(list(self.p_a))
-        return self.p_a
-
+            self.fusionModule()
+            d = self.sigmoideModule()
+            pdf[self.nb_inferences] = float(self.pA)            
+            value[self.nb_inferences] = float(self.p_a[self.current_action])
+            sigma[self.nb_inferences] = self.parameters['sigma_bwm']
+        
+        self.pdf.append(pdf/np.sum(pdf))
+        self.value.append(value)
+        self.sigma.append(sigma)        
+                
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1

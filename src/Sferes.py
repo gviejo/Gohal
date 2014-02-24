@@ -41,32 +41,37 @@ class EA():
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
         self.rt_model = None        
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
-        self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]])
-        self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])        
-        self.sigma = None
+        self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
+        self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])                        
 
     def getFitness(self):
         np.seterr(all = 'ignore')
-        llh = 0.0
-        lrs = 0.0
+        self.model.startExp()
         for i in xrange(self.n_blocs):
             self.model.startBloc()
             for j in xrange(self.n_trials):
-                values = self.model.computeValue(self.model.states[int(self.state[i,j])-1])
-                llh = llh + np.log(values[int(self.action[i,j])-1])
-                self.model.current_action = int(self.action[i,j])-1
+                self.model.computeValue(int(self.state[i,j])-1, int(self.action[i,j])-1)                
                 self.model.updateValue(self.responses[i,j])
-        self.rt_model = np.array(self.model.reaction).flatten()        
-        self.sigma = np.array(self.model.sigma).flatten()
-        
+
+        self.model.sigma = np.array(self.model.sigma)
+        self.model.value = np.array(self.model.value)
+        self.model.pdf = np.array(self.model.pdf)
+
+        choice = np.sum(np.log(np.sum(self.model.pdf*self.model.value, 1)))
+                        
         self.alignToMedian()
+
+
 
         self.density = np.array([norm.logpdf(self.rt[i], self.rt_model[i], self.sigma[i]) for i in xrange(self.n_trials*self.n_blocs)]) 
         lrs = np.sum(np.abs(self.density))
 
-        return -np.abs(llh), -lrs
+        return choice, -lrs
 
     def alignToMedian(self):
+        tmp = np.cumsum(np.sum(self.model.pdf, 0))
+        med = (tmp[-1]-tmp[0])/2.
+        median = np.sum(tmp<med)-1+((tmp[np.sum(tmp<med)]-med)/(tmp[np.sum(tmp<med)]-tmp[np.sum(tmp<med)-1]))
         if (np.percentile(self.rt_model, 75)-np.median(self.rt_model)) != 0:
             #w = (np.percentile(self.rt, 75)-np.median(self.rt))/float((np.percentile(self.rt_model, 75)-np.median(self.rt_model)))
             w = (np.percentile(self.rt, 75)-np.percentile(self.rt, 25))/float((np.percentile(self.rt_model, 75)-np.percentile(self.rt_model, 25)))
