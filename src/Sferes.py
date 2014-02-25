@@ -84,11 +84,6 @@ class EA():
              self.rt_model = self.rt_model*((np.percentile(self.rt, 75)-np.percentile(self.rt, 25))/(w[2]-w[0]))
         self.rt_model = self.rt_model-(w[1]-np.median(self.rt))
 
-    def rtLikelihood(self):
-        self.model.pdf = np.vstack(map(np.array, self.model.pdf))
-        self.model.pdf = np.exp(self.model.pdf*10.0)
-        self.model.pdf = self.model.pdf/np.sum(self.model.pdf, 1, keepdims=True)
-
     def leastSquares(self):
         self.rt_model = self.rt_model-np.mean(self.rt_model)
         self.rt = self.rt-np.mean(self.rt)

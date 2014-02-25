@@ -47,7 +47,7 @@ front.plotParetoFront()
 front.plotFrontEvolution()
 front.plotSolutions()
 
-front.quickTest('fusion')
+#front.quickTest('fusion')
 #front.quickTest('qlearning')
 
 with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:
