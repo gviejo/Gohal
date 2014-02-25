@@ -12,7 +12,7 @@ from pylab import *
 
 p_order = ['alpha','beta', 'gamma', 'noise','length','gain','sigma_bwm', 'sigma_ql']
 
-p = map(float, "1 0.096201 0 1 0.61573 0.157746 1 0.975059".split(" "))
+p = map(float, "0 0.096201 0 1 0.61573 0.157746 1 0.001".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]
@@ -25,7 +25,7 @@ for p in parameters.iterkeys():
 		parameters[p] = model.bounds[p][0]+parameters[p]*(model.bounds[p][1]-model.bounds[p][0])
 model.setAllParameters(parameters)
 
-opt = EA(human.subject['fmri']['S9'], 'S9', model)
+opt = EA(human.subject['fmri']['S20'], 'S9', model)
 
 llh, lrs = opt.getFitness()
 

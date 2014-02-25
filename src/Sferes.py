@@ -60,15 +60,14 @@ class EA():
         choice = np.sum(np.log(np.sum(self.model.pdf*self.model.value, 1)))
         
         self.alignToMedian()
-        d = self.model.pdf*norm.pdf(np.tile(np.vstack(self.rt), int(self.model.parameters['length'])+1), self.rt_model, self.model.sigma)
-        d[np.isnan(d)] = 0.0
-        rt = np.sum(np.log(np.sum(d, 1)))
-        sys.exit()
+        self.rt = np.tile(np.vstack(self.rt), int(self.model.parameters['length'])+1)
+        d = 2.0*norm.cdf(self.rt_model-np.abs(self.rt_model-self.rt), self.rt_model, self.model.sigma)                
+        d[np.isnan(d)] = 0.0        
+        tmp = np.log(np.sum(self.model.pdf*d, 1))
+        tmp[np.isinf(tmp)] = -100.0
+        rt = np.sum(tmp)        
 
-        self.density = np.array([norm.logpdf(self.rt[i], self.rt_model[i], self.sigma[i]) for i in xrange(self.n_trials*self.n_blocs)]) 
-        lrs = np.sum(np.abs(self.density))
-
-        return choice, -lrs
+        return choice, rt
 
     def alignToMedian(self):
         p = np.sum(self.model.pdf, 0)

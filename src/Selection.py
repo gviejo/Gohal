@@ -168,6 +168,7 @@ class FSelection():
             pdf[self.nb_inferences] = float(self.pA)            
             value[self.nb_inferences] = float(self.p_a[self.current_action])
             sigma[self.nb_inferences] = self.parameters['sigma_bwm']
+            
         pdf = np.cumprod(pdf)
         self.pdf.append(pdf/np.sum(pdf))
         self.value.append(value)
