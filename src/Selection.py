@@ -154,7 +154,7 @@ class FSelection():
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
         
-        value = np.ones(self.parameters['length']+1)*1./self.n_action
+        value = np.ones(int(self.parameters['length']+1))*1./self.n_action
         pdf = np.zeros(int(self.parameters['length'])+1)
         sigma = np.zeros(int(self.parameters['length']+1))        
         d = self.sigmoideModule()
@@ -168,7 +168,7 @@ class FSelection():
             pdf[self.nb_inferences] = float(self.pA)            
             value[self.nb_inferences] = float(self.p_a[self.current_action])
             sigma[self.nb_inferences] = self.parameters['sigma_bwm']
-        
+        pdf = np.cumprod(pdf)
         self.pdf.append(pdf/np.sum(pdf))
         self.value.append(value)
         self.sigma.append(sigma)        

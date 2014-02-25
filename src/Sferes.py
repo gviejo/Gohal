@@ -39,7 +39,7 @@ class EA():
         self.n_trials = 39
         self.n_blocs = 4        
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
-        self.rt_model = None        
+        self.rt_model = np.tile(np.arange(int(self.model.parameters['length'])+1), (self.n_trials*self.n_blocs, 1))        
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])                        
@@ -58,10 +58,12 @@ class EA():
         self.model.pdf = np.array(self.model.pdf)
 
         choice = np.sum(np.log(np.sum(self.model.pdf*self.model.value, 1)))
-                        
+        
         self.alignToMedian()
-
-
+        d = self.model.pdf*norm.pdf(np.tile(np.vstack(self.rt), int(self.model.parameters['length'])+1), self.rt_model, self.model.sigma)
+        d[np.isnan(d)] = 0.0
+        rt = np.sum(np.log(np.sum(d, 1)))
+        sys.exit()
 
         self.density = np.array([norm.logpdf(self.rt[i], self.rt_model[i], self.sigma[i]) for i in xrange(self.n_trials*self.n_blocs)]) 
         lrs = np.sum(np.abs(self.density))
@@ -69,14 +71,19 @@ class EA():
         return choice, -lrs
 
     def alignToMedian(self):
-        tmp = np.cumsum(np.sum(self.model.pdf, 0))
-        med = (tmp[-1]-tmp[0])/2.
-        median = np.sum(tmp<med)-1+((tmp[np.sum(tmp<med)]-med)/(tmp[np.sum(tmp<med)]-tmp[np.sum(tmp<med)-1]))
-        if (np.percentile(self.rt_model, 75)-np.median(self.rt_model)) != 0:
-            #w = (np.percentile(self.rt, 75)-np.median(self.rt))/float((np.percentile(self.rt_model, 75)-np.median(self.rt_model)))
-            w = (np.percentile(self.rt, 75)-np.percentile(self.rt, 25))/float((np.percentile(self.rt_model, 75)-np.percentile(self.rt_model, 25)))
-            self.rt_model = self.rt_model*w        
-        self.rt_model = self.rt_model-(np.median(self.rt_model)-np.median(self.rt))
+        p = np.sum(self.model.pdf, 0)
+        p = p/np.sum(p)
+        tmp = np.cumsum(p)        
+        f = lambda x: (x-np.sum(tmp<x)*tmp[np.sum(tmp<x)-1]+(np.sum(tmp<x)-1.0)*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
+        w = []
+        for i in [0.25, 0.5, 0.75]:
+            if np.min(tmp)>i:
+                w.append(0.0)
+            else:
+                w.append(f(i))        
+        if (w[2]-w[0]):
+             self.rt_model = self.rt_model*((np.percentile(self.rt, 75)-np.percentile(self.rt, 25))/(w[2]-w[0]))
+        self.rt_model = self.rt_model-(w[1]-np.median(self.rt))
 
     def rtLikelihood(self):
         self.model.pdf = np.vstack(map(np.array, self.model.pdf))

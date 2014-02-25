@@ -2,7 +2,7 @@
 # encoding: utf-8                                                                   
 import sys                                                                          
 
-sys.path.append("/home/viejo/Gohal/src")                                            
+sys.path.append("../../src")                                            
 from HumanLearning import HLearning                                                 
 from Sferes import EA
 from Models import *                                                                
