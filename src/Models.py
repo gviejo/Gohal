@@ -16,7 +16,7 @@ class QLearning():
     """Class that implement a Qlearning
     """
     
-    def __init__(self, states, actions, parameters={}):
+    def __init__(self, states, actions, parameters={'length':0}):
         # State action space
         self.states=states
         self.actions=actions
@@ -27,8 +27,7 @@ class QLearning():
         self.bounds = dict({"gamma":[0.0, 1.0],
                             "beta":[1.0, 5.0],
                             "alpha":[0.0, 1.0],
-                            "sigma":[0.000001, 1.0]})
-
+                            "sigma":[0.000001, 0.9]})
         
         #Values Initialization
         self.values = np.zeros((self.n_state, self.n_action))        
@@ -42,6 +41,7 @@ class QLearning():
         self.reaction = list()
         self.value = list()
         self.sigma = list()
+        self.pdf = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -53,16 +53,8 @@ class QLearning():
 
     def setAllParameters(self, parameters):
         for i in parameters.iterkeys():
-            self.setParameters(i, parameters[i])
-    
-    def startExp(self):
-        self.values = np.zeros((self.n_state, self.n_action))
-        self.responses = list()
-        self.action = list()
-        self.state = list()
-        self.reaction = list()
-        self.value = list()
-        self.sigma = list()
+            if i in self.bounds.keys():
+                self.setParameters(i, parameters[i])
 
     def startBloc(self):
         self.responses.append([])
@@ -70,8 +62,16 @@ class QLearning():
         self.action.append([])
         self.state.append([])
         self.reaction.append([])
-        self.value.append([])
-        self.sigma.append([])
+
+    def startExp(self):
+        self.values = np.zeros((self.n_state, self.n_action))
+        self.responses = list()
+        self.action = list()
+        self.state = list()
+        self.reaction = list()
+        self.value = list()
+        self.sigma = list()      
+        self.pdf = list()  
 
     def sampleSoftMax(self, values):
         tmp = np.exp(values*float(self.parameters['beta']))
@@ -79,14 +79,15 @@ class QLearning():
         tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
         return np.sum(np.array(tmp) < np.random.rand())-1        
 
-    def computeValue(self, state):
-        self.current_state = convertStimulus(state)-1
-        self.value[-1].append(SoftMaxValues(self.values[self.current_state], self.parameters['beta']))
-        #self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.parameters['beta']))
-        self.reaction[-1].append(1.0)
-        self.sigma[-1].append(self.parameters['sigma'])
-        return self.value[-1][-1]
+    def computeValue(self, s, a):
+        self.current_state = s
+        self.current_action = a
 
+        value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
+        self.value.append([float(value[self.current_action])])
+        self.pdf.append(np.ones(1))
+        self.sigma.append([self.parameters['sigma']])
+        
     def chooseAction(self, state):        
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
@@ -94,8 +95,7 @@ class QLearning():
         self.action[-1].append(self.actions[self.current_action])
         #self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.parameters['beta']))
         self.value[-1].append(list(self.values[self.current_state]))
-        self.reaction[-1].append(1.0)
-        self.sigma[-1].append(self.parameters['sigma'])
+        self.reaction[-1].append(0.0)
         return self.action[-1][-1]
     
     def updateValue(self, reward):
@@ -239,7 +239,7 @@ class BayesianWorkingMemory():
         self.bounds = dict({"length":[6, 11], 
                             "threshold":[0.0, self.initial_entropy], 
                             "noise":[0.0, 0.1],
-                            "sigma":[0.000001, 1.0]})
+                            "sigma":[0.000001, 0.9]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.values = np.ones(self.n_action)*(1./self.n_action)    
