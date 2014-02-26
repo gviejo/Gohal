@@ -34,8 +34,8 @@ class FSelection():
                             #"threshold":[0.00001, 100.0], 
                             "noise":[0.0, 0.01],
                             "gain":[0.00001, 10.0],
-                            "sigma_bwm":[0.00001, 0.1],
-                            "sigma_ql":[0.00001, 0.1]})
+                            "sigma_bwm":[0.00001, 0.5],
+                            "sigma_ql":[0.00001, 0.5]})
                             
 
         #Probability Initialization
@@ -130,8 +130,7 @@ class FSelection():
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
         self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
-        #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
-        
+        #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))        
         return np.random.uniform(0,1) > self.pA
     
 
@@ -158,19 +157,20 @@ class FSelection():
         pdf = np.zeros(int(self.parameters['length'])+1)
         sigma = np.zeros(int(self.parameters['length']+1))        
         d = self.sigmoideModule()
-        pdf[self.nb_inferences] = float(self.pA)
+        pdf[self.nb_inferences] = 1.0 - float(self.pA)
         sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
         while self.nb_inferences < self.n_element:                    
             self.inferenceModule()
             self.evaluationModule()
             self.fusionModule()
             d = self.sigmoideModule()
-            pdf[self.nb_inferences] = float(self.pA)            
+            pdf[self.nb_inferences] = 1.0 - float(self.pA)            
             value[self.nb_inferences] = float(self.p_a[self.current_action])
             sigma[self.nb_inferences] = self.parameters['sigma_bwm']
             
         pdf = np.cumprod(pdf)
-        self.pdf.append(pdf/np.sum(pdf))
+        #self.pdf.append(pdf/np.sum(pdf))                
+        self.pdf.append(pdf)
         self.value.append(value)
         self.sigma.append(sigma)        
                 
@@ -186,11 +186,10 @@ class FSelection():
             self.inferenceModule()
             self.evaluationModule()
         self.fusionModule()
-        self.current_action = self.sample(self.p_a)
-        self.value[-1].append(list(self.p_a))
+        self.current_action = self.sample(self.p_a)        
         self.action[-1].append(self.actions[self.current_action])                
         self.reaction[-1].append(self.nb_inferences)
-        self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
+        #self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
         return self.action[-1][-1]
 
     def updateValue(self, reward):

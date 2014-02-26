@@ -55,10 +55,12 @@ class EA():
 
         self.model.sigma = np.array(self.model.sigma)
         self.model.value = np.array(self.model.value)
-        self.model.pdf = np.array(self.model.pdf)
-
-        choice = np.sum(np.log(np.sum(self.model.pdf*self.model.value, 1)))
+        self.model.pdf = np.array(self.model.pdf)        
         
+        tmp = np.log(np.sum(self.model.pdf*self.model.value, 1))
+        tmp[np.isinf(tmp)] = -100.0
+        choice = np.sum(tmp)
+                
         self.alignToMedian()
         self.rt = np.tile(np.vstack(self.rt), int(self.model.parameters['length'])+1)
         d = 2.0*norm.cdf(self.rt_model-np.abs(self.rt_model-self.rt), self.rt_model, self.model.sigma)                
@@ -172,8 +174,8 @@ class pareto():
                 if len(self.pareto[m][s]) > 1:
                     #self.rank[m][s] = self.OWA(self.pareto[m][s][:,3:5], w)                
                     self.rank[m][s] = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
-                    #self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
-                    self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
+                    self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
+                    #self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
                 else:
                     self.rank[m][s] = np.ones(1)
                     self.opt[m][s] = self.pareto[m][s][0]
@@ -356,7 +358,8 @@ class pareto():
         model.action = convertAction(np.array(model.action))
         model.responses = np.array(model.responses)
         model.reaction = np.array(model.reaction)
-        model.sigma = np.array(model.sigma)
+        model.sigma = np.ones(model.reaction.shape)*model.parameters['sigma_ql']
+        model.sigma[model.reaction != 0] = model.parameters['sigma_bwm']
         if plot:            
             #self.alignToMean(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
             self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)

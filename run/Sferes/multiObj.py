@@ -42,12 +42,12 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # LOADING DATA
 # -----------------------------------
 front = pareto(options.input)
-front.rankFront([0.6,0.4])
+front.rankFront([0.01,0.99])
 front.plotParetoFront()
-front.plotFrontEvolution()
-front.plotSolutions()
+#front.plotFrontEvolution()
+#front.plotSolutions()
 
-#front.quickTest('fusion')
+front.quickTest('fusion')
 #front.quickTest('qlearning')
 
 with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:
