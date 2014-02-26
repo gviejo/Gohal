@@ -97,7 +97,8 @@ class FSelection():
         self.Hb = self.max_entropy
         self.Hf = self.max_entropy        
 
-    def startExp(self):                
+    def startExp(self):
+        self.n_element = 0                
         self.state = list()
         self.action = list()
         self.responses = list()

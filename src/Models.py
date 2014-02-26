@@ -235,6 +235,11 @@ class BayesianWorkingMemory():
         self.parameters = parameters
         self.n_action=int(len(actions))
         self.n_state=int(len(states))
+        self.initial_entropy = -np.log2(1./self.n_action)
+        self.bounds = dict({"length":[6, 11], 
+                            "threshold":[0.0, self.initial_entropy], 
+                            "noise":[0.0, 0.1],
+                            "sigma":[0.000001, 1.0]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.values = np.ones(self.n_action)*(1./self.n_action)    
@@ -243,13 +248,8 @@ class BayesianWorkingMemory():
         self.nb_inferences = 0
         self.current_state = None
         self.current_action = None        
-        self.initial_entropy = -np.log2(1./self.n_action)
         self.entropy = self.initial_entropy        
         self.n_element = 0
-        self.bounds = dict({"length":[6, 11], 
-                            "threshold":[0.0, self.initial_entropy], 
-                            "noise":[0.0, 0.1],
-                            "sigma":[0.000001, 1.0]})
         # Optimization init
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
@@ -263,11 +263,6 @@ class BayesianWorkingMemory():
         self.value=list()
         self.pdf = list()
         self.sigma = list()
-        
-        self.entropies=list()
-        self.sample_p_r_s=list()
-        self.sample_nb_inf=list()
-        
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -279,40 +274,36 @@ class BayesianWorkingMemory():
 
     def setAllParameters(self, parameters):
         for i in parameters.iterkeys():
-            self.setParameters(i, parameters[i])
+            if i in self.bounds.keys():
+                self.setParameters(i, parameters[i])
 
     def startBloc(self):
+        self.state.append([])
+        self.action.append([])
+        self.responses.append([])
+        self.reaction.append([])
         self.n_element = 0
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
-        self.responses.append([])
-        self.action.append([])
-        self.state.append([])
-        self.reaction.append([])
-        self.value.append([])
-        self.entropies.append([])
-        self.sample_p_r_s.append([])
-        self.sample_nb_inf.append([])
         self.values = np.ones(self.n_action)*(1./self.n_action)
-        self.sigma.append([])
-
+        self.nb_inferences = 0
+        self.current_state = None
+        self.current_action = None
+                
     def startExp(self):
         self.n_element = 0
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
         self.state=list()
-        self.answer=list()
-        self.responses=list()
         self.action=list()
         self.reaction=list()
+        self.responses=list()
         self.value=list()
-        self.entropies=list()
-        self.sample_p_r_s=list()
-        self.sample_nb_inf=list()
         self.values = np.ones(self.n_action)*(1./self.n_action)
         self.sigma = list()
+        self.pdf = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -326,33 +317,37 @@ class BayesianWorkingMemory():
     def evaluationModule(self):
         tmp = self.p/np.sum(self.p)
         p_ra_s = tmp[self.current_state]/np.sum(tmp[self.current_state])
-        self.p_r_s = np.sum(p_ra_s, axis = 0)
-        p_a_rs = p_ra_s/self.p_r_s
+        p_r_s = np.sum(p_ra_s, axis = 0)
+        p_a_rs = p_ra_s/p_r_s
         self.values = p_a_rs[:,1]/p_a_rs[:,0]
         self.values = self.values/np.sum(self.values)
         self.entropy = -np.sum(self.values*np.log2(self.values))
 
-    def decisionModule(self):                        
-        self.p_choice = np.exp(-self.parameters['threshold']*self.entropy[self.current_state])            
-
-    def computeValue(self, state):        
-        self.state[-1].append(state)
-        self.current_state = convertStimulus(state)-1
+    def computeValue(self, s, a):
+        self.current_state = s
+        self.current_action = a
         self.p = self.uniform[:,:,:]
         self.entropy = self.initial_entropy
         self.nb_inferences = 0     
-        #self.decisionModule()   
-        while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:                    
+
+        value = np.ones(int(self.parameters['length']+1))*1./self.n_action
+        pdf = np.zeros(int(self.parameters['length'])+1)
+        sigma = np.zeros(int(self.parameters['length'])+1)
+        d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
+        pdf[self.nb_inferences] = d
+        sigma[self.nb_inferences] = float(self.parameters['sigma'])        
+        while self.nb_inferences < self.n_element:                    
             self.inferenceModule()
             self.evaluationModule()        
-            #self.decisionModule()
-        self.entropies[-1].append(self.entropy.copy())
-        self.reaction[-1].append(float(self.nb_inferences))
-        self.sigma[-1].append(self.parameters['sigma'])
-        self.sample_p_r_s[-1].append(self.p_r_s[1].copy())
-        self.sample_nb_inf[-1].append(self.nb_inferences)
-        self.value[-1].append(list(self.values))        
-        return self.values
+            d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
+            pdf[self.nb_inferences] = d
+            value[self.nb_inferences] = float(self.values[self.current_action])
+            sigma[self.nb_inferences] = self.parameters['sigma']
+
+        pdf = np.cumprod(pdf)
+        self.pdf.append(pdf)
+        self.value.append(value)
+        self.sigma.append(sigma)        
 
     def chooseAction(self, state):
         self.state[-1].append(state)
@@ -360,17 +355,13 @@ class BayesianWorkingMemory():
         self.p = self.uniform[:,:,:]
         self.entropy = self.initial_entropy
         self.nb_inferences = 0                 
-        #self.decisionModule()                
         while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:
             self.inferenceModule()
             self.evaluationModule()
-            #self.decisionModule()
         self.current_action = self.sample(self.values)            
         self.value[-1].append(self.values)
         self.action[-1].append(self.actions[self.current_action])
         self.reaction[-1].append(float(self.nb_inferences))
-        self.sigma[-1].append(self.parameters['sigma'])
-        self.entropies[-1].append(self.entropy)
         return self.action[-1][-1]
 
     def updateValue(self, reward):
