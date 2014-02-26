@@ -28,14 +28,14 @@ class FSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[1.0, 5.0],
+                            "beta":[1.0, 7.0],
                             "alpha":[0.0, 1.0],
                             "length":[6, 11],
                             #"threshold":[0.00001, 100.0], 
-                            "noise":[0.0, 0.01],
+                            "noise":[0.0, 0.1],
                             "gain":[0.00001, 10.0],
-                            "sigma_bwm":[0.00001, 0.5],
-                            "sigma_ql":[0.00001, 0.5]})
+                            "sigma_bwm":[0.00001, 0.9],
+                            "sigma_ql":[0.00001, 0.9]})
                             
 
         #Probability Initialization

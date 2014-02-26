@@ -141,8 +141,7 @@ class pareto():
     def constructParetoFrontier(self):
         for m in self.data.iterkeys():
             self.pareto[m] = dict()
-            for s in self.data[m].iterkeys():
-                print s
+            for s in self.data[m].iterkeys():                
                 self.pareto[m][s] = dict()   
                 tmp={n:self.data[m][s][n][self.data[m][s][n][:,0]==np.max(self.data[m][s][n][:,0])] for n in self.data[m][s].iterkeys()}
                 tmp=np.vstack([np.hstack((np.ones((len(tmp[n]),1))*n,tmp[n])) for n in tmp.iterkeys()])
@@ -161,24 +160,13 @@ class pareto():
             self.opt[m] = dict()
             self.p_test[m] = dict()
             self.rank[m] = dict()
-            for s in self.pareto[m].iterkeys():
-                print s
+            for s in self.pareto[m].iterkeys():                
                 self.opt[m][s] = dict()
                 self.p_test[m][s] = dict()
-                
-                #self.rank[m][s] = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
-
-                #self.pareto[m][s] = np.hstack((np.vstack(rank),self.pareto[m][s]))
+                #self.rank[m][s] = self.OWA(self.pareto[m][s][:,3:5], w)                
+                self.rank[m][s] = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
+                self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
                 #self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
-                #self.opt[m][s] = self.pareto[m][s][self.pareto[m][s][:,0] == np.min(self.pareto[m][s][:,0])][0]
-                if len(self.pareto[m][s]) > 1:
-                    #self.rank[m][s] = self.OWA(self.pareto[m][s][:,3:5], w)                
-                    self.rank[m][s] = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
-                    self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
-                    #self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
-                else:
-                    self.rank[m][s] = np.ones(1)
-                    self.opt[m][s] = self.pareto[m][s][0]
                 for p in self.p_order[m.split("_")[0]]:
                     self.p_test[m][s][p] = self.opt[m][s][self.p_order[m.split("_")[0]].index(p)+5]
 
@@ -235,17 +223,19 @@ class pareto():
     def plotSolutions(self):
         self.fig_solution = figure(figsize= (12,9))
         n_params_max = np.max([len(t) for t in [self.p_order[m.split("_")[0]] for m in self.opt.keys()]])
-        n_model = len(self.opt.keys())
+        n_model = len(self.opt.keys())        
         for i in xrange(n_model):
             m = self.opt.keys()[i]
             for j in xrange(len(self.p_order[m.split("_")[0]])):
                 p = self.p_order[m.split("_")[0]][j]
-                ax = self.fig_solution.add_subplot(n_params_max, n_model, i+1+n_model*j)
-                for k in xrange(len(self.opt[m].keys())):
-                    s = self.opt[m].keys()[k]
-                    ax.scatter(self.opt[m][s][j+5],k+1)
-                    #ax.axvline(self.good[m.split("_")[0]][p], 0, 1, linewidth = 2)
-                ax.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
+                ax = self.fig_solution.add_subplot(n_params_max, n_model, i+1+n_model*j)                
+                for s in self.pareto[m].iterkeys():
+                    y, x = np.histogram(self.pareto[m][s][:,5+j])
+                    y = y/np.sum(y.astype("float"))
+                    x = (x-(x[1]-x[0])/2)[1:]
+                    ax.plot(x, y, 'o-', linewidth = 2)
+                ax.set_ylim(0, 1)
+                #ax.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
                 ax.set_xlabel(p)
         rcParams['xtick.labelsize'] = 6
         rcParams['ytick.labelsize'] = 6
