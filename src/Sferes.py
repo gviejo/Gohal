@@ -66,7 +66,7 @@ class EA():
         d = 2.0*norm.cdf(self.rt_model-np.abs(self.rt_model-self.rt), self.rt_model, self.model.sigma)                
         d[np.isnan(d)] = 0.0        
         tmp = np.log(np.sum(self.model.pdf*d, 1))
-        tmp[np.isinf(tmp)] = -100.0
+        tmp[np.isinf(tmp)] = -1000.0
         rt = np.sum(tmp)        
 
         return choice, rt

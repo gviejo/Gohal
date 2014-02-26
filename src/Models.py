@@ -256,16 +256,18 @@ class BayesianWorkingMemory():
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
         self.p_r_s = np.ones(2)*0.5
         #List Init
-        self.state=list()
-        self.answer=list()
-        self.responses=list()
+        self.state=list()        
         self.action=list()
+        self.responses=list()        
         self.reaction=list()
         self.value=list()
+        self.pdf = list()
+        self.sigma = list()
+        
         self.entropies=list()
         self.sample_p_r_s=list()
         self.sample_nb_inf=list()
-        self.sigma = list()
+        
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
