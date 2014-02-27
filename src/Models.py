@@ -330,19 +330,20 @@ class BayesianWorkingMemory():
         self.entropy = self.initial_entropy
         self.nb_inferences = 0     
 
-        value = np.ones(int(self.parameters['length']+1))*1./self.n_action
+        value = np.zeros(int(self.parameters['length']+1))
         pdf = np.zeros(int(self.parameters['length'])+1)
         sigma = np.zeros(int(self.parameters['length'])+1)
-        d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
-        pdf[self.nb_inferences] = d
+
+        value[self.nb_inferences] = 1./float(self.n_action)
+        pdf[self.nb_inferences] = 1.0
         sigma[self.nb_inferences] = float(self.parameters['sigma'])        
         while self.nb_inferences < self.n_element:                    
-            self.inferenceModule()
-            self.evaluationModule()        
             d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
+            self.inferenceModule()
+            self.evaluationModule()                    
             pdf[self.nb_inferences] = d
             value[self.nb_inferences] = float(self.values[self.current_action])
-            sigma[self.nb_inferences] = self.parameters['sigma']
+            sigma[self.nb_inferences] = float(self.parameters['sigma'])
 
         pdf = np.cumprod(pdf)
         self.pdf.append(pdf)

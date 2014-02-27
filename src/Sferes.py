@@ -55,20 +55,22 @@ class EA():
 
         self.model.sigma = np.array(self.model.sigma)
         self.model.value = np.array(self.model.value)
-        self.model.pdf = np.array(self.model.pdf)                
-        #tmp = np.log(np.sum(self.model.pdf*self.model.value, 1))
-        tmp = np.log(self.model.pdf*self.model.value)
-        tmp[np.isinf(tmp)] = -100.0
+        self.model.pdf = np.array(self.model.pdf)
+        
+        tmp = np.log(np.sum(self.model.pdf*self.model.value, 1))
+        #tmp = np.log(self.model.pdf*self.model.value)
+        tmp[np.isinf(tmp)] = -10.0
         choice = np.sum(tmp)
                 
         self.alignToMedian()
         self.rt = np.tile(np.vstack(self.rt), int(self.model.parameters['length'])+1)
         
         d = 2.0*norm.cdf(self.rt_model-np.abs(self.rt_model-self.rt), self.rt_model, self.model.sigma)                
+
         d[np.isnan(d)] = 0.0        
-        #tmp = np.log(np.sum(self.model.pdf*d, 1))
-        tmp = np.log(self.model.pdf*d)
-        tmp[np.isinf(tmp)] = -100.0
+        tmp = np.log(np.sum(self.model.pdf*d, 1))
+        #tmp = np.log(self.model.pdf*d)
+        tmp[np.isinf(tmp)] = -10.0
         rt = np.sum(tmp)
 
         return choice, rt
