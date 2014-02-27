@@ -154,21 +154,23 @@ class FSelection():
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
         
-        value = np.ones(int(self.parameters['length']+1))*1./self.n_action
+        value = np.zeros(int(self.parameters['length']+1))        
         pdf = np.zeros(int(self.parameters['length'])+1)
-        sigma = np.zeros(int(self.parameters['length']+1))        
-        d = self.sigmoideModule()
-        pdf[self.nb_inferences] = 1.0 - float(self.pA)
+        sigma = np.zeros(int(self.parameters['length']+1))
+
+        self.fusionModule()
+        value[self.nb_inferences] = float(self.p_a[self.current_action])
+        pdf[self.nb_inferences] = 1.0
         sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
-        while self.nb_inferences < self.n_element:                    
+        while self.nb_inferences < self.n_element:
+            d = self.sigmoideModule()            
             self.inferenceModule()
             self.evaluationModule()
             self.fusionModule()
-            d = self.sigmoideModule()
-            pdf[self.nb_inferences] = 1.0 - float(self.pA)            
             value[self.nb_inferences] = float(self.p_a[self.current_action])
-            sigma[self.nb_inferences] = self.parameters['sigma_bwm']
-            
+            pdf[self.nb_inferences] = 1.0 - float(self.pA)
+            sigma[self.nb_inferences] = float(self.parameters['sigma_bwm'])
+
         pdf = np.cumprod(pdf)
         #self.pdf.append(pdf/np.sum(pdf))                
         self.pdf.append(pdf)
@@ -233,9 +235,6 @@ class KSelection():
         self.actions=actions
         #Parameters
         self.parameters = parameters
-        self.var_obs = var_obs
-        self.init_cov = init_cov
-        self.kappa = kappa
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
@@ -246,8 +245,10 @@ class KSelection():
                             "noise":[0.0, 0.01],
                             "sigma":[0.0,1.0],
                             "sigma_bwm":[0.00001, 1.0],
-                            "sigma_ql":[0.00001, 1.0]})
-
+                            "sigma_ql":[0.00001, 1.0]})        
+        self.var_obs = var_obs
+        self.init_cov = init_cov
+        self.kappa = kappa
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
@@ -291,17 +292,16 @@ class KSelection():
 
     def setAllParameters(self, parameters):
         for i in parameters.iterkeys():
-            self.setParameters(i, parameters[i])
+            if i in self.bounds.keys():
+                self.setParameters(i, parameters[i])
 
     def startBloc(self):
         self.state.append([])
         self.action.append([])
         self.responses.append([])
         self.reaction.append([])
-        self.value.append([])
         self.vpi.append([])
         self.rrate.append([])
-        self.sigma.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -369,15 +369,19 @@ class KSelection():
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
         return np.sum(np.array(tmp) < np.random.rand())-1        
         
-    def computeValue(self, state):
-        self.state[-1].append(state)
-        self.current_state = convertStimulus(state)-1
+    def computeValue(self, s, a):
+        self.current_state = s
+        self.current_action = a
         self.nb_inferences = 0
-        self.predictionStep()
-        values = self.softMax(self.values_mf[self.current_state])
+        self.predictionStep()        
         t = self.n_action*self.current_state
         vpi = computeVPIValues(self.values_mf[self.current_state], self.covariance['cov'].diagonal()[t:t+self.n_action])
-        self.vpi[-1].append(vpi)
+        
+        value = np.ones(int(self.parameters['length']+1))*1./self.n_action
+        pdf = np.zeros(int(self.parameters['length'])+1)
+        sigma = np.zeros(int(self.parameters['length']+1))
+        values = self.softMax(self.values_mf[self.current_state])
+
         if np.sum(vpi > self.reward_rate[self.current_state]):
             self.p = self.uniform[:,:,:]
             self.Hb = self.max_entropy            
