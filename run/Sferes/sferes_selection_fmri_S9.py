@@ -7,10 +7,12 @@ from HumanLearning import HLearning
 from Sferes import EA
 from Models import *                                                                
 from Selection import *
+from matplotlib import *
+from pylab import *
 
 p_order = ["gamma", "beta", "eta", "length", "threshold", "noise", "sigma", "sigma_bwm", "sigma_ql"]
 
-p = map(float, "".split(" "))
+p = map(float, "1 0.867443 0.2 0.506596 0.172783 0.0321344 0.2 1 0.2".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]

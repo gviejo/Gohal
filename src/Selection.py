@@ -308,6 +308,7 @@ class KSelection():
         self.values_mf = np.zeros((self.n_state, self.n_action))
         self.nb_inferences = 0
         self.n_element = 0
+        self.values = None
         self.current_state = None
         self.current_action = None
         self.Hb = self.max_entropy
@@ -322,6 +323,7 @@ class KSelection():
         self.vpi = list()
         self.rrate = list() 
         self.sigma = list()    
+        self.pdf = list()
 
     def sampleSoftMax(self, values):
         tmp = np.exp(values*float(self.parameters['beta']))
@@ -342,6 +344,8 @@ class KSelection():
         self.p_a_mb = p_a_rs[:,1]/p_a_rs[:,0]
         p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
         self.Hb = -np.sum(p_a_mb*np.log2(p_a_mb))
+        self.values = p_a_rs[:,1]/p_a_rs[:,0]
+        self.values = self.values/np.sum(self.values)
 
     def predictionStep(self):
         self.covariance['noise'] = self.covariance['cov']*self.parameters['eta']        
@@ -372,28 +376,41 @@ class KSelection():
     def computeValue(self, s, a):
         self.current_state = s
         self.current_action = a
+        self.p = self.uniform[:,:,:]
+        self.Hb = self.max_entropy            
         self.nb_inferences = 0
+        self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
         self.predictionStep()        
         t = self.n_action*self.current_state
         vpi = computeVPIValues(self.values_mf[self.current_state], self.covariance['cov'].diagonal()[t:t+self.n_action])
         
-        value = np.ones(int(self.parameters['length']+1))*1./self.n_action
+        value = np.zeros(int(self.parameters['length']+1))
         pdf = np.zeros(int(self.parameters['length'])+1)
         sigma = np.zeros(int(self.parameters['length']+1))
+        
         values = self.softMax(self.values_mf[self.current_state])
+        value[self.nb_inferences] = float(values[self.current_action])
+        pdf[self.nb_inferences] = 1.0
+        sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
+        # 1ere transition should be made outside the while
+        d = (np.sum(vpi > self.reward_rate[self.current_state])>0)*1.0
+        self.inferenceModule()
+        self.evaluationModule()
+        value[self.nb_inferences] = float(self.values[self.current_action])
+        pdf[self.nb_inferences] = d
+        sigma[self.nb_inferences] = float(self.parameters['sigma_bwm'])        
+        while self.nb_inferences < self.n_element:
+            d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
+            self.inferenceModule()
+            self.evaluationModule()
+            pdf[self.nb_inferences] = d
+            value[self.nb_inferences] = float(self.values[self.current_action])
+            sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
 
-        if np.sum(vpi > self.reward_rate[self.current_state]):
-            self.p = self.uniform[:,:,:]
-            self.Hb = self.max_entropy            
-            self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
-            while self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element:
-                self.inferenceModule()
-                self.evaluationModule()
-            values = self.p_a_mb/np.sum(self.p_a_mb)
-        self.value[-1].append(values)        
-        self.reaction[-1].append(self.nb_inferences)
-        self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
-        return self.value[-1][-1]
+        pdf = np.cumprod(pdf)
+        self.pdf.append(pdf)
+        self.value.append(value)
+        self.sigma.append(sigma)
 
     def chooseAction(self, state):
         self.state[-1].append(state)
