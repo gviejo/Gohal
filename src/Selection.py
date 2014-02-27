@@ -34,8 +34,8 @@ class FSelection():
                             #"threshold":[0.00001, 100.0], 
                             "noise":[0.0, 0.1],
                             "gain":[0.00001, 10.0],
-                            "sigma_bwm":[0.00001, 0.9],
-                            "sigma_ql":[0.00001, 0.9]})
+                            "sigma_bwm":[0.00001, 1.0],
+                            "sigma_ql":[0.00001, 1.0]})
                             
 
         #Probability Initialization
@@ -238,11 +238,11 @@ class KSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[1.0, 10.0],
+                            "beta":[1.0, 7.0],
                             "eta":[0.00001, 0.001],
-                            "length":[5, 11],
+                            "length":[6, 11],
                             "threshold":[0.0, -np.log2(1./self.n_action)], 
-                            "noise":[0.0, 0.01],
+                            "noise":[0.0, 0.1],
                             "sigma":[0.0,1.0],
                             "sigma_bwm":[0.00001, 1.0],
                             "sigma_ql":[0.00001, 1.0]})        

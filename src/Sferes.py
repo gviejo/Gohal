@@ -101,8 +101,9 @@ class pareto():
     """
     Explore Pareto Front from Sferes Optimization
     """
-    def __init__(self, directory):
+    def __init__(self, directory, threshold):
         self.directory = directory
+        self.threshold = threshold
         self.human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
         self.data = dict()
         self.states = ['s1', 's2', 's3']
@@ -157,6 +158,8 @@ class pareto():
                     if pair[4] >= pareto_frontier[-1][4]:
                         pareto_frontier.append(pair)
                 self.pareto[m][s] = np.array(pareto_frontier)
+                for t in xrange(len(self.threshold)):
+                     self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+t] >= self.threshold[t]]
 
 
     def rankFront(self, w):
@@ -164,13 +167,21 @@ class pareto():
             self.opt[m] = dict()
             self.p_test[m] = dict()
             self.rank[m] = dict()
-            for s in self.pareto[m].iterkeys():                
+            for s in self.pareto[m].iterkeys():
+                print m, s               
                 self.opt[m][s] = dict()
                 self.p_test[m][s] = dict()
-                #self.rank[m][s] = self.OWA(self.pareto[m][s][:,3:5], w)                
-                self.rank[m][s] = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
-                self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
-                #self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
+                if len(np.unique(self.pareto[m][s][:,4])) == 1:
+                    self.rank[m][s] = np.argsort(self.pareto[m][s][:,3])
+                    self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
+                elif len(np.unique(self.pareto[m][s][:,3])) == 1:
+                    self.rank[m][s] = np.argsort(self.pareto[m][s][:,4])
+                    self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
+                else:
+                    #self.rank[m][s] = self.OWA(self.pareto[m][s][:,3:5], w)                
+                    self.rank[m][s] = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
+                    self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
+                    #self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
                 for p in self.p_order[m.split("_")[0]]:
                     self.p_test[m][s][p] = self.opt[m][s][self.p_order[m.split("_")[0]].index(p)+5]
 
