@@ -54,5 +54,8 @@ front.plotSolutions()
 with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:
     pickle.dump(front.pareto, handle)
 
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:
+	pickle.dump(front.mixed, handle)
+
 
 

@@ -116,12 +116,15 @@ class pareto():
                             'qlearning':['alpha','beta','gamma', 'sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_bwm', 'sigma_ql']})
+        self.m_order = ['qlearning', 'bayesian', 'selection', 'fusion']
         self.opt = dict()
         self.pareto = dict()
         self.rank = dict()
         self.p_test = dict()
+        self.mixed = dict()
         self.loadData()
         self.constructParetoFrontier()
+        self.constructMixedParetoFrontier()
 
     def loadData(self):
         model_in_folders = os.listdir(self.directory)
@@ -150,8 +153,8 @@ class pareto():
                 self.pareto[m][s] = dict()   
                 tmp={n:self.data[m][s][n][self.data[m][s][n][:,0]==np.max(self.data[m][s][n][:,0])] for n in self.data[m][s].iterkeys()}
                 tmp=np.vstack([np.hstack((np.ones((len(tmp[n]),1))*n,tmp[n])) for n in tmp.iterkeys()])
-                ind = tmp[:,3:5] != 0
-                tmp = tmp[ind[:,0]*ind[:,1]]
+                #ind = tmp[:,3:5] != 0
+                #tmp = tmp[ind[:,0]*ind[:,1]]
                 tmp = tmp[tmp[:,3].argsort()][::-1]
                 pareto_frontier = [tmp[0]]
                 for pair in tmp[1:]:
@@ -161,6 +164,21 @@ class pareto():
                 for t in xrange(len(self.threshold)):
                      self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+t] >= self.threshold[t]]
 
+    def constructMixedParetoFrontier(self):
+        subjects = np.unique(np.array([self.pareto[m].keys() for m in self.pareto.iterkeys()]))
+        for s in subjects:
+            self.mixed[s] = []
+            tmp = []
+            for m in self.pareto.iterkeys():
+                if s in self.pareto[m].keys():
+                    tmp.append(np.hstack((np.ones((len(self.pareto[m][s]),1))*self.m_order.index(m), self.pareto[m][s][:,0:5])))
+            tmp = np.vstack(tmp)            
+            tmp = tmp[tmp[:,4].argsort()][::-1]
+            self.mixed[s] = [tmp[0]]
+            for pair in tmp[1:]:
+                if pair[5] >= self.mixed[s][-1][5]:
+                    self.mixed[s].append(pair)
+            self.mixed[s] = np.array(self.mixed[s])
 
     def rankFront(self, w):
         for m in self.pareto.iterkeys():
