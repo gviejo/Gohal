@@ -101,9 +101,10 @@ class pareto():
     """
     Explore Pareto Front from Sferes Optimization
     """
-    def __init__(self, directory, threshold):
+    def __init__(self, directory, threshold, N = 156):
         self.directory = directory
         self.threshold = threshold
+        self.N = N
         self.human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
         self.data = dict()
         self.states = ['s1', 's2', 's3']
@@ -123,8 +124,9 @@ class pareto():
         self.p_test = dict()
         self.mixed = dict()
         self.loadData()
-        self.constructParetoFrontier()
+        self.constructParetoFrontier()        
         self.constructMixedParetoFrontier()
+
 
     def loadData(self):
         model_in_folders = os.listdir(self.directory)
@@ -153,8 +155,8 @@ class pareto():
                 self.pareto[m][s] = dict()   
                 tmp={n:self.data[m][s][n][self.data[m][s][n][:,0]==np.max(self.data[m][s][n][:,0])] for n in self.data[m][s].iterkeys()}
                 tmp=np.vstack([np.hstack((np.ones((len(tmp[n]),1))*n,tmp[n])) for n in tmp.iterkeys()])
-                #ind = tmp[:,3:5] != 0
-                #tmp = tmp[ind[:,0]*ind[:,1]]
+                ind = tmp[:,3:5] != 0
+                tmp = tmp[ind[:,0]*ind[:,1]]
                 tmp = tmp[tmp[:,3].argsort()][::-1]
                 pareto_frontier = [tmp[0]]
                 for pair in tmp[1:]:
@@ -163,7 +165,9 @@ class pareto():
                 self.pareto[m][s] = np.array(pareto_frontier)
                 for t in xrange(len(self.threshold)):
                      self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+t] >= self.threshold[t]]
-
+                self.pareto[m][s][:,3] = 2*self.pareto[m][s][:,3] + np.log(self.N)*float(len(self.models[m].bounds.keys()))
+                self.pareto[m][s][:,4] = 2*self.pareto[m][s][:,4] + np.log(self.N)*float(len(self.models[m].bounds.keys()))
+                
     def constructMixedParetoFrontier(self):
         subjects = np.unique(np.array([self.pareto[m].keys() for m in self.pareto.iterkeys()]))
         for s in subjects:

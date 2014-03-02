@@ -41,12 +41,12 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-front = pareto(options.input, threshold = [-1000, -1500])
+front = pareto(options.input, threshold = [-1000, -1500], N = 156)
 
-front.rankFront([0.5,0.5])
-front.plotParetoFront()
-front.plotFrontEvolution()
-front.plotSolutions()
+#front.rankFront([0.5,0.5])
+#front.plotParetoFront()
+#front.plotFrontEvolution()
+#front.plotSolutions()
 
 #front.quickTest('fusion')
 #front.quickTest('qlearning')
