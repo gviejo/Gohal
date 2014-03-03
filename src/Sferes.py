@@ -1,4 +1,4 @@
-#!/usr/bin/python
+    #!/usr/bin/python
 # encoding: utf-8
 """
 Sferes.py
@@ -15,6 +15,7 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 
 import sys
 import os
+import mmap
 import numpy as np
 from fonctions import *
 from Selection import *
@@ -22,12 +23,14 @@ from Models import *
 from pylab import *
 from HumanLearning import HLearning
 from ColorAssociationTasks import CATS
-#import scipy.optimize as opt
-#from scipy.stats import pearsonr
 from scipy.stats import sem
 from scipy.stats import norm
+if os.uname()[1] in ['atlantis', 'paradise']:
+    from multiprocessing import Pool, Process
+    
+def unwrap_self_load_data(arg, **kwarg):
+    return pareto.loadPooled(*arg, **kwarg)
 
-        
 class EA():
     """
     Optimization is made for one subject
@@ -97,11 +100,14 @@ class EA():
             self.rt_model = self.rt_model/np.std(self.rt_model)
         self.rt = self.rt/np.std(self.rt)                
 
+
+
+
 class pareto():
     """
     Explore Pareto Front from Sferes Optimization
     """
-    def __init__(self, directory, threshold, N = 156):
+    def __init__(self, directory, threshold, N = 156.):
         self.directory = directory
         self.threshold = threshold
         self.N = N
@@ -123,30 +129,49 @@ class pareto():
         self.rank = dict()
         self.p_test = dict()
         self.mixed = dict()
-        self.loadData()
+        self.loadData()        
         self.constructParetoFrontier()        
         self.constructMixedParetoFrontier()
-
 
     def loadData(self):
         model_in_folders = os.listdir(self.directory)
         if len(model_in_folders) == 0:
             sys.exit("No model found in directory "+self.directory)
-        for m in model_in_folders:
-            self.data[m] = dict()
-            lrun = os.listdir(self.directory+"/"+m)
-            order = self.p_order[m.split("_")[0]]
-            scale = self.models[m.split("_")[0]].bounds
-            for r in lrun:
-                s = r.split("_")[3]
-                n = int(r.split("_")[4].split(".")[0])
-                if s in self.data[m].keys():
-                    self.data[m][s][n] = np.genfromtxt(self.directory+"/"+m+"/"+r)
-                else :
-                    self.data[m][s] = dict()
-                    self.data[m][s][n] = np.genfromtxt(self.directory+"/"+m+"/"+r)                                
-                for p in order:
-                    self.data[m][s][n][:,order.index(p)+4] = scale[p][0]+self.data[m][s][n][:,order.index(p)+4]*(scale[p][1]-scale[p][0])
+        pool = Pool(len(model_in_folders))
+        tmp = pool.map(unwrap_self_load_data, zip([self]*len(model_in_folders), model_in_folders))
+        for d in tmp:
+            self.data[d.keys()[0]] = d[d.keys()[0]]
+
+    def loadPooled(self, m):         
+        data = {m:{}}
+        list_file = os.listdir(self.directory+"/"+m)
+        order = self.p_order[m]
+        scale = self.models[m].bounds
+        for r in list_file:
+            s = r.split("_")[3]
+            n = int(r.split("_")[4].split(".")[0])
+            data[m][s] = dict()
+            filename = self.directory+"/"+m+"/"+r
+            nb_ind = int(self.tail(filename, 1)[0].split(" ")[1])
+            last_gen = np.array(map(lambda x: x[0:-1].split(" "), self.tail(filename, nb_ind+1))).astype('float')
+            if s in data[m].keys():
+                data[m][s][n] = last_gen
+            else:
+                data[m][s] = {n:last_gen}
+            for p in order:
+                data[m][s][n][:,order.index(p)+4] = scale[p][0]+data[m][s][n][:,order.index(p)+4]*(scale[p][1]-scale[p][0])                    
+        return data
+
+    def tail(self, filename, n):
+        size = os.path.getsize(filename)
+        with open(filename, "rb") as f:
+            fm = mmap.mmap(f.fileno(), 0, mmap.MAP_SHARED, mmap.PROT_READ)
+            for i in xrange(size-1, -1, -1):
+                if fm[i] == '\n':
+                    n -= 1
+                    if n == -1:
+                        break
+            return fm[i+1 if i else 0:].splitlines()
 
     def constructParetoFrontier(self):
         for m in self.data.iterkeys():
@@ -164,12 +189,15 @@ class pareto():
                         pareto_frontier.append(pair)
                 self.pareto[m][s] = np.array(pareto_frontier)
                 for t in xrange(len(self.threshold)):
-                     self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+t] >= self.threshold[t]]
-                self.pareto[m][s][:,3] = 2*self.pareto[m][s][:,3] + np.log(self.N)*float(len(self.models[m].bounds.keys()))
-                self.pareto[m][s][:,4] = 2*self.pareto[m][s][:,4] + np.log(self.N)*float(len(self.models[m].bounds.keys()))
+                    self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+t] >= self.threshold[t]]
+
+                self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
+                self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
                 
+                #self.removeDoublon()
+
     def constructMixedParetoFrontier(self):
-        subjects = np.unique(np.array([self.pareto[m].keys() for m in self.pareto.iterkeys()]))
+        subjects = set.intersection(*map(set, [self.pareto[m].keys() for m in self.pareto.keys()]))
         for s in subjects:
             self.mixed[s] = []
             tmp = []
@@ -226,11 +254,11 @@ class pareto():
         return np.max(tmp, 1)+epsilon*np.sum(tmp,1) 
 
     def plotParetoFront(self):
-        self.fig_pareto = figure(figsize = (12,9))
+        fig_pareto = figure(figsize = (12,9))
         for m in self.pareto.iterkeys():
             for i in xrange(len(self.data[m].keys())):
                 s = self.data[m].keys()[i]
-                ax = self.fig_pareto.add_subplot(4,4,i+1)
+                ax = fig_pareto.add_subplot(4,4,i+1)
                 ax.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o")
                 #ax.scatter(self.pareto[m][s][:,3], self.pareto[m][s][:,4], c=self.pareto[m][s][:,0])
                 ax.scatter(self.pareto[m][s][:,3], self.pareto[m][s][:,4], c=self.rank[m][s])
@@ -239,8 +267,8 @@ class pareto():
         rcParams['xtick.labelsize'] = 6
         rcParams['ytick.labelsize'] = 6                
         ax.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
-        self.fig_pareto.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
-        self.fig_pareto.show()
+        fig_pareto.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
+        fig_pareto.show()
 
     def plotFrontEvolution(self):
         self.fig_evolution = figure(figsize = (12,9))

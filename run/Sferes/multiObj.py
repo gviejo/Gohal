@@ -24,6 +24,24 @@ from pylab import *
 from Sferes import pareto
 from itertools import *
 
+def plotParetoFront():
+    
+    for m in front.pareto.iterkeys():
+        for i in xrange(len(front.data[m].keys())):
+            s = front.data[m].keys()[i]
+            ax = subplot(4,4,i+1)
+            ax.plot(front.pareto[m][s][:,3], front.pareto[m][s][:,4], "-o")
+            #ax.scatter(front.pareto[m][s][:,3], front.pareto[m][s][:,4], c=front.pareto[m][s][:,0])
+            ax.scatter(front.pareto[m][s][:,3], front.pareto[m][s][:,4], c=front.rank[m][s])
+            ax.plot(front.opt[m][s][3], front.opt[m][s][4], 'o', markersize = 15, label = m, alpha = 0.8)
+            ax.grid()
+    rcParams['xtick.labelsize'] = 6
+    rcParams['ytick.labelsize'] = 6                
+    ax.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
+    subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
+    show()
+
+
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
@@ -43,18 +61,21 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 front = pareto(options.input, threshold = [-1000, -1500], N = 156)
 
-#front.rankFront([0.5,0.5])
-#front.plotParetoFront()
-#front.plotFrontEvolution()
-#front.plotSolutions()
+front.rankFront([0.5,0.5])
+
+# plotParetoFront()
+# sys.exit()
+# front.plotFrontEvolution()
+# front.plotSolutions()
 
 #front.quickTest('fusion')
 #front.quickTest('qlearning')
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:
-    pickle.dump(front.pareto, handle)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
+ pickle.dump(front.pareto, handle)
+
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
 	pickle.dump(front.mixed, handle)
 
 
