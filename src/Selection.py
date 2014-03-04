@@ -67,6 +67,7 @@ class FSelection():
         self.value = list()
         self.pdf = list()
         self.sigma = list()
+        self.sigma_test = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -86,6 +87,7 @@ class FSelection():
         self.action.append([])
         self.responses.append([])
         self.reaction.append([])
+        self.sigma_test.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -106,6 +108,7 @@ class FSelection():
         self.value = list()        
         self.pdf = list()
         self.sigma = list()
+        self.sigma_test = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -158,21 +161,24 @@ class FSelection():
         pdf = np.zeros(int(self.parameters['length'])+1)
         sigma = np.zeros(int(self.parameters['length']+1))
 
+        d = self.sigmoideModule()
+        pdf[self.nb_inferences] = float(self.pA)
         self.fusionModule()
-        value[self.nb_inferences] = float(self.p_a[self.current_action])
-        pdf[self.nb_inferences] = 1.0
+        value[self.nb_inferences] = float(self.p_a[self.current_action])        
         sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
+
         while self.nb_inferences < self.n_element:
-            d = self.sigmoideModule()            
             self.inferenceModule()
             self.evaluationModule()
             self.fusionModule()
-            value[self.nb_inferences] = float(self.p_a[self.current_action])
-            pdf[self.nb_inferences] = 1.0 - float(self.pA)
+            value[self.nb_inferences] = float(self.p_a[self.current_action])        
             sigma[self.nb_inferences] = float(self.parameters['sigma_bwm'])
-
-        pdf = np.cumprod(pdf)
-        #self.pdf.append(pdf/np.sum(pdf))                
+            d = self.sigmoideModule()
+            pdf[self.nb_inferences] = float(self.pA)
+        
+        pdf = np.array(pdf)
+        pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
+        
         self.pdf.append(pdf)
         self.value.append(value)
         self.sigma.append(sigma)        
@@ -185,14 +191,25 @@ class FSelection():
         self.Hf = computeEntropy(self.values_mf[self.current_state], self.parameters['beta'])
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
+        pdf = np.zeros(int(self.parameters['length'])+1)
+        pdf[self.nb_inferences] = 1.0
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
+            pdf[self.nb_inferences] = 1.0 - float(self.pA)            
         self.fusionModule()
         self.current_action = self.sample(self.p_a)        
         self.action[-1].append(self.actions[self.current_action])                
         self.reaction[-1].append(self.nb_inferences)
-        #self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
+        self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
+
+        while self.nb_inferences < self.n_element:
+            d = self.sigmoideModule()
+            self.inferenceModule()
+            self.evaluationModule()
+            pdf[self.nb_inferences] = 1.0 - float(self.pA)            
+        pdf = np.cumprod(pdf)
+        self.pdf.append(pdf)
         return self.action[-1][-1]
 
     def updateValue(self, reward):
@@ -281,6 +298,7 @@ class KSelection():
         self.vpi = list()
         self.rrate = list()
         self.sigma = list()
+        self.sigma_test = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -323,6 +341,7 @@ class KSelection():
         self.vpi = list()
         self.rrate = list() 
         self.sigma = list()    
+        self.sigma_test = list()
         self.pdf = list()
 
     def sampleSoftMax(self, values):

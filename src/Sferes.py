@@ -80,18 +80,41 @@ class EA():
 
     def alignToMedian(self):
         p = np.sum(self.model.pdf, 0)
-        p = p/np.sum(p)
-        tmp = np.cumsum(p)        
+        p = p/p.sum()
+        wp = []
+        tmp = np.cumsum(p)
         f = lambda x: (x-np.sum(tmp<x)*tmp[np.sum(tmp<x)-1]+(np.sum(tmp<x)-1.0)*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-        w = []
         for i in [0.25, 0.5, 0.75]:
             if np.min(tmp)>i:
-                w.append(0.0)
+                wp.append(0.0)
             else:
-                w.append(f(i))        
+                wp.append(f(i))              
+
+        h, b = np.histogram(self.rt, self.model.parameters['length']+1)
+        b = b[0:-1]+(b[1:]-b[0:-1])/2.
+        h = h.astype(float)
+        h = h/h.sum()
+        wh = []
+        tmp = np.cumsum(h)
+        f = lambda x: (x*(b[np.sum(tmp<x)]-b[np.sum(tmp<x)-1])-b[np.sum(tmp<x)]*tmp[np.sum(tmp<x)-1]+b[np.sum(tmp<x)-1]*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
+        for i in [0.25, 0.5, 0.75]:
+            if np.min(tmp)>i:
+                wh.append(0.0)
+            else:
+                wh.append(f(i))
+        
+            
+        self.h = h
+        self.b = b
+        self.wh = wh
+        self.wp = wp
+        sys.exit()
+
         if (w[2]-w[0]):
              self.rt_model = self.rt_model*((np.percentile(self.rt, 75)-np.percentile(self.rt, 25))/(w[2]-w[0]))
         self.rt_model = self.rt_model-(w[1]-np.median(self.rt))
+
+
 
     def leastSquares(self):
         self.rt_model = self.rt_model-np.mean(self.rt_model)
@@ -124,11 +147,13 @@ class pareto():
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_bwm', 'sigma_ql']})
         self.m_order = ['qlearning', 'bayesian', 'selection', 'fusion']
+        self.colors_m = dict({'fusion':'r', 'bayesian':'g', 'qlearning':'grey', 'selection':'b'})
         self.opt = dict()
         self.pareto = dict()
         self.rank = dict()
         self.p_test = dict()
         self.mixed = dict()
+        self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
         self.loadData()        
         self.constructParetoFrontier()        
         self.constructMixedParetoFrontier()
@@ -212,28 +237,15 @@ class pareto():
                     self.mixed[s].append(pair)
             self.mixed[s] = np.array(self.mixed[s])
 
-    def rankFront(self, w):
-        for m in self.pareto.iterkeys():
-            self.opt[m] = dict()
-            self.p_test[m] = dict()
-            self.rank[m] = dict()
-            for s in self.pareto[m].iterkeys():
-                print m, s               
-                self.opt[m][s] = dict()
-                self.p_test[m][s] = dict()
-                if len(np.unique(self.pareto[m][s][:,4])) == 1:
-                    self.rank[m][s] = np.argsort(self.pareto[m][s][:,3])
-                    self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
-                elif len(np.unique(self.pareto[m][s][:,3])) == 1:
-                    self.rank[m][s] = np.argsort(self.pareto[m][s][:,4])
-                    self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
-                else:
-                    #self.rank[m][s] = self.OWA(self.pareto[m][s][:,3:5], w)                
-                    self.rank[m][s] = self.Tchebychev(self.pareto[m][s][:,3:5], w, 0.01)
-                    self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.min(self.rank[m][s])][0]
-                    #self.opt[m][s] = self.pareto[m][s][self.rank[m][s] == np.max(self.rank[m][s])][0]
-                for p in self.p_order[m.split("_")[0]]:
-                    self.p_test[m][s][p] = self.opt[m][s][self.p_order[m.split("_")[0]].index(p)+5]
+    def rankMixedFront(self, w):    
+        for s in self.mixed.iterkeys():
+            self.rank[s] = self.OWA((self.mixed[s][:,4:]), w)            
+            i = np.argmax(self.rank[s])
+            m = self.m_order[int(self.mixed[s][i,0])]            
+            ind = self.pareto[m][s][(self.pareto[m][s][:,0] == self.mixed[s][i][1])*(self.pareto[m][s][:,1] == self.mixed[s][i][2])*(self.pareto[m][s][:,2] == self.mixed[s][i][3])][0]
+            self.p_test[s] = {m:{}}
+            for p in self.p_order[m.split("_")[0]]:
+                self.p_test[s][m][p] = ind[self.p_order[m].index(p)+5]
 
     def OWA(self, value, w):
         m,n=value.shape
@@ -253,76 +265,123 @@ class pareto():
         tmp = lambdaa*((ideal-value)/(ideal-nadir))
         return np.max(tmp, 1)+epsilon*np.sum(tmp,1) 
 
-    def plotParetoFront(self):
-        fig_pareto = figure(figsize = (12,9))
+    def preview(self):
+        fig_pareto = figure(figsize = (12, 9))
+        fig_par = figure(figsize = (12, 9))
+        rcParams['ytick.labelsize'] = 8
+        rcParams['xtick.labelsize'] = 8
         for m in self.pareto.iterkeys():
             for i in xrange(len(self.data[m].keys())):
                 s = self.data[m].keys()[i]
-                ax = fig_pareto.add_subplot(4,4,i+1)
-                ax.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o")
-                #ax.scatter(self.pareto[m][s][:,3], self.pareto[m][s][:,4], c=self.pareto[m][s][:,0])
-                ax.scatter(self.pareto[m][s][:,3], self.pareto[m][s][:,4], c=self.rank[m][s])
-                ax.plot(self.opt[m][s][3], self.opt[m][s][4], 'o', markersize = 15, label = m, alpha = 0.8)
-                ax.grid()
-        rcParams['xtick.labelsize'] = 6
-        rcParams['ytick.labelsize'] = 6                
-        ax.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
-        fig_pareto.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
-        fig_pareto.show()
-
-    def plotFrontEvolution(self):
-        self.fig_evolution = figure(figsize = (12,9))
-        for m in self.data.iterkeys():
-            for i in xrange(len(self.data[m].keys())):
-                s = self.data[m].keys()[i]                
-                ax = self.fig_evolution.add_subplot(4,4,i+1)
-                for j in self.data[m][s].iterkeys():                    
-                    ax.scatter(self.data[m][s][j][:,2], self.data[m][s][j][:,3])
-                ax.grid()
-        rcParams['xtick.labelsize'] = 6
-        rcParams['ytick.labelsize'] = 6                
-        ax.legend(loc='lower left', bbox_to_anchor=(1.15, 0.2), fancybox=True, shadow=True)
-        self.fig_evolution.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
-        self.fig_evolution.show()
-            
-    def plotSolutions(self):
-        self.fig_solution = figure(figsize= (12,9))
-        n_params_max = np.max([len(t) for t in [self.p_order[m.split("_")[0]] for m in self.opt.keys()]])
-        n_model = len(self.opt.keys())        
+                ax1 = fig_pareto.add_subplot(4,4,i+1)
+                ax1.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m])
+                #ax1.scatter(self.pareto[m][s][:,3], self.pareto[m][s][:,4], c = self.rank[m][s])            
+        n_params_max = np.max([len(t) for t in [self.p_order[m.split("_")[0]] for m in self.pareto.keys()]])
+        n_model = len(self.pareto.keys())
         for i in xrange(n_model):
-            m = self.opt.keys()[i]
+            m = self.pareto.keys()[i]
             for j in xrange(len(self.p_order[m.split("_")[0]])):
                 p = self.p_order[m.split("_")[0]][j]
-                ax = self.fig_solution.add_subplot(n_params_max, n_model, i+1+n_model*j)                
+                ax2 = fig_par.add_subplot(n_params_max, n_model, i+1+n_model*j)                
                 for s in self.pareto[m].iterkeys():
                     y, x = np.histogram(self.pareto[m][s][:,5+j])
                     y = y/np.sum(y.astype("float"))
                     x = (x-(x[1]-x[0])/2)[1:]
-                    ax.plot(x, y, 'o-', linewidth = 2)
-                ax.set_ylim(0, 1)
-                #ax.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
-                ax.set_xlabel(p)
-        rcParams['xtick.labelsize'] = 6
-        rcParams['ytick.labelsize'] = 6
-        self.fig_solution.subplots_adjust(hspace = 0.8, top = 0.98, bottom = 0.1)
-        self.fig_solution.show()
-
+                    ax2.plot(x, y, 'o-', linewidth = 2)
+                    ax2.set_ylim(0, 1)
+                    ax2.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
+                    ax2.set_xlabel(p)
+                if j == 0:
+                    ax2.set_title(m)
+        fig_par.subplots_adjust(hspace = 0.8, top = 0.98, bottom = 0.1)
+        fig_pareto.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
+        show()        
+    
     def _convertStimulus(self, s):
         return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
 
-    def alignToMedian(self, m, n_subject, n_blocs, n_trials):
-        x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
-        y = np.reshape(self.human.reaction['fmri'], (14, 4*39))             
-        #Ex = np.percentile(x, 75, 1) - np.median(x, 1)
-        #Ey = np.percentile(y, 75, 1) - np.median(y, 1)
-        Ex = np.percentile(x, 75, 1) - np.percentile(x, 25, 1)
-        Ey = np.percentile(y, 75, 1) - np.percentile(y, 25, 1)
-        Ex[Ex == 0.0] = 1.0
-        x = x*np.vstack(Ey/Ex)
-        x = x-np.vstack((np.median(x, 1)-np.median(y,1)))
-        self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
-        self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))
+    # def alignToMedian(self, m, s, n_blocs, n_trials):
+    #     x = np.array(self.models[m].reaction).flatten()
+    #     y = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                
+    #     Ex = np.percentile(x, 75) - np.percentile(x, 25)        
+    #     Ey = np.percentile(y, 75) - np.percentile(y, 25)
+    #     if Ex == 0.0: Ex = 1.0
+    #     x = x*(Ey/Ex)
+    #     x = x-(np.median(x)-np.median(y))
+    #     self.models[m].reaction = x.reshape(n_blocs, n_trials)
+
+    def alignToMedian(self, m, s, n_blocs, n_trials):
+        x = np.array(self.models[m].reaction).flatten()
+        y = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                
+        p = np.sum(np.array(self.models[m].pdf), 0)
+        p = p/np.sum(p)
+        tmp = np.cumsum(p)        
+        f = lambda x: (x-np.sum(tmp<x)*tmp[np.sum(tmp<x)-1]+(np.sum(tmp<x)-1.0)*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
+        w = []
+        for i in [0.25, 0.5, 0.75]:
+            if np.min(tmp)>i:
+                w.append(0.0)
+            else:
+                w.append(f(i))        
+        if (w[2]-w[0]):
+            x = x*((np.percentile(y, 75)-np.percentile(y, 25))/(w[2]-w[0]))
+        x = x-(w[1]-np.median(y))
+        self.models[m].reaction = x.reshape(n_blocs, n_trials)
+
+    def run(self, plot=True):
+        nb_blocs = 4
+        nb_trials = self.human.responses['fmri'].shape[1]
+        cats = CATS(nb_trials)
         
+        for s in self.p_test.iterkeys():             
+            m = self.p_test[s].keys()[0]
+            print "Testing "+s+" with "+m            
+            self.models[m].setAllParameters(self.p_test[s][m])
+            self.models[m].startExp()
+            for i in xrange(nb_blocs):
+                cats.reinitialize()
+                cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
+                self.models[m].startBloc()                
+                for j in xrange(nb_trials):
+                    state = cats.getStimulus(j)
+                    action = self.models[m].chooseAction(state)
+                    reward = cats.getOutcome(state, action)
+                    self.models[m].updateValue(reward)
+            self.alignToMedian(m, s, nb_blocs, nb_trials)
+            reaction = np.random.normal(self.models[m].reaction, np.array(self.models[m].sigma_test))
+            for i in xrange(nb_blocs):
+                self.beh['state'].append(self.models[m].state[i])
+                self.beh['action'].append(self.models[m].action[i])
+                self.beh['responses'].append(self.models[m].responses[i])
+                self.beh['reaction'].append(list(reaction[i]))
+        for k in self.beh.iterkeys():
+            self.beh[k] = np.array(self.beh[k])
+        self.beh['state'] = convertStimulus(self.beh['state'])
+        self.beh['action'] = convertAction(self.beh['action'])
+         
+    
+        if plot:                                                            
+            pcr = extractStimulusPresentation(self.beh['responses'], self.beh['state'], self.beh['action'], self.beh['responses'])
+            pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])            
+                                                            
+            step, indice = getRepresentativeSteps(self.beh['reaction'], self.beh['state'], self.beh['action'], self.beh['responses'])
+            rt = computeMeanRepresentativeSteps(step)
+            step, indice = getRepresentativeSteps(self.human.reaction['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
+            rt_human = computeMeanRepresentativeSteps(step) 
+
+
+            colors = ['blue', 'red', 'green']
+            self.fig_quick = figure(figsize=(10,5))
+            ax1 = self.fig_quick.add_subplot(1,2,1)
+            [ax1.errorbar(range(1, len(pcr['mean'][t])+1), pcr['mean'][t], pcr['sem'][t], linewidth = 1.5, elinewidth = 1.5, capsize = 0.8, linestyle = '-', alpha = 1, color = colors[t]) for t in xrange(3)]
+            [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
+            ax2 = self.fig_quick.add_subplot(1,2,2)
+            ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
+            ax3 = ax2.twinx()
+            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            show()
+
+
     def representativeSteps(self, m, s_order, n_blocs, n_trials):
         x = np.reshape(self.models[m].reaction, (len(s_order), n_blocs, n_trials))
         y = np.reshape(self.human.reaction['fmri'], (14, 4, 39))
@@ -388,111 +447,3 @@ class pareto():
         self.x = x
         self.y = y
         # sys.exit()
-
-    def quickTest(self, m, plot=True):
-        nb_blocs = 4
-        nb_trials = self.human.responses['fmri'].shape[1]
-        cats = CATS(nb_trials)
-        model = self.models[m.split("_")[0]]
-        model.startExp()
-        s_order = []
-        for s in self.p_test[m].iterkeys():             
-            s_order.append(s)           
-            model.setAllParameters(self.p_test[m][s])            
-            for i in xrange(nb_blocs):
-                cats.reinitialize()
-                cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
-                model.startBloc()                
-                #for j in xrange(len(cats.stimuli)):
-                for j in xrange(nb_trials):
-                    state = cats.getStimulus(j)
-                    action = model.chooseAction(state)
-                    reward = cats.getOutcome(state, action)
-                    model.updateValue(reward)
-        model.state = convertStimulus(np.array(model.state))
-        model.action = convertAction(np.array(model.action))
-        model.responses = np.array(model.responses)
-        model.reaction = np.array(model.reaction)
-        model.sigma = np.ones(model.reaction.shape)*model.parameters['sigma_ql']
-        model.sigma[model.reaction != 0] = model.parameters['sigma_bwm']
-        if plot:            
-            #self.alignToMean(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
-            self.alignToMedian(m, len(self.p_test[m].keys()), nb_blocs, nb_trials)
-            #self.alignToCste(m, len(self.p_test[m].keys()), nb_blocs, nb_trials, s_order)
-            model.reaction = np.random.normal(model.reaction, model.sigma)
-            pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
-            pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])            
-            
-            #rt, rt_human = self.representativeSteps(m, s_order, nb_blocs, nb_trials)
-                        
-            step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
-            rt = computeMeanRepresentativeSteps(step)
-            step, indice = getRepresentativeSteps(self.human.reaction['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
-            rt_human = computeMeanRepresentativeSteps(step) 
-
-
-            colors = ['blue', 'red', 'green']
-            self.fig_quick = figure(figsize=(10,5))
-            ax1 = self.fig_quick.add_subplot(1,2,1)
-            [ax1.errorbar(range(1, len(pcr['mean'][t])+1), pcr['mean'][t], pcr['sem'][t], linewidth = 1.5, elinewidth = 1.5, capsize = 0.8, linestyle = '-', alpha = 1, color = colors[t]) for t in xrange(3)]
-            [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
-            ax2 = self.fig_quick.add_subplot(1,2,2)
-            ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            #ax3 = ax2.twinx()
-            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
-            show()
-
-    # def aggregate(self, m, plot = False):
-    #     self.comb_rank = list()
-    #     self.final[m] = dict()
-    #     self.combinaison = list()
-    #     self.all_front = dict({m:dict()})
-    #     for s in self.data[m].iterkeys():
-    #         self.all_front[m][s] = dict()
-    #         pareto = self.data[m][s][self.data[m][s][:,0] == np.max(self.data[m][s][:,0])]
-    #         self.combinaison.append([])
-    #         for line in pareto:
-    #             self.all_front[m][s][str(int(line[1]))] = dict({self.p_order[m][i]:line[4+i] for i in xrange(len(self.p_order[m]))})
-    #             self.combinaison[-1].append(s+"_"+str(int(line[1])))
-    #     n_core = 5
-    #     pool = Pool(n_core)
-    #     self.combinaison = map(lambda x:x[0:2], self.combinaison)
-                
-    #     ite = chunked(product(*self.combinaison), np.prod(map(len, self.combinaison))/n_core)
-    #     print np.prod(map(len, self.combinaison))/n_core
-    #     self.m = m
-    #     sys.exit()
-    #     self.comb_rank = pool.map(unwrap_self_multi_agregate, zip([self]*n_core, ite))
-
-    #     # for combi in product(*self.combinaison):
-    #     #     print combi
-    #     #     for ss in combi:
-    #     #         s,solution=ss.split("_")
-    #     #         self.final[m][s] = self.all_front[m][s][solution]
-    #     #     self.quickTest(m, plot=False)
-    #     #     self.comb_rank.append([combi, self.JSD(m), self.Pearson(m)])
-
-    # def multi_agregate(self, iterator):
-    #     front1 = [] 
-    #     front2 = []
-    #     comb_rank = []
-    #     for combi in iterator:            
-    #         for ss in combi:
-    #             s, solution = ss.split("_")
-    #             self.final[self.m][s] = self.all_front[self.m][s][solution]
-    #         self.quickTest(self.m, plot=False)
-    #         comb_rank.append((combi, self.JSD(self.m), self.Pearson(self.m)))            
-    #     return comb_rank
-
-    # def JSD(self, model):
-    #         np.seterr(all='ignore')
-    #         tmp = np.dstack((self.human.responses['fmri'], self.models[model].responses))
-    #         p = np.mean(tmp, 0)
-    #         m = np.mean(p,1)
-    #         P = np.dstack((p,1-p))
-    #         M = np.transpose(np.vstack((m,1-m)))
-    #         kld = np.vstack((np.sum(P[:,0]*np.log2(P[:,0]/M),1), np.sum(P[:,1]*np.log2(P[:,1]/M),1)))
-    #         kld[np.isnan(kld)] = 1.0
-    #         return np.sum(1-np.mean(kld, 0))
-        # def Pearson(self, model):
-        # return np.sum(np.array(map(pearsonr, self.human.reaction['fmri'], self.models[model].reaction))[:,0])
