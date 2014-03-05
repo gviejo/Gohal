@@ -8,18 +8,16 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
-import os
 from optparse import OptionParser
 import numpy as np
-#from pylab import *
+from matplotlib import rc_file
+rc_file("figures.rc")
+import matplotlib.pyplot as plt
 sys.path.append("../../src")
 from fonctions import *
-from ColorAssociationTasks import CATS
-from ColorAssociationTasks import CATS_MODELS
+
+
 from HumanLearning import HLearning
-from Models import QLearning
-from Models import KalmanQLearning
-from Models import TreeConstruction
 from matplotlib import *
 from pylab import *
 # -----------------------------------
@@ -32,34 +30,6 @@ from pylab import *
 parser = OptionParser()
 parser.add_option("-i", "--input", action="store", help="The name of the directory to load", default=False)
 (options, args) = parser.parse_args() 
-# -----------------------------------
-
-# -----------------------------------
-# FONCTIONS
-# -----------------------------------
-def iterationStep(iteration, models, display = True):
-    state = cats.getStimulus(iteration)
-
-    for m in models.itervalues():
-        action = m.chooseAction(state)
-        reward = cats.getOutcome(state, action, m.name)
-        if m.__class__.__name__ == 'TreeConstruction':
-            m.updateTrees(state, reward)
-        else:
-            m.updateValue(reward)
-
-
-# -----------------------------------
-
-# -----------------------------------
-# PARAMETERS + INITIALIZATION
-# -----------------------------------
-
-# -----------------------------------
-
-# -----------------------------------
-# SESSION MODELS
-# -----------------------------------
 # -----------------------------------
 
 
@@ -97,68 +67,72 @@ for i in human.directory.keys():
 # Plot
 # -----------------------------------
 
-fig1 = figure(figsize=(8, 4))
-params = {'backend':'pdf',
-          'axes.labelsize':10,
-          'text.fontsize':10,
-          'legend.fontsize':10,
-          'xtick.labelsize':8,
-          'ytick.labelsize':8,
-          'text.usetex':False}
-          
-#rcParams.update(params)                  
-subplot(121)
-m = data['pcr']['meg']['mean']
-s = data['pcr']['meg']['sem']
+fig = plt.figure()
+
 dashes = ['-', '--', ':']
 colors = ['blue','red','green']
+line1 = tuple([plt.Line2D(range(1),range(1),marker='o',alpha=1.0,color=colors[i]) for i in xrange(3)])
+plt.figlegend(line1,tuple(["Stim 1", "Stim 2", "Stim 3"]), loc = 'lower right', bbox_to_anchor = (0.85, 0.65))
+
+ax1 = fig.add_subplot(211)
+ax1.spines['right'].set_visible(False)
+ax1.spines['top'].set_visible(False)
+ax1.get_xaxis().tick_bottom()
+ax1.get_yaxis().tick_left()
+
+m = data['pcr']['fmri']['mean']
+s = data['pcr']['fmri']['sem']
 for i in xrange(3):
-    errorbar(range(1, len(m[i])+1), m[i], s[i], linestyle = dashes[0], color = colors[i])
-    plot(range(1, len(m[i])+1), m[i], linestyle = dashes[0], color = colors[i], linewidth = 2, label = 'Stim '+str(i+1))
-grid()
-legend(loc = 'lower right')
-xticks(range(2,11,2))
-xlabel("Trial")
-xlim(0.8, 10.2)
-ylim(-0.05, 1.05)
-yticks(np.arange(0, 1.2, 0.2))
-ylabel('Probability Correct Responses')
-title('A')
+    ax1.errorbar(range(1, len(m[i])+1), m[i], s[i], linestyle = dashes[0], color = colors[i], elinewidth = 2)
+    ax1.plot(range(1, len(m[i])+1), m[i], linestyle = dashes[0], color = colors[i], linewidth = 2.5, label = 'Stim '+str(i+1))
 
-subplot(122)
-m = data['rt']['meg']['mean']
-s = data['rt']['meg']['sem']
-errorbar(range(1, len(m)+1), m, s, color = 'black', marker = 'o')
-###
-msize = 8.0
+ax1.set_ylabel("Probability correct responses")
+ax1.set_xlabel("Trial")
+
+# legend(loc = 'lower right')
+# xticks(range(2,11,2))
+# xlabel("Trial")
+# xlim(0.8, 10.2)
+# ylim(-0.05, 1.05)
+# yticks(np.arange(0, 1.2, 0.2))
+# ylabel('Probability Correct Responses')
+# title('A')
+
+ax2 = fig.add_subplot(212)
+ax2.spines['right'].set_visible(False)
+ax2.spines['top'].set_visible(False)
+ax2.get_xaxis().tick_bottom()
+ax2.get_yaxis().tick_left()
+
+m = data['rt']['fmri']['mean']
+s = data['rt']['fmri']['sem']
+ax2.errorbar(range(1, len(m)+1), m, s, color = 'black', marker = 'o', linewidth = 2.5, elinewidth = 2)
+ax2.set_xlabel("Representative step")
+ax2.set_ylabel("Reaction time (s)")
+# ###
+msize = 9.0
 mwidth = 2.5
-plot(1, 0.455, 'x', color = 'blue', markersize=msize, markeredgewidth=mwidth)
-plot(1, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
-plot(1, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
-plot(2, 0.455, 'o', color = 'blue', markersize=msize)
-plot(2, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
-plot(2, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
-plot(3, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
-plot(3, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
-plot(4, 0.4445, 'o', color = 'red', markersize=msize)
-plot(4, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
-plot(5, 0.435, 'o', color = 'green', markersize=msize)
+ax2.plot(1, 0.652, 'x', color = 'blue', markersize=msize, markeredgewidth=mwidth)
+ax2.plot(1, 0.635, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(1, 0.618, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(2, 0.652, 'o', color = 'blue', markersize=msize)
+ax2.plot(2, 0.635, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(2, 0.618, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(3, 0.635, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(3, 0.618, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(4, 0.635, 'o', color = 'red', markersize=msize)
+ax2.plot(4, 0.618, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(5, 0.618, 'o', color = 'green', markersize=msize)
 for i in xrange(6,16,1):
-    plot(i, 0.455, 'o', color = 'blue', markersize=msize)
-    plot(i, 0.4445, 'o', color = 'red', markersize=msize)
-    plot(i, 0.435, 'o', color = 'green', markersize=msize)
-
-###
-grid()
-xlabel("Representative steps")
-xticks([1,5,10,15])
-yticks([0.46, 0.50, 0.54])
-ylim(0.43, 0.56)
-ylabel("Reaction time (s)")
-title('B')
+    ax2.plot(i, 0.652, 'o', color = 'blue', markersize=msize)
+    ax2.plot(i, 0.635, 'o', color = 'red', markersize=msize)
+    ax2.plot(i, 0.618, 'o', color = 'green', markersize=msize)
+ax2.set_ylim(0.61, 0.82)
+# ###
 
 
 
-subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86)
-fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig1.pdf', bbox_inches='tight')
-show()
+subplots_adjust(hspace = 0.2)
+fig.savefig(os.path.expanduser("~/Dropbox/ED3C/Journee_doctorant/poster/pics/beh.eps"), bbox_inches='tight')
+os.system("evince "+os.path.expanduser("~/Dropbox/ED3C/Journee_doctorant/poster/pics/beh.eps"))
+plt.show()
