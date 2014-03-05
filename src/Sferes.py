@@ -20,13 +20,13 @@ import numpy as np
 from fonctions import *
 from Selection import *
 from Models import *
-from pylab import *
 from HumanLearning import HLearning
 from ColorAssociationTasks import CATS
 from scipy.stats import sem
 from scipy.stats import norm
 if os.uname()[1] in ['atlantis', 'paradise']:
     from multiprocessing import Pool, Process
+    from pylab import *
     
 def unwrap_self_load_data(arg, **kwarg):
     return pareto.loadPooled(*arg, **kwarg)
