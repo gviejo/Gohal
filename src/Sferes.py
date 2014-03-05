@@ -68,11 +68,13 @@ class EA():
         self.alignToMedian()
         self.rt = np.tile(np.vstack(self.rt), int(self.model.parameters['length'])+1)
         
-        d = 2.0*norm.cdf(self.rt_model-np.abs(self.rt_model-self.rt), self.rt_model, self.model.sigma)                
+        #d = 2.0*norm.cdf(self.rt_model-np.abs(self.rt_model-self.rt), self.rt_model, self.model.sigma)                
+        d = (1/(self.model.sigma*np.sqrt(2*pi)))*np.exp(-0.5*np.power((self.rt_model-self.rt)/self.model.sigma, 2))
+        self.d = d
 
-        d[np.isnan(d)] = 0.0        
+        d[np.isnan(d)] = 1.0 
         tmp = np.log(np.sum(self.model.pdf*d, 1))
-        #tmp = np.log(self.model.pdf*d)
+        
         tmp[np.isinf(tmp)] = -10.0
         rt = np.sum(tmp)
 
@@ -103,16 +105,12 @@ class EA():
             else:
                 wh.append(f(i))
         
-            
-        self.h = h
-        self.b = b
-        self.wh = wh
-        self.wp = wp
-        sys.exit()
-
-        if (w[2]-w[0]):
-             self.rt_model = self.rt_model*((np.percentile(self.rt, 75)-np.percentile(self.rt, 25))/(w[2]-w[0]))
-        self.rt_model = self.rt_model-(w[1]-np.median(self.rt))
+        if (wp[2]-wp[0]) and (wh[2]-wh[0]):
+             self.rt_model = self.rt_model*((wh[2]-wh[0])/(wp[2]-wp[0]))
+        if wh[1]:
+            self.rt_model = self.rt_model-(wp[1]-wh[1])
+        else:
+            self.rt_model = self.rt_model-(wp[1]-np.median(self.rt))
 
 
 

@@ -407,26 +407,24 @@ class KSelection():
         pdf = np.zeros(int(self.parameters['length'])+1)
         sigma = np.zeros(int(self.parameters['length']+1))
         
+        # 1ere transition should be made outside the while
+        d = (np.sum(vpi > self.reward_rate[self.current_state])>0)*(self.nb_inferences < self.n_element)*1.0
         values = self.softMax(self.values_mf[self.current_state])
         value[self.nb_inferences] = float(values[self.current_action])
-        pdf[self.nb_inferences] = 1.0
+        pdf[self.nb_inferences] = 1.0-float(d)
         sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
-        # 1ere transition should be made outside the while
-        d = (np.sum(vpi > self.reward_rate[self.current_state])>0)*1.0
-        self.inferenceModule()
-        self.evaluationModule()
-        value[self.nb_inferences] = float(self.values[self.current_action])
-        pdf[self.nb_inferences] = d
-        sigma[self.nb_inferences] = float(self.parameters['sigma_bwm'])        
+                
         while self.nb_inferences < self.n_element:
-            d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
             self.inferenceModule()
             self.evaluationModule()
-            pdf[self.nb_inferences] = d
+            d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
+            pdf[self.nb_inferences] = 1.0-float(d)
             value[self.nb_inferences] = float(self.values[self.current_action])
             sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
 
-        pdf = np.cumprod(pdf)
+        pdf = np.array(pdf)
+        pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
+
         self.pdf.append(pdf)
         self.value.append(value)
         self.sigma.append(sigma)
