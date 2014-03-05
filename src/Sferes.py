@@ -46,6 +46,7 @@ class EA():
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])                        
+        self.bins = 0.001
 
     def getFitness(self):
         np.seterr(all = 'ignore')
@@ -62,20 +63,19 @@ class EA():
         
         tmp = np.log(np.sum(self.model.pdf*self.model.value, 1))
         #tmp = np.log(self.model.pdf*self.model.value)
-        tmp[np.isinf(tmp)] = -10.0
+        tmp[np.isinf(tmp)] = -100.0
         choice = np.sum(tmp)
                 
         self.alignToMedian()
         self.rt = np.tile(np.vstack(self.rt), int(self.model.parameters['length'])+1)
         
-        #d = 2.0*norm.cdf(self.rt_model-np.abs(self.rt_model-self.rt), self.rt_model, self.model.sigma)                
-        d = (1/(self.model.sigma*np.sqrt(2*pi)))*np.exp(-0.5*np.power((self.rt_model-self.rt)/self.model.sigma, 2))
-        self.d = d
-
+        d = norm.cdf(self.rt, self.rt_model, self.model.sigma)-norm.cdf(self.rt-self.bins, self.rt_model, self.model.sigma)
+        
         d[np.isnan(d)] = 1.0 
+        self.d = d
         tmp = np.log(np.sum(self.model.pdf*d, 1))
         
-        tmp[np.isinf(tmp)] = -10.0
+        tmp[np.isinf(tmp)] = -100.0
         rt = np.sum(tmp)
 
         return choice, rt
