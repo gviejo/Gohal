@@ -12,7 +12,7 @@ from pylab import *
 
 p_order = ['alpha', 'beta', 'gamma', 'sigma']
 
-p = map(float, "7.59348e-05 0 0 0.204115".split(" "))
+p = map(float, "0.66469 1 0.0360993 0".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]
@@ -31,7 +31,19 @@ llh, lrs = opt.getFitness()
 
 print llh, lrs
 
-ion()
+figure()
+subplot(211)
 plot(opt.rt_model)
 plot(opt.rt)
+
+subplot(212)
+m = opt.rt_model[15]
+h = opt.rt[15]
+x = np.arange(-10, 10, 0.01)
+def f(x, u, v):
+    return (1/np.sqrt(2*pi*v))*np.exp(-0.5*np.power((x-u)/v, 2))
+[plot(x, f(x, i, model.parameters['sigma'])) for i in [m[0]]]
+
+
+axvline(h)
 show()

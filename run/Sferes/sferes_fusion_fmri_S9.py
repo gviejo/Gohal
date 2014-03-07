@@ -12,7 +12,7 @@ from pylab import *
 
 p_order = ['alpha','beta', 'gamma', 'noise','length','gain','sigma_bwm', 'sigma_ql']
 
-p = map(float, "0.438517 0.0279738 0.949833 0.998774 0.0679597 0.748633 0.847535 0.707753 0.96948".split(" "))
+p = map(float, "0.0142109 0.0620551 0.978416 0 0 0.988646 0.988559 0.361334".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]
@@ -30,7 +30,21 @@ opt = EA(human.subject['fmri']['S2'], 'S2', model)
 llh, lrs = opt.getFitness()
 
 print llh, lrs
-ion()
+
+figure()
+subplot(211)
 plot(opt.rt_model)
 plot(opt.rt)
+
+subplot(212)
+m = opt.rt_model[15]
+h = opt.rt[15]
+x = np.arange(-10, 10, 0.01)
+def f(x, u, v):
+    return (1/np.sqrt(2*pi*v))*np.exp(-0.5*np.power((x-u)/v, 2))
+[plot(x, f(x, i, model.parameters['sigma_ql'])) for i in [m[0]]]
+[plot(x, f(x, i, model.parameters['sigma_bwm'])) for i in m[1:]]
+
+axvline(h)
 show()
+

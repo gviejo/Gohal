@@ -17,6 +17,10 @@ import sys
 import os
 import mmap
 import numpy as np
+if os.uname()[1] in ['atlantis', 'paradise']:
+    from multiprocessing import Pool, Process
+    from pylab import *
+
 from fonctions import *
 from Selection import *
 from Models import *
@@ -24,9 +28,6 @@ from HumanLearning import HLearning
 from ColorAssociationTasks import CATS
 from scipy.stats import sem
 from scipy.stats import norm
-if os.uname()[1] in ['atlantis', 'paradise']:
-    from multiprocessing import Pool, Process
-    from pylab import *
 
 def unwrap_self_load_data(arg, **kwarg):
     return pareto.loadPooled(*arg, **kwarg)
@@ -46,14 +47,16 @@ class EA():
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])                        
-        self.bins = 0.001
-
+        self.hist, self.edges = np.histogram(self.rt, 100)
+        self.position = np.digitize(self.rt, self.edges, True)
+        self.d = None
+        
     def getFitness(self):
         np.seterr(all = 'ignore')
         self.model.startExp()
         for i in xrange(self.n_blocs):
             self.model.startBloc()
-            for j in xrange(self.n_trials):
+            for j in xrange(self.n_trials):                
                 self.model.computeValue(int(self.state[i,j])-1, int(self.action[i,j])-1)                
                 self.model.updateValue(self.responses[i,j])
 
@@ -61,26 +64,26 @@ class EA():
         self.model.value = np.array(self.model.value)
         self.model.pdf = np.array(self.model.pdf)
         
-        tmp = np.log(np.sum(self.model.pdf*self.model.value, 1))
-        #tmp = np.log(self.model.pdf*self.model.value)
-        tmp[np.isinf(tmp)] = -100.0
+        tmp = np.log(np.sum(self.model.pdf*self.model.value, 1))        
+        tmp[np.isinf(tmp)] = -1000.0
         choice = np.sum(tmp)
                 
-        self.alignToMedian()
-        self.rt = np.tile(np.vstack(self.rt), int(self.model.parameters['length'])+1)
-        print norm.cdf(0, 0, 1)
-        sys.exit()
-
-        d = norm.cdf(self.rt, self.rt_model, self.model.sigma)-norm.cdf(self.rt-self.bins, self.rt_model, self.model.sigma)
+        self.alignToMedian()        
+        self.computeDistance()        
+        tmp = np.log(np.sum(self.model.pdf*self.d, 1))
         
-        d[np.isnan(d)] = 1.0 
-        self.d = d
-        tmp = np.log(np.sum(self.model.pdf*d, 1))
-        
-        tmp[np.isinf(tmp)] = -100.0
+        tmp[np.isinf(tmp)] = -1000.0
         rt = np.sum(tmp)
 
         return choice, rt
+
+    def computeDistance(self):
+        sup = self.edges[self.position]
+        size_bin = self.edges[1]-self.edges[0]
+        sup = np.tile(np.vstack(sup), int(self.model.parameters['length'])+1)
+        self.d = norm.cdf(sup, self.rt_model, self.model.sigma)-norm.cdf(sup-size_bin, self.rt_model, self.model.sigma)
+        self.d[np.isnan(self.d)] = 0.0
+
 
     def alignToMedian(self):
         p = np.sum(self.model.pdf, 0)
@@ -94,27 +97,24 @@ class EA():
             else:
                 wp.append(f(i))              
 
-        h, b = np.histogram(self.rt, self.model.parameters['length']+1)
-        b = b[0:-1]+(b[1:]-b[0:-1])/2.
-        h = h.astype(float)
-        h = h/h.sum()
-        wh = []
-        tmp = np.cumsum(h)
-        f = lambda x: (x*(b[np.sum(tmp<x)]-b[np.sum(tmp<x)-1])-b[np.sum(tmp<x)]*tmp[np.sum(tmp<x)-1]+b[np.sum(tmp<x)-1]*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-        for i in [0.25, 0.5, 0.75]:
-            if np.min(tmp)>i:
-                wh.append(0.0)
-            else:
-                wh.append(f(i))
+        # h, b = np.histogram(self.rt, self.model.parameters['length']+1)
+        # b = b[0:-1]+(b[1:]-b[0:-1])/2.
+        # h = h.astype(float)
+        # h = h/h.sum()
+        # wh = []
+        # tmp = np.cumsum(h)
+        # f = lambda x: (x*(b[np.sum(tmp<x)]-b[np.sum(tmp<x)-1])-b[np.sum(tmp<x)]*tmp[np.sum(tmp<x)-1]+b[np.sum(tmp<x)-1]*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
+        # for i in [0.25, 0.5, 0.75]:
+        #     if np.min(tmp)>i:
+        #         wh.append(0.0)
+        #     else:
+        #         wh.append(f(i))
         
-        if (wp[2]-wp[0]) and (wh[2]-wh[0]):
-             self.rt_model = self.rt_model*((wh[2]-wh[0])/(wp[2]-wp[0]))
-        if wh[1]:
-            self.rt_model = self.rt_model-(wp[1]-wh[1])
-        else:
-            self.rt_model = self.rt_model-(wp[1]-np.median(self.rt))
-
-
+        wh = [np.percentile(self.rt, i) for i in [25, 50, 75]]        
+        if (wp[2]-wp[0]):
+             self.rt_model = self.rt_model*((wh[2]-wh[0])/(wp[2]-wp[0]))        
+        self.rt_model = self.rt_model-(wp[1]-wh[1])
+        
 
     def leastSquares(self):
         self.rt_model = self.rt_model-np.mean(self.rt_model)
