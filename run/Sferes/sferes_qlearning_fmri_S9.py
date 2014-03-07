@@ -12,7 +12,7 @@ from pylab import *
 
 p_order = ['alpha', 'beta', 'gamma', 'sigma']
 
-p = map(float, "0.471069 1 0 0.1".split(" "))
+p = map(float, "7.59348e-05 0 0 0.204115".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]

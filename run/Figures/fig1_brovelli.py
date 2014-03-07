@@ -88,7 +88,7 @@ for i in xrange(3):
 
 ax1.set_ylabel("Probability correct responses")
 ax1.set_xlabel("Trial")
-
+fig.text(0.04, 0.92, "A.", fontsize = 22)
 # legend(loc = 'lower right')
 # xticks(range(2,11,2))
 # xlabel("Trial")
@@ -110,26 +110,26 @@ ax2.errorbar(range(1, len(m)+1), m, s, color = 'black', marker = 'o', linewidth 
 ax2.set_xlabel("Representative step")
 ax2.set_ylabel("Reaction time (s)")
 # ###
-msize = 9.0
+msize = 11.0
 mwidth = 2.5
 ax2.plot(1, 0.652, 'x', color = 'blue', markersize=msize, markeredgewidth=mwidth)
-ax2.plot(1, 0.635, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
-ax2.plot(1, 0.618, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(1, 0.640, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(1, 0.628, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
 ax2.plot(2, 0.652, 'o', color = 'blue', markersize=msize)
-ax2.plot(2, 0.635, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
-ax2.plot(2, 0.618, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
-ax2.plot(3, 0.635, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
-ax2.plot(3, 0.618, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
-ax2.plot(4, 0.635, 'o', color = 'red', markersize=msize)
-ax2.plot(4, 0.618, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
-ax2.plot(5, 0.618, 'o', color = 'green', markersize=msize)
+ax2.plot(2, 0.640, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(2, 0.628, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(3, 0.640, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(3, 0.628, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(4, 0.640, 'o', color = 'red', markersize=msize)
+ax2.plot(4, 0.628, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax2.plot(5, 0.628, 'o', color = 'green', markersize=msize)
 for i in xrange(6,16,1):
     ax2.plot(i, 0.652, 'o', color = 'blue', markersize=msize)
-    ax2.plot(i, 0.635, 'o', color = 'red', markersize=msize)
-    ax2.plot(i, 0.618, 'o', color = 'green', markersize=msize)
-ax2.set_ylim(0.61, 0.82)
+    ax2.plot(i, 0.640, 'o', color = 'red', markersize=msize)
+    ax2.plot(i, 0.628, 'o', color = 'green', markersize=msize)
+ax2.set_ylim(0.62, 0.82)
 # ###
-
+fig.text(0.04, 0.46, "B.", fontsize = 22)
 
 
 subplots_adjust(hspace = 0.2)

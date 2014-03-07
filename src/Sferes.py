@@ -27,7 +27,7 @@ from scipy.stats import norm
 if os.uname()[1] in ['atlantis', 'paradise']:
     from multiprocessing import Pool, Process
     from pylab import *
-    
+
 def unwrap_self_load_data(arg, **kwarg):
     return pareto.loadPooled(*arg, **kwarg)
 
@@ -68,7 +68,9 @@ class EA():
                 
         self.alignToMedian()
         self.rt = np.tile(np.vstack(self.rt), int(self.model.parameters['length'])+1)
-        
+        print norm.cdf(0, 0, 1)
+        sys.exit()
+
         d = norm.cdf(self.rt, self.rt_model, self.model.sigma)-norm.cdf(self.rt-self.bins, self.rt_model, self.model.sigma)
         
         d[np.isnan(d)] = 1.0 
@@ -152,7 +154,8 @@ class pareto():
         self.p_test = dict()
         self.mixed = dict()
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
-        self.loadData()        
+        # self.loadData()        
+        self.simpleLoadData()
         self.constructParetoFrontier()        
         self.constructMixedParetoFrontier()
 
@@ -160,10 +163,34 @@ class pareto():
         model_in_folders = os.listdir(self.directory)
         if len(model_in_folders) == 0:
             sys.exit("No model found in directory "+self.directory)
-        pool = Pool(len(model_in_folders))
-        tmp = pool.map(unwrap_self_load_data, zip([self]*len(model_in_folders), model_in_folders))
-        for d in tmp:
-            self.data[d.keys()[0]] = d[d.keys()[0]]
+        self.simpleLoadData()
+
+        # pool = Pool(len(model_in_folders))
+        # #tmp = pool.map(unwrap_self_load_data, zip([self]*len(model_in_folders), model_in_folders))
+        # tmp = [self.loadPooled(m) for m in model_in_folders]
+        # for d in tmp:
+        #     self.data[d.keys()[0]] = d[d.keys()[0]]
+
+    def simpleLoadData(self):
+        model_in_folders = os.listdir(self.directory)
+        if len(model_in_folders) == 0:
+            sys.exit("No model found in directory "+self.directory)
+        for m in model_in_folders:
+            self.data[m] = dict()
+            lrun = os.listdir(self.directory+"/"+m)
+            order = self.p_order[m.split("_")[0]]
+            scale = self.models[m.split("_")[0]].bounds
+            for r in lrun:
+                s = r.split("_")[3]
+                n = int(r.split("_")[4].split(".")[0])
+                if s in self.data[m].keys():
+                    self.data[m][s][n] = np.genfromtxt(self.directory+"/"+m+"/"+r)
+                else :
+                    self.data[m][s] = dict()
+                    self.data[m][s][n] = np.genfromtxt(self.directory+"/"+m+"/"+r)                                
+                for p in order:
+                    self.data[m][s][n][:,order.index(p)+4] = scale[p][0]+self.data[m][s][n][:,order.index(p)+4]*(scale[p][1]-scale[p][0])
+
 
     def loadPooled(self, m):         
         data = {m:{}}

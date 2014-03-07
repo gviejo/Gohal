@@ -41,9 +41,9 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-front = pareto(options.input, threshold = [-10000000, -15000000], N = 156)
+front = pareto(options.input, threshold = [-10000000, -156000], N = 156)
 
-#front.preview()
+front.preview()
 
 front.rankMixedFront([0.5,0.5])
 
