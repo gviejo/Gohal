@@ -27,7 +27,7 @@ class QLearning():
         self.bounds = dict({"gamma":[0.0, 1.0],
                             "beta":[1.0, 5.0],
                             "alpha":[0.0, 1.0],
-                            "sigma":[0.000001, 1.0]})
+                            "sigma":[0.000001, 0.5]})
         
         #Values Initialization
         self.values = np.zeros((self.n_state, self.n_action))        
