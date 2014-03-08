@@ -9,10 +9,11 @@ from Models import *
 from Selection import *
 from matplotlib import *
 from pylab import *
-
+from scipy.stats import norm
 p_order = ['alpha','beta', 'gamma', 'noise','length','gain','sigma_bwm', 'sigma_ql']
 
-p = map(float, "0.988166 0.35222 0.285128 0.770395 0.478959 0.0322654 0.957454 0.727134".split(" "))
+#p = map(float, "0.784762 0.245554 0.815565 0 1 1 0.610446 0.170918".split(" "))
+p = map(float, "1 0.269476 0.352898 0.841548 0.848022 0 0.1 0.1".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]
@@ -25,26 +26,36 @@ for p in parameters.iterkeys():
 		parameters[p] = model.bounds[p][0]+parameters[p]*(model.bounds[p][1]-model.bounds[p][0])
 model.setAllParameters(parameters)
 
-opt = EA(human.subject['fmri']['S2'], 'S2', model)
+opt = EA(human.subject['fmri']['S9'], 'S9', model)
 
 llh, lrs = opt.getFitness()
 
 print llh, lrs
 
 figure()
-subplot(211)
+subplot(311)
 plot(opt.rt_model)
 plot(opt.rt)
 
-subplot(212)
-m = opt.rt_model[15]
+subplot(312)
+m = opt.rt_model[0]
 h = opt.rt[15]
-x = np.arange(-10, 10, 0.01)
-def f(x, u, v):
-    return (1/np.sqrt(2*pi*v))*np.exp(-0.5*np.power((x-u)/v, 2))
-[plot(x, f(x, i, model.parameters['sigma_ql'])) for i in [m[0]]]
-[plot(x, f(x, i, model.parameters['sigma_bwm'])) for i in m[1:]]
+x = np.arange(-5, 5, 0.01)
+# def f(x, u, v):
+#     return (1/np.sqrt(2*pi*v))*np.exp(-0.5*np.power((x-u)/v, 2))
+# [plot(x, f(x, i, model.parameters['sigma_ql'])) for i in [m[0]]]
+# [plot(x, f(x, i, model.parameters['sigma_bwm'])) for i in m[1:]]
+c, n = np.histogram(opt.rt, 100)
+c = c.astype('float')
+c = c/c.sum()
+n = n[1:]-((n[1]-n[0])/2)
+plot(n, c)
+#axvline(h)
 
-axvline(h)
+
+edges = opt.edges
+size = edges[1]-edges[0]
+[plot(edges, np.array([norm.cdf(i, j, model.parameters['sigma_ql'])-norm.cdf(i-size, j, model.parameters['sigma_ql']) for i in edges])) for j in m]
+
 show()
 

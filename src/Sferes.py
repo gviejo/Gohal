@@ -79,6 +79,7 @@ class EA():
 
     def computeDistance(self):
         sup = self.edges[self.position]
+        self.sup = sup
         size_bin = self.edges[1]-self.edges[0]
         sup = np.tile(np.vstack(sup), int(self.model.parameters['length'])+1)
         self.d = norm.cdf(sup, self.rt_model, self.model.sigma)-norm.cdf(sup-size_bin, self.rt_model, self.model.sigma)
@@ -88,10 +89,11 @@ class EA():
     def alignToMedian(self):
         p = np.sum(self.model.pdf, 0)
         p = p/p.sum()
+        self.p = p
         wp = []
         tmp = np.cumsum(p)
         f = lambda x: (x-np.sum(tmp<x)*tmp[np.sum(tmp<x)-1]+(np.sum(tmp<x)-1.0)*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-        for i in [0.25, 0.5, 0.75]:
+        for i in [0.25, 0.75]:
             if np.min(tmp)>i:
                 wp.append(0.0)
             else:
@@ -109,14 +111,16 @@ class EA():
         #         wh.append(0.0)
         #     else:
         #         wh.append(f(i))
+        wh = [np.percentile(self.rt, i) for i in [25, 75]]
         
-        wh = [np.percentile(self.rt, i) for i in [25, 50, 75]]
-        print wp[2]-wp[0]
-        print (wh[2]-wh[0])/(wp[2]-wp[0])
-        print wp[1]-wh[1]
-        if (wp[2]-wp[0]):
-             self.rt_model = self.rt_model*((wh[2]-wh[0])/(wp[2]-wp[0]))    
-        self.rt_model = self.rt_model-(wp[1]-wh[1])
+        if (wp[1]-wp[0]):
+             self.rt_model = self.rt_model*((wh[1]-wh[0])/(wp[1]-wp[0]))
+        b = self.rt_model[0]
+        f = lambda x: (x*(b[np.sum(tmp<x)]-b[np.sum(tmp<x)-1])-b[np.sum(tmp<x)]*tmp[np.sum(tmp<x)-1]+b[np.sum(tmp<x)-1]*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
+        
+        half = f(0.5) if np.min(tmp)<0.5 else 0.0        
+        
+        self.rt_model = self.rt_model-(half-np.median(self.rt))
         
 
     def leastSquares(self):
@@ -229,7 +233,8 @@ class pareto():
     def constructParetoFrontier(self):
         for m in self.data.iterkeys():
             self.pareto[m] = dict()
-            for s in self.data[m].iterkeys():                
+            for s in self.data[m].iterkeys():
+                print m, s        
                 self.pareto[m][s] = dict()   
                 tmp={n:self.data[m][s][n][self.data[m][s][n][:,0]==np.max(self.data[m][s][n][:,0])] for n in self.data[m][s].iterkeys()}
                 tmp=np.vstack([np.hstack((np.ones((len(tmp[n]),1))*n,tmp[n])) for n in tmp.iterkeys()])

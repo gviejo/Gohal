@@ -9,10 +9,11 @@ from Models import *
 from Selection import *
 from matplotlib import *
 from pylab import *
+from scipy.stats import norm
 
 p_order = ['alpha', 'beta', 'gamma', 'sigma']
 
-p = map(float, "0.66469 1 0.0360993 0".split(" "))
+p = map(float, "0.66469 1 0.0360993 0.3".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]
@@ -32,18 +33,31 @@ llh, lrs = opt.getFitness()
 print llh, lrs
 
 figure()
-subplot(211)
+subplot(311)
 plot(opt.rt_model)
 plot(opt.rt)
 
-subplot(212)
-m = opt.rt_model[15]
+subplot(312)
+m = opt.rt_model[0]
 h = opt.rt[15]
-x = np.arange(-10, 10, 0.01)
-def f(x, u, v):
-    return (1/np.sqrt(2*pi*v))*np.exp(-0.5*np.power((x-u)/v, 2))
-[plot(x, f(x, i, model.parameters['sigma'])) for i in [m[0]]]
+x = np.arange(-5, 5, 0.01)
+# def f(x, u, v):
+#     return (1/np.sqrt(2*pi*v))*np.exp(-0.5*np.power((x-u)/v, 2))
+# [plot(x, f(x, i, model.parameters['sigma_ql'])) for i in [m[0]]]
+# [plot(x, f(x, i, model.parameters['sigma_bwm'])) for i in m[1:]]
+c, n = np.histogram(opt.rt, 100)
+c = c.astype('float')
+c = c/c.sum()
+n = n[1:]-((n[1]-n[0])/2)
+plot(n, c)
+#axvline(h)
 
 
-axvline(h)
+edges = opt.edges
+size = edges[1]-edges[0]
+[plot(edges, np.array([norm.cdf(i, j, model.parameters['sigma'])-norm.cdf(i-size, j, model.parameters['sigma']) for i in edges])) for j in m]
+
 show()
+
+
+
