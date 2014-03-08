@@ -110,9 +110,12 @@ class EA():
         #     else:
         #         wh.append(f(i))
         
-        wh = [np.percentile(self.rt, i) for i in [25, 50, 75]]        
+        wh = [np.percentile(self.rt, i) for i in [25, 50, 75]]
+        print wp[2]-wp[0]
+        print (wh[2]-wh[0])/(wp[2]-wp[0])
+        print wp[1]-wh[1]
         if (wp[2]-wp[0]):
-             self.rt_model = self.rt_model*((wh[2]-wh[0])/(wp[2]-wp[0]))        
+             self.rt_model = self.rt_model*((wh[2]-wh[0])/(wp[2]-wp[0]))    
         self.rt_model = self.rt_model-(wp[1]-wh[1])
         
 
