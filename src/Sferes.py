@@ -71,6 +71,7 @@ class EA():
         self.alignToMedian()        
         self.computeDistance()        
         tmp = np.log(np.sum(self.model.pdf*self.d, 1))
+
         
         tmp[np.isinf(tmp)] = -1000.0
         rt = np.sum(tmp)
@@ -301,6 +302,7 @@ class pareto():
     def preview(self):
         fig_pareto = figure(figsize = (12, 9))
         fig_par = figure(figsize = (12, 9))
+        fig_p = figure(figsize = (12,9))
         rcParams['ytick.labelsize'] = 8
         rcParams['xtick.labelsize'] = 8
         for m in self.pareto.iterkeys():
@@ -316,6 +318,7 @@ class pareto():
             for j in xrange(len(self.p_order[m.split("_")[0]])):
                 p = self.p_order[m.split("_")[0]][j]
                 ax2 = fig_par.add_subplot(n_params_max, n_model, i+1+n_model*j)                
+                ax3 = fig_p.add_subplot(n_params_max, n_model, i+1+n_model*j)
                 for s in self.pareto[m].iterkeys():
                     y, x = np.histogram(self.pareto[m][s][:,5+j])
                     y = y/np.sum(y.astype("float"))
@@ -324,10 +327,16 @@ class pareto():
                     ax2.set_ylim(0, 1)
                     ax2.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
                     ax2.set_xlabel(p)
+                    ax3.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,5+j], 'o-')
+                    ax3.set_ylim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
+                    ax3.set_ylabel(p)
                 if j == 0:
                     ax2.set_title(m)
+                
+
         fig_par.subplots_adjust(hspace = 0.8, top = 0.98, bottom = 0.1)
         fig_pareto.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
+        fig_p.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
         show()        
     
     def _convertStimulus(self, s):
@@ -344,22 +353,33 @@ class pareto():
     #     self.models[m].reaction = x.reshape(n_blocs, n_trials)
 
     def alignToMedian(self, m, s, n_blocs, n_trials):
-        x = np.array(self.models[m].reaction).flatten()
-        y = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                
+        xx = np.array(self.models[m].reaction).flatten()
+        yy = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                
+        b = np.arange(int(self.models[m].parameters['length'])+1)
         p = np.sum(np.array(self.models[m].pdf), 0)
-        p = p/np.sum(p)
-        tmp = np.cumsum(p)        
+        p = p/p.sum()        
+        wp = []
+        tmp = np.cumsum(p)
         f = lambda x: (x-np.sum(tmp<x)*tmp[np.sum(tmp<x)-1]+(np.sum(tmp<x)-1.0)*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-        w = []
-        for i in [0.25, 0.5, 0.75]:
+        for i in [0.25, 0.75]:
             if np.min(tmp)>i:
-                w.append(0.0)
+                wp.append(0.0)
             else:
-                w.append(f(i))        
-        if (w[2]-w[0]):
-            x = x*((np.percentile(y, 75)-np.percentile(y, 25))/(w[2]-w[0]))
-        x = x-(w[1]-np.median(y))
-        self.models[m].reaction = x.reshape(n_blocs, n_trials)
+                wp.append(f(i))              
+
+        wh = [np.percentile(yy, i) for i in [25, 75]]
+        
+        if (wp[1]-wp[0]):
+            xx = xx*((wh[1]-wh[0])/(wp[1]-wp[0]))
+            b = b*((wh[1]-wh[0])/(wp[1]-wp[0]))
+        
+        f = lambda x: (x*(b[np.sum(tmp<x)]-b[np.sum(tmp<x)-1])-b[np.sum(tmp<x)]*tmp[np.sum(tmp<x)-1]+b[np.sum(tmp<x)-1]*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
+        
+        half = f(0.5) if np.min(tmp)<0.5 else 0.0        
+        
+        xx = xx-(half-np.median(yy))
+        self.yy = yy
+        self.models[m].reaction = xx.reshape(n_blocs, n_trials)
 
     def run(self, plot=True):
         nb_blocs = 4
@@ -380,13 +400,15 @@ class pareto():
                     action = self.models[m].chooseAction(state)
                     reward = cats.getOutcome(state, action)
                     self.models[m].updateValue(reward)
+            
             self.alignToMedian(m, s, nb_blocs, nb_trials)
-            reaction = np.random.normal(self.models[m].reaction, np.array(self.models[m].sigma_test))
+            self.reaction = np.random.normal(self.models[m].reaction, np.array(self.models[m].sigma_test))
+            
             for i in xrange(nb_blocs):
                 self.beh['state'].append(self.models[m].state[i])
                 self.beh['action'].append(self.models[m].action[i])
                 self.beh['responses'].append(self.models[m].responses[i])
-                self.beh['reaction'].append(list(reaction[i]))
+                self.beh['reaction'].append(list(self.reaction[i]))
         for k in self.beh.iterkeys():
             self.beh[k] = np.array(self.beh[k])
         self.beh['state'] = convertStimulus(self.beh['state'])
@@ -410,8 +432,8 @@ class pareto():
             [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
             ax2 = self.fig_quick.add_subplot(1,2,2)
             ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            ax3 = ax2.twinx()
-            ax3.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+            #ax3 = ax2.twinx()
+            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
 
 

@@ -34,8 +34,8 @@ class FSelection():
                             #"threshold":[0.00001, 100.0], 
                             "noise":[0.0, 0.1],
                             "gain":[0.00001, 10.0],
-                            "sigma_bwm":[0.00001, 0.3],
-                            "sigma_ql":[0.00001, 0.3]})
+                            "sigma_bwm":[0.00001, 0.1],
+                            "sigma_ql":[0.00001, 0.1]})
                             
 
         #Probability Initialization

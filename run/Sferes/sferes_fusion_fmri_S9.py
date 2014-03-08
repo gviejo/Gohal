@@ -13,7 +13,7 @@ from scipy.stats import norm
 p_order = ['alpha','beta', 'gamma', 'noise','length','gain','sigma_bwm', 'sigma_ql']
 
 #p = map(float, "0.784762 0.245554 0.815565 0 1 1 0.610446 0.170918".split(" "))
-p = map(float, "1 0.269476 0.352898 0.841548 0.848022 0 0.1 0.1".split(" "))
+p = map(float, "0.40059 0.884574 0.0324776 0.0412776 0 0.0670414 0.563028 0.46275".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]
@@ -40,7 +40,7 @@ plot(opt.rt)
 subplot(312)
 m = opt.rt_model[0]
 h = opt.rt[15]
-x = np.arange(-5, 5, 0.01)
+x = np.arange(-5, 10, 0.01)
 # def f(x, u, v):
 #     return (1/np.sqrt(2*pi*v))*np.exp(-0.5*np.power((x-u)/v, 2))
 # [plot(x, f(x, i, model.parameters['sigma_ql'])) for i in [m[0]]]
@@ -55,7 +55,7 @@ plot(n, c)
 
 edges = opt.edges
 size = edges[1]-edges[0]
-[plot(edges, np.array([norm.cdf(i, j, model.parameters['sigma_ql'])-norm.cdf(i-size, j, model.parameters['sigma_ql']) for i in edges])) for j in m]
+[plot(edges, np.array([norm.cdf(i, j, model.parameters['sigma_ql'])-norm.cdf(i-size, j, model.parameters['sigma_ql']) for i in edges]), 'o-') for j in m]
 
 show()
 
