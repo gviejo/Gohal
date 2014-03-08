@@ -34,8 +34,8 @@ class FSelection():
                             #"threshold":[0.00001, 100.0], 
                             "noise":[0.0, 0.1],
                             "gain":[0.00001, 10.0],
-                            "sigma_bwm":[0.00001, 0.5],
-                            "sigma_ql":[0.00001, 0.5]})
+                            "sigma_bwm":[0.00001, 0.3],
+                            "sigma_ql":[0.00001, 0.3]})
                             
 
         #Probability Initialization
@@ -261,8 +261,8 @@ class KSelection():
                             "threshold":[0.0, -np.log2(1./self.n_action)], 
                             "noise":[0.0, 0.1],
                             "sigma":[0.0,1.0],
-                            "sigma_bwm":[0.00001, 1.0],
-                            "sigma_ql":[0.00001, 1.0]})        
+                            "sigma_bwm":[0.00001, 0.3],
+                            "sigma_ql":[0.00001, 0.3]})        
         self.var_obs = var_obs
         self.init_cov = init_cov
         self.kappa = kappa
