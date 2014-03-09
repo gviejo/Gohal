@@ -1,0 +1,54 @@
+### Plot configurations file for various figures
+
+backend	: ps
+figure.figsize : 8,11
+axes.grid : False
+
+lines.antialiased : True
+font.family : serif
+font.style : normal
+font.variant : small-caps
+font.weight : 500
+font.stretch : condensed
+font.size : 18.0
+font.serif : Bitstream Vera serif
+font.monospace : Andale Mono
+
+#text.usetex : True
+
+#axes.facecolor : eeeeee
+#axes.edgecolor : bcbcbc
+axes.linewidth : 1.5
+axes.titlesize : x-large
+axes.labelsize : medium
+#axes.labelcolor : 555555
+axes.axisbelow : True
+
+xtick.major.size : 0
+xtick.major.width: 2
+xtick.major.pad  : 6
+xtick.minor.size : 0
+xtick.minor.width: 2
+xtick.minor.pad  : 6
+#xtick.color 	 : 555555
+xtick.labelsize  : 13
+xtick.direction  : out
+
+
+ytick.major.size : 0
+ytick.major.width: 2
+ytick.major.pad  : 6
+ytick.minor.size : 0
+ytick.minor.width: 2
+ytick.minor.pad  : 6
+#ytick.color     : 555555
+ytick.labelsize  : 13
+ytick.direction  : out
+
+legend.frameon   : False
+legend.isaxes    : True
+legend.numpoints : 1
+legend.fontsize  : large
+legend.markerscale : 3.0
+legend.handlelength: 0.5
+
