@@ -447,10 +447,10 @@ class KSelection():
                 self.evaluationModule()
             values = self.p_a_mb/np.sum(self.p_a_mb)
         self.current_action = self.sample(values)
-        self.value[-1].append(values)
+        
         self.action[-1].append(self.actions[self.current_action])
         self.reaction[-1].append(self.nb_inferences)
-        self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
+        #self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
         return self.action[-1][-1]
 
     def updateValue(self, reward):
