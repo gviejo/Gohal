@@ -61,12 +61,14 @@ very_good_parameters = dict({'noise':0.0001,
                     'threshold':4.0,
                     'gain':2.0})
 parameters = dict({'noise':0.0001,
-                    'length':20,
-                    'alpha':0.8,
+                    'length':8,
+                    'alpha':0.9,
                     'beta':2.0,
                     'gamma':0.4,
-                    'threshold':4.0,
-                    'gain':2.0})
+                    'gain':2.0,
+                    'sigma_bwm':0.1,
+                    'sigma_ql':0.1})
+
 
 # noise = 0.1
 # length = 9
@@ -80,7 +82,7 @@ nb_trials = 42
 nb_blocs = 100
 cats = CATS(nb_trials)
 
-model = FSelection(cats.states, cats.actions, very_good_parameters)
+model = FSelection(cats.states, cats.actions, parameters)
 
 # -----------------------------------
 
