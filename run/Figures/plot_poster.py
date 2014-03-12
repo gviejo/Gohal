@@ -46,14 +46,14 @@ p_selection = {'beta': 4,
                 'sigma_bwm': 0.3,
                 'sigma_ql': 0.060008,
                 'threshold': 0.40118970201892307}
-p_fusion = dict({'noise':0.0001,
-                'length':9,
-                'alpha':0.7,
-                'beta':2.0,
-                'gamma':0.4,
-                'gain':1.0,
+p_fusion = dict({'noise':0.1,
+                'length':8,
+                'alpha':0.88,
+                'beta':2.01,
+                'gamma':0.65,
+                'gain':0.86,
                 'sigma_bwm':0.1,
-                'sigma_ql':0.1})
+                'sigma_ql':0.09})
 p_bayes = {'length': 9,
                 'noise': 0.01,
                 'sigma': 0.1500005,
@@ -64,7 +64,7 @@ p_ql = {'alpha': 0.9,
                 'sigma': 0.0900007}    
 
 nb_trials = 39
-nb_blocs = 10
+nb_blocs = 20
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions, p_fusion),
                     "qlearning":QLearning(cats.states, cats.actions, p_ql),
@@ -100,7 +100,7 @@ for m in models.keys():
 
 fig = plt.figure()
 
-dashes = {'fusion':'-','selection':'-*','bayesian':'-','qlearning':'-*'}
+dashes = {'fusion':'-','selection':'--','bayesian':'-','qlearning':'--'}
 
 colors = ['blue','red','green']
 line1 = tuple([plt.Line2D(range(2),range(2),linestyle=dashes[m],alpha=1.0,color='black') for m in ['bayesian', 'qlearning']])

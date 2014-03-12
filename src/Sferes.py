@@ -162,8 +162,8 @@ class pareto():
         self.p_test = dict()
         self.mixed = dict()
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
-        # self.loadData()        
-        self.simpleLoadData()
+        self.loadData()        
+        #self.simpleLoadData()
         self.constructParetoFrontier()        
         self.constructMixedParetoFrontier()
 
@@ -171,13 +171,13 @@ class pareto():
         model_in_folders = os.listdir(self.directory)
         if len(model_in_folders) == 0:
             sys.exit("No model found in directory "+self.directory)
-        self.simpleLoadData()
+        #self.simpleLoadData()
 
-        # pool = Pool(len(model_in_folders))
-        # #tmp = pool.map(unwrap_self_load_data, zip([self]*len(model_in_folders), model_in_folders))
-        # tmp = [self.loadPooled(m) for m in model_in_folders]
-        # for d in tmp:
-        #     self.data[d.keys()[0]] = d[d.keys()[0]]
+        pool = Pool(len(model_in_folders))
+        tmp = pool.map(unwrap_self_load_data, zip([self]*len(model_in_folders), model_in_folders))
+        #tmp = [self.loadPooled(m) for m in model_in_folders]
+        for d in tmp:
+            self.data[d.keys()[0]] = d[d.keys()[0]]
 
     def simpleLoadData(self):
         model_in_folders = os.listdir(self.directory)
@@ -209,7 +209,7 @@ class pareto():
             s = r.split("_")[3]
             n = int(r.split("_")[4].split(".")[0])
             data[m][s] = dict()
-            filename = self.directory+"/"+m+"/"+r
+            filename = self.directory+"/"+m+"/"+r            
             nb_ind = int(self.tail(filename, 1)[0].split(" ")[1])
             last_gen = np.array(map(lambda x: x[0:-1].split(" "), self.tail(filename, nb_ind+1))).astype('float')
             if s in data[m].keys():
