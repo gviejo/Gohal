@@ -239,7 +239,7 @@ class BayesianWorkingMemory():
         self.bounds = dict({"length":[6, 11], 
                             "threshold":[0.0, self.initial_entropy], 
                             "noise":[0.0, 0.1],
-                            "sigma":[0.000001, 0.3]})
+                            "sigma":[0.000001, 1.0]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.values = np.ones(self.n_action)*(1./self.n_action)    
@@ -347,7 +347,8 @@ class BayesianWorkingMemory():
             sigma[self.nb_inferences] = float(self.parameters['sigma'])
 
         pdf = np.array(pdf)
-        pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
+        #pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
+        pdf = pdf/pdf.sum()
 
         self.pdf.append(pdf)
         self.value.append(value)

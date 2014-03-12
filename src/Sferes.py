@@ -46,10 +46,12 @@ class EA():
         self.rt_model = np.tile(np.arange(int(self.model.parameters['length'])+1), (self.n_trials*self.n_blocs, 1))        
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
-        self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])                        
-        self.hist, self.edges = np.histogram(self.rt, 100)
+        self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
+        self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
+        #self.hist, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max(), self.bin_size))
+        self.edges = np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size)
         self.position = np.digitize(self.rt, self.edges, True)
-        self.d = None
+        
         
     def getFitness(self):
         np.seterr(all = 'ignore')
@@ -80,10 +82,10 @@ class EA():
 
     def computeDistance(self):
         sup = self.edges[self.position]
-        self.sup = sup
-        size_bin = self.edges[1]-self.edges[0]
+        #self.sup = sup
+        #size_bin = self.edges[1]-self.edges[0]        
         sup = np.tile(np.vstack(sup), int(self.model.parameters['length'])+1)
-        self.d = norm.cdf(sup, self.rt_model, self.model.sigma)-norm.cdf(sup-size_bin, self.rt_model, self.model.sigma)
+        self.d = norm.cdf(sup, self.rt_model, self.model.sigma)-norm.cdf(sup-self.bin_size, self.rt_model, self.model.sigma)
         self.d[np.isnan(self.d)] = 0.0
 
 

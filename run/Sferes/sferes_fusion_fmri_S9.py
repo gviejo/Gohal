@@ -13,7 +13,7 @@ from scipy.stats import norm
 p_order = ['alpha','beta', 'gamma', 'noise','length','gain','sigma_bwm', 'sigma_ql']
 
 #p = map(float, "0.784762 0.245554 0.815565 0 1 1 0.610446 0.170918".split(" "))
-p = map(float, "1 0.0175643 1 0.0498217 0 0.0915673 1 1".split(" "))
+p = map(float, "0.0254566 1 1 0.968217 0 0.886749 0.172922 0.77688".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]
@@ -50,7 +50,7 @@ c = c.astype('float')
 c = c/c.sum()
 n = n[1:]-((n[1]-n[0])/2)
 plot(n, c)
-#axvline(h)
+axvline(h)
 
 
 edges = opt.edges

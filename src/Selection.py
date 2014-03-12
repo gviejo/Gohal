@@ -177,7 +177,8 @@ class FSelection():
             pdf[self.nb_inferences] = float(self.pA)
         
         pdf = np.array(pdf)
-        pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
+        #pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
+        pdf = pdf/pdf.sum()
         
         self.pdf.append(pdf)
         self.value.append(value)
@@ -261,8 +262,8 @@ class KSelection():
                             "threshold":[0.0, -np.log2(1./self.n_action)], 
                             "noise":[0.0, 0.1],
                             "sigma":[0.0,1.0],
-                            "sigma_bwm":[0.00001, 0.3],
-                            "sigma_ql":[0.00001, 0.3]})        
+                            "sigma_bwm":[0.00001, 1.0],
+                            "sigma_ql":[0.00001, 1.0]})        
         self.var_obs = var_obs
         self.init_cov = init_cov
         self.kappa = kappa
@@ -423,7 +424,8 @@ class KSelection():
             sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
 
         pdf = np.array(pdf)
-        pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
+        #pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
+        pdf = pdf/pdf.sum()
 
         self.pdf.append(pdf)
         self.value.append(value)
