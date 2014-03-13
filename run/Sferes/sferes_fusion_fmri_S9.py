@@ -4,7 +4,7 @@ import sys
 
 sys.path.append("../../src")                                            
 from HumanLearning import HLearning                                                 
-from Sferes import EA
+from Sferes import EA, RBM
 from Models import *                                                                
 from Selection import *
 from matplotlib import *
@@ -13,7 +13,7 @@ from scipy.stats import norm
 p_order = ['alpha','beta', 'gamma', 'noise','length','gain','sigma_bwm', 'sigma_ql']
 
 #p = map(float, "0.784762 0.245554 0.815565 0 1 1 0.610446 0.170918".split(" "))
-p = map(float, "0.0254566 1 1 0.968217 0 0.886749 0.172922 0.77688".split(" "))
+p = map(float, "0.118246 0.897181 0.946751 0.595232 0.092146 0.922554 0.126166 0.341448".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]
@@ -27,8 +27,17 @@ for p in parameters.iterkeys():
 model.setAllParameters(parameters)
 
 opt = EA(human.subject['fmri']['S9'], 'S9', model)
-
 llh, lrs = opt.getFitness()
+
+xx = np.zeros((156,opt.position.max()+1))
+for i in xrange(len(opt.position)):
+	xx[i][opt.position[i]] = 1.0
+yy = model.pdf
+
+bolt = RBM(xx, yy)
+sys.exit()
+
+
 
 print llh, lrs
 
@@ -39,23 +48,24 @@ plot(opt.rt)
 
 subplot(312)
 m = opt.rt_model[0]
-h = opt.rt[15]
+
 x = np.arange(-5, 10, 0.01)
 # def f(x, u, v):
 #     return (1/np.sqrt(2*pi*v))*np.exp(-0.5*np.power((x-u)/v, 2))
 # [plot(x, f(x, i, model.parameters['sigma_ql'])) for i in [m[0]]]
 # [plot(x, f(x, i, model.parameters['sigma_bwm'])) for i in m[1:]]
-c, n = np.histogram(opt.rt, 100)
+c, n = np.histogram(opt.rt, opt.edges)
 c = c.astype('float')
 c = c/c.sum()
 n = n[1:]-((n[1]-n[0])/2)
 plot(n, c)
-axvline(h)
 
 
-edges = opt.edges
-size = edges[1]-edges[0]
-[plot(edges, np.array([norm.cdf(i, j, model.parameters['sigma_ql'])-norm.cdf(i-size, j, model.parameters['sigma_ql']) for i in edges]), 'o-') for j in m]
+[plot(opt.edges, np.array([norm.cdf(i, j, model.parameters['sigma_ql'])-norm.cdf(i-opt.bin_size, j, model.parameters['sigma_ql']) for i in opt.edges]), 'o-') for j in m]
+
+
+
+subplot(313)
+plot(opt.rt, opt.s, 'o')
 
 show()
-

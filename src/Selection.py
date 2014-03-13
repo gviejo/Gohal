@@ -192,24 +192,27 @@ class FSelection():
         self.Hf = computeEntropy(self.values_mf[self.current_state], self.parameters['beta'])
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
+
         pdf = np.zeros(int(self.parameters['length'])+1)
-        pdf[self.nb_inferences] = 1.0
+        
         while self.sigmoideModule():
+            pdf[self.nb_inferences] = float(self.pA)
             self.inferenceModule()
             self.evaluationModule()
-            pdf[self.nb_inferences] = 1.0 - float(self.pA)            
+        pdf[self.nb_inferences] = float(self.pA)            
         self.fusionModule()
         self.current_action = self.sample(self.p_a)        
         self.action[-1].append(self.actions[self.current_action])                
         self.reaction[-1].append(self.nb_inferences)
         self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
 
-        while self.nb_inferences < self.n_element:
-            d = self.sigmoideModule()
+        while self.nb_inferences < self.n_element:            
             self.inferenceModule()
             self.evaluationModule()
-            pdf[self.nb_inferences] = 1.0 - float(self.pA)            
-        pdf = np.cumprod(pdf)
+            d = self.sigmoideModule()
+            pdf[self.nb_inferences] = float(self.pA)            
+        
+        pdf = pdf/pdf.sum()
         self.pdf.append(pdf)
         return self.action[-1][-1]
 
@@ -321,6 +324,7 @@ class KSelection():
         self.reaction.append([])
         self.vpi.append([])
         self.rrate.append([])
+        self.sigma_test.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -440,6 +444,11 @@ class KSelection():
         t =self.n_action*self.current_state
         vpi = computeVPIValues(self.values_mf[self.current_state], self.covariance['cov'].diagonal()[t:t+self.n_action])
         self.vpi[-1].append(vpi)
+
+        pdf = np.zeros(int(self.parameters['length'])+1)
+        d = (np.sum(vpi > self.reward_rate[self.current_state])>0)*(self.nb_inferences < self.n_element)*1.0
+        pdf[self.nb_inferences] = 1.0-float(d)
+
         if np.sum(vpi > self.reward_rate[self.current_state]):
             self.p = self.uniform[:,:,:]
             self.Hb = self.max_entropy            
@@ -447,12 +456,22 @@ class KSelection():
             while self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element:
                 self.inferenceModule()
                 self.evaluationModule()
+                d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
+                pdf[self.nb_inferences] = 1.0-float(d)
             values = self.p_a_mb/np.sum(self.p_a_mb)
-        self.current_action = self.sample(values)
-        
+        self.current_action = self.sample(values)        
         self.action[-1].append(self.actions[self.current_action])
         self.reaction[-1].append(self.nb_inferences)
-        #self.sigma[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
+        self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
+        
+        while self.nb_inferences < self.n_element:            
+            self.inferenceModule()
+            self.evaluationModule()
+            d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
+            pdf[self.nb_inferences] = 1.0-float(d)            
+
+        pdf = pdf/pdf.sum()
+        self.pdf.append(pdf)
         return self.action[-1][-1]
 
     def updateValue(self, reward):

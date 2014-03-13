@@ -48,11 +48,17 @@ class EA():
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
         self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
-        #self.hist, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max(), self.bin_size))
-        self.edges = np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size)
-        self.position = np.digitize(self.rt, self.edges, True)
-        
-        
+        self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))
+        self.mass = self.mass/float(self.mass.sum())
+        self.center = self.edges[1:]-(self.bin_size/2.)
+        self.center = np.insert(self.center, 0, 0.0)
+        self.mass = np.insert(self.mass, 0, 0.0)
+        self.center = np.append(self.center, 10.0)
+        self.mass = np.append(self.mass, 0.0)
+        self.position = np.digitize(self.rt, self.center)
+        self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
+        self.computeSelfInformation()
+
     def getFitness(self):
         np.seterr(all = 'ignore')
         self.model.startExp()
@@ -66,10 +72,13 @@ class EA():
         self.model.value = np.array(self.model.value)
         self.model.pdf = np.array(self.model.pdf)
         
+
+        return 1,1
+
         tmp = np.log(np.sum(self.model.pdf*self.model.value, 1))        
         tmp[np.isinf(tmp)] = -1000.0
         choice = np.sum(tmp)
-                
+        
         self.alignToMedian()        
         self.computeDistance()        
         tmp = np.log(np.sum(self.model.pdf*self.d, 1))
@@ -79,6 +88,10 @@ class EA():
         rt = np.sum(tmp)
 
         return choice, rt
+
+    def computeSelfInformation(self):        
+        self.prt = np.array([self.f(self.rt[i], self.center[self.position[i]-1], self.center[self.position[i]], self.mass[self.position[i]-1], self.mass[self.position[i]]) for i in xrange(len(self.rt))])
+        self.s = -np.log2(self.prt)
 
     def computeDistance(self):
         sup = self.edges[self.position]
@@ -133,7 +146,67 @@ class EA():
             self.rt_model = self.rt_model/np.std(self.rt_model)
         self.rt = self.rt/np.std(self.rt)                
 
+class RBM():
+    """
+    Restricted Boltzman machine
+    x : Human reaction time
+    y : Model Inference
+    """
+    def __init__(self, x, y, nh = 5, nb_iter = 1000, epsilon = 0.01):
+        # Parameters
+        self.nh = nh
+        self.nb_iter = nb_iter
+        self.epsilon = epsilon
+        # data
+        self.xx = x
+        self.yy = y                
+        # Weights
+        self.W = np.random.rand(self.nh, self.xx.shape[1])
+        self.U = np.random.rand(self.nh, self.yy.shape[1])
+        # Gradient
+        self.Wpos = np.zeros((self.nh,self.xx.shape[1]))
+        self.Wneg = np.zeros((self.nh,self.xx.shape[1]))
+        self.Upos = np.zeros((self.nh,self.yy.shape[1]))
+        self.Uneg = np.zeros((self.nh,self.yy.shape[1]))
+        # Biais
+        self.b = np.random.rand(self.xx.shape[1])
+        self.c = np.random.rand(self.nh)
+        self.d = np.random.rand(self.yy.shape[1])
+        # Various Init
+        self.training_order = np.random.randint(self.xx.shape[0], size = self.nb_iter)
+        
+    
 
+    def train(self):
+        for e in xrange(self.nb_iter):
+            self.Wpos = np.zeros((self.nh,self.xx.shape[1]))
+            self.Wneg = np.zeros((self.nh,self.xx.shape[1]))
+            self.Upos = np.zeros((self.nh,self.yy.shape[1]))
+            self.Uneg = np.zeros((self.nh,self.yy.shape[1]))
+            for i in xrange(self.xx.shape[0]):
+                print i
+                # Positive Phase            
+                self.h = self.c + np.dot(self.W, self.xx[i]) + np.dot(self.U, self.yy[i])            
+                self.h = 1.0/(1.0+np.exp(-self.h))            
+                # Negative Phase
+                self.h = (self.h>np.random.rand())*1.0
+                self.x = self.b+np.dot(self.h,self.W)
+                self.y = self.d+np.dot(self.h,self.U)
+                h = self.c+np.dot(self.W, self.x)+np.dot(self.U, self.y)
+                h = 1.0/(1.0+np.exp(-h))                
+                self.Wpos = self.Wpos + np.vstack(self.h)*self.xx[i]
+                self.Wneg = self.Wneg + np.vstack(h)*self.x
+                self.Upos = self.Upos + np.vstack(self.h)*self.yy[i]
+                self.Upos = self.Upos + np.vstack(h)*self.y
+            # Update phase
+            self.Wpos = self.Wpos/float(self.xx.shape[0])
+            self.Wneg = self.Wneg/float(self.xx.shape[0])
+            self.Upos = self.Upos/float(self.yy.shape[0])
+            self.Uneg = self.Uneg/float(self.yy.shape[0])
+            self.W = self.W-self.epsilon*(self.Wpos-self.Wneg)
+            self.U = self.U-self.epsilon*(self.Upos-self.Uneg)
+
+    
 
 
 class pareto():
@@ -355,9 +428,6 @@ class pareto():
     #     self.models[m].reaction = x.reshape(n_blocs, n_trials)
 
     def alignToMedian(self, m, s, n_blocs, n_trials):
-        xx = np.array(self.models[m].reaction).flatten()
-        yy = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                
-        b = np.arange(int(self.models[m].parameters['length'])+1)
         p = np.sum(np.array(self.models[m].pdf), 0)
         p = p/p.sum()        
         wp = []
@@ -368,20 +438,19 @@ class pareto():
                 wp.append(0.0)
             else:
                 wp.append(f(i))              
-
+        yy = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                                
+        xx = np.array(self.models[m].reaction).flatten()
+        b = np.arange(int(self.models[m].parameters['length'])+1)
         wh = [np.percentile(yy, i) for i in [25, 75]]
-        
         if (wp[1]-wp[0]):
             xx = xx*((wh[1]-wh[0])/(wp[1]-wp[0]))
             b = b*((wh[1]-wh[0])/(wp[1]-wp[0]))
-        
         f = lambda x: (x*(b[np.sum(tmp<x)]-b[np.sum(tmp<x)-1])-b[np.sum(tmp<x)]*tmp[np.sum(tmp<x)-1]+b[np.sum(tmp<x)-1]*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-        
         half = f(0.5) if np.min(tmp)<0.5 else 0.0        
         
         xx = xx-(half-np.median(yy))
-        self.yy = yy
         self.models[m].reaction = xx.reshape(n_blocs, n_trials)
+
 
     def run(self, plot=True):
         nb_blocs = 4
@@ -404,6 +473,7 @@ class pareto():
                     self.models[m].updateValue(reward)
             
             self.alignToMedian(m, s, nb_blocs, nb_trials)
+
             self.reaction = np.random.normal(self.models[m].reaction, np.array(self.models[m].sigma_test))
             
             for i in xrange(nb_blocs):
