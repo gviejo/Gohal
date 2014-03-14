@@ -29,15 +29,22 @@ model.setAllParameters(parameters)
 
 opt = EA(human.subject['fmri']['S9'], 'S9', model)
 llh, lrs = opt.getFitness()
-print llh, lrs
-sys.exit()
+
 
 xx = np.zeros((156,opt.position.max()+1))
 for i in xrange(len(opt.position)):
 	xx[i][opt.position[i]] = 1.0
 yy = model.pdf
 
-bolt = RBM(xx, yy)
+# xx = np.zeros((100, 2))
+# xx[0:50] = np.random.beta(0.5, 5, size = (50, 2))
+# xx[50:] = np.random.beta(5, 0.5, size = (50, 2))
+# yy = np.zeros((100, 1))
+# yy[0:50] = np.random.beta(0.5, 5, size = (50, 1))
+# yy[50:] = np.random.beta(5, 0.5, size = (50, 1))
+
+
+bolt = RBM(xx, yy, nb_iter = 10000)
 bolt.train()
 sys.exit()
 

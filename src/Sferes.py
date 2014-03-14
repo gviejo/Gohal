@@ -162,65 +162,62 @@ class RBM():
     x : Human reaction time
     y : Model Inference
     """
-    def __init__(self, x, y, nh = 5, nb_iter = 1000, epsilon = 0.01):
+    def __init__(self, x, y, nh = 10, nb_iter = 1000, epsilon = 0.000001):
         # Parameters
         self.nh = nh
         self.nb_iter = nb_iter
         self.epsilon = epsilon
         # data
-        self.xx = x
-        self.yy = y                
+        self.nx = x.shape[1]
+        self.ny = y.shape[1]
+        self.x = np.hstack((x, y))
         # Weights
-        self.W = np.random.rand(self.nh, self.xx.shape[1])
-        self.U = np.random.rand(self.nh, self.yy.shape[1])
+        self.W = np.random.rand(self.nh, self.x.shape[1])        
         # Gradient
-        self.Wpos = np.zeros((self.nh,self.xx.shape[1]))
-        self.Wneg = np.zeros((self.nh,self.xx.shape[1]))
-        self.Upos = np.zeros((self.nh,self.yy.shape[1]))
-        self.Uneg = np.zeros((self.nh,self.yy.shape[1]))
+        self.Wpos = np.zeros((self.nh,self.x.shape[1]))
+        self.Wneg = np.zeros((self.nh,self.x.shape[1]))        
         # Biais
-        self.b = np.random.rand(self.xx.shape[1])
-        self.c = np.random.rand(self.nh)
-        self.d = np.random.rand(self.yy.shape[1])
-        # Various Init
-        self.training_order = np.random.randint(self.xx.shape[0], size = self.nb_iter)
-        
-    
+        self.b = np.random.rand(self.x.shape[1])
+        self.c = np.random.rand(self.nh)                
+        self.order = np.random.randint(self.x.shape[0], size = self.nb_iter)    
+        self.dw = np.zeros(shape=self.W.shape)
+        self.db = np.zeros(shape=self.b.shape)
+        self.dc = np.zeros(shape=self.c.shape)
+        self.momentum = 0.99
 
     def train(self):
-        for e in xrange(self.nb_iter):
-            print e
-            self.Wpos = np.zeros((self.nh,self.xx.shape[1]))
-            self.Wneg = np.zeros((self.nh,self.xx.shape[1]))
-            self.Upos = np.zeros((self.nh,self.yy.shape[1]))
-            self.Uneg = np.zeros((self.nh,self.yy.shape[1]))
+        for i in xrange(self.order.shape[0]):
+            # Positive Phase            
+            self.h0 = self.c + np.dot(self.x, self.W.T)
+            self.h0 = 1.0/(1.0+np.exp(-self.h0))   
+            # Negative Phase
+            self.h0 = (self.h0>np.random.rand(self.h0.shape[0], self.h0.shape[1]))*1.0
+            self.x1 = self.b+np.dot(self.h0, self.W)
+            self.x1 = 1.0/(1.0+np.exp(-self.x1))                                
+            self.h1 = self.c+np.dot(self.x1,self.W.T)
+            self.h1 = 1.0/(1.0+np.exp(-self.h1))            
+            # Update phase            
+            self.dw = self.momentum*self.dw+self.epsilon*(np.dot(self.h0.T, self.x) - np.dot(self.h1.T,self.x1))
+            self.db = self.momentum*self.db+self.epsilon*np.mean((self.x-self.x1), 0)
+            self.dc = self.momentum*self.dc+self.epsilon*np.mean((self.h0-self.h1), 0)
+            self.W = self.W+self.dw#self.epsilon*(np.dot(self.h0.T, self.x) - np.dot(self.h1.T,self.x1))
+            self.c = self.c+self.dc#self.epsilon*np.mean((self.h0-self.h1), 0)
+            self.b = self.b+self.db#self.epsilon*np.mean((self.x-self.x1), 0)
+            
+            if i%100 == 0:
+                self.test(i)
 
-            for i in xrange(self.xx.shape[0]):
-                # Positive Phase            
-                self.h = self.c + np.dot(self.W, self.xx[i]) + np.dot(self.U, self.yy[i])            
-                self.h = 1.0/(1.0+np.exp(-self.h))            
-                # Negative Phase
-                self.h = (self.h>np.random.rand())*1.0
-                self.x = self.b+np.dot(self.h,self.W)
-                self.y = self.d+np.dot(self.h,self.U)
-                h = self.c+np.dot(self.W, self.x)+np.dot(self.U, self.y)
-                h = 1.0/(1.0+np.exp(-h))                
-                self.Wpos = self.Wpos + np.vstack(self.h)*self.xx[i]
-                self.Wneg = self.Wneg + np.vstack(h)*self.x
-                self.Upos = self.Upos + np.vstack(self.h)*self.yy[i]
-                self.Upos = self.Upos + np.vstack(h)*self.y
-            # Update phase
-            self.Wpos = self.Wpos/float(self.xx.shape[0])
-            self.Wneg = self.Wneg/float(self.xx.shape[0])
-            self.Upos = self.Upos/float(self.yy.shape[0])
-            self.Uneg = self.Uneg/float(self.yy.shape[0])
-            self.W = self.W-self.epsilon*(self.Wpos-self.Wneg)
-            self.U = self.U-self.epsilon*(self.Upos-self.Uneg)
-            if e%10 == 0:
-                self.test()
+    def test(self, i):
+        h = self.c+np.dot(self.x, self.W.T)
+        h = 1.0/(1.0+np.exp(-h))
+        h = (h>0.5)*1.0
+        x = self.b+np.dot(h, self.W)
+        x = 1.0/(1.0+np.exp(-x))
+        self.t = x
+        
+        error = np.sum(np.power(x-self.x, 2))
+        print "Epoch "+str(i)+" error = "+str(error)
 
-    def test(self):
-        h = self.c+np.dot(self.xx, self.W.T)+np.dot(self.yy, self.U.T)
 
 
 
