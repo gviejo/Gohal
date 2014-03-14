@@ -28,6 +28,8 @@ model.setAllParameters(parameters)
 
 opt = EA(human.subject['fmri']['S9'], 'S9', model)
 llh, lrs = opt.getFitness()
+print llh, lrs
+sys.exit()
 
 xx = np.zeros((156,opt.position.max()+1))
 for i in xrange(len(opt.position)):
@@ -35,11 +37,12 @@ for i in xrange(len(opt.position)):
 yy = model.pdf
 
 bolt = RBM(xx, yy)
+bolt.train()
 sys.exit()
 
 
 
-print llh, lrs
+
 
 figure()
 subplot(311)

@@ -50,14 +50,15 @@ class EA():
         self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
         self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))
         self.mass = self.mass/float(self.mass.sum())
-        self.center = self.edges[1:]-(self.bin_size/2.)
-        self.center = np.insert(self.center, 0, 0.0)
-        self.mass = np.insert(self.mass, 0, 0.0)
-        self.center = np.append(self.center, 10.0)
-        self.mass = np.append(self.mass, 0.0)
-        self.position = np.digitize(self.rt, self.center)
-        self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
-        self.computeSelfInformation()
+        #self.center = self.edges[1:]-(self.bin_size/2.)
+        #self.center = np.insert(self.center, 0, 0.0)
+        #self.mass = np.insert(self.mass, 0, 0.0)
+        #self.center = np.append(self.center, 10.0)
+        #self.mass = np.append(self.mass, 0.0)
+        #self.position = np.digitize(self.rt, self.center)
+        self.position = np.digitize(self.rt, self.edges)-1
+        #self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
+        #self.computeSelfInformation()
 
     def getFitness(self):
         np.seterr(all = 'ignore')
@@ -72,22 +73,31 @@ class EA():
         self.model.value = np.array(self.model.value)
         self.model.pdf = np.array(self.model.pdf)
         
-
-        return 1,1
-
         tmp = np.log(np.sum(self.model.pdf*self.model.value, 1))        
         tmp[np.isinf(tmp)] = -1000.0
         choice = np.sum(tmp)
         
-        self.alignToMedian()        
-        self.computeDistance()        
-        tmp = np.log(np.sum(self.model.pdf*self.d, 1))
+        rt = self.computeMutualInformation()
+
+        #self.alignToMedian()        
+        #self.computeDistance()        
+        #tmp = np.log(np.sum(self.model.pdf*self.d, 1))
 
         
-        tmp[np.isinf(tmp)] = -1000.0
-        rt = np.sum(tmp)
+        #tmp[np.isinf(tmp)] = -1000.0
+        #rt = np.sum(tmp)
 
         return choice, rt
+
+    def computeMutualInformation(self):
+        py = np.sum(self.model.pdf, 0)
+        py = py/py.sum()
+        p = np.zeros((self.mass.shape[0], py.shape[0]))
+        for i in xrange(len(self.position)): p[self.position[i]] += self.model.pdf[i]
+        p = p/p.sum()
+        tmp = np.log2(p/(np.vstack(self.mass)*py))        
+        tmp[np.isinf(tmp)] = 0.0
+        return np.sum(p*tmp)        
 
     def computeSelfInformation(self):        
         self.prt = np.array([self.f(self.rt[i], self.center[self.position[i]-1], self.center[self.position[i]], self.mass[self.position[i]-1], self.mass[self.position[i]]) for i in xrange(len(self.rt))])
@@ -179,12 +189,13 @@ class RBM():
 
     def train(self):
         for e in xrange(self.nb_iter):
+            print e
             self.Wpos = np.zeros((self.nh,self.xx.shape[1]))
             self.Wneg = np.zeros((self.nh,self.xx.shape[1]))
             self.Upos = np.zeros((self.nh,self.yy.shape[1]))
             self.Uneg = np.zeros((self.nh,self.yy.shape[1]))
+
             for i in xrange(self.xx.shape[0]):
-                print i
                 # Positive Phase            
                 self.h = self.c + np.dot(self.W, self.xx[i]) + np.dot(self.U, self.yy[i])            
                 self.h = 1.0/(1.0+np.exp(-self.h))            
@@ -205,8 +216,12 @@ class RBM():
             self.Uneg = self.Uneg/float(self.yy.shape[0])
             self.W = self.W-self.epsilon*(self.Wpos-self.Wneg)
             self.U = self.U-self.epsilon*(self.Upos-self.Uneg)
+            if e%10 == 0:
+                self.test()
 
-    
+    def test(self):
+        h = self.c+np.dot(self.xx, self.W.T)+np.dot(self.yy, self.U.T)
+
 
 
 class pareto():
