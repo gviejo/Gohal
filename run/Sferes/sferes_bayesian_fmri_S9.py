@@ -10,7 +10,7 @@ from Selection import *
 from matplotlib import *
 from pylab import *
 
-p_order = ['length', 'noise', 'threshold', 'sigma']
+p_order = ['length', 'noise', 'threshold']
 
 p = map(float, "0.5 0.5 0.5 0.5".split(" "))
 tmp = dict()

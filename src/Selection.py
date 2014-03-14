@@ -33,9 +33,9 @@ class FSelection():
                             "length":[6, 11],
                             #"threshold":[0.00001, 100.0], 
                             "noise":[0.0, 0.1],
-                            "gain":[0.00001, 10.0],
-                            "sigma_bwm":[0.00001, 1.0],
-                            "sigma_ql":[0.00001, 1.0]})
+                            "gain":[0.00001, 10.0]})
+                            #"sigma_bwm":[0.00001, 1.0],
+                            #"sigma_ql":[0.00001, 1.0]})
                             
 
         #Probability Initialization
@@ -66,8 +66,8 @@ class FSelection():
         self.reaction = list()
         self.value = list()
         self.pdf = list()
-        self.sigma = list()
-        self.sigma_test = list()
+        #self.sigma = list()
+        #self.sigma_test = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -87,7 +87,7 @@ class FSelection():
         self.action.append([])
         self.responses.append([])
         self.reaction.append([])
-        self.sigma_test.append([])
+        #self.sigma_test.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -107,8 +107,8 @@ class FSelection():
         self.reaction = list()
         self.value = list()        
         self.pdf = list()
-        self.sigma = list()
-        self.sigma_test = list()
+        #self.sigma = list()
+        #self.sigma_test = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -159,20 +159,20 @@ class FSelection():
         
         value = np.zeros(int(self.parameters['length']+1))        
         pdf = np.zeros(int(self.parameters['length'])+1)
-        sigma = np.zeros(int(self.parameters['length']+1))
+        #sigma = np.zeros(int(self.parameters['length']+1))
 
         d = self.sigmoideModule()
         pdf[self.nb_inferences] = float(self.pA)
         self.fusionModule()
         value[self.nb_inferences] = float(self.p_a[self.current_action])        
-        sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
+        #sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
 
         while self.nb_inferences < self.n_element:
             self.inferenceModule()
             self.evaluationModule()
             self.fusionModule()
             value[self.nb_inferences] = float(self.p_a[self.current_action])        
-            sigma[self.nb_inferences] = float(self.parameters['sigma_bwm'])
+            #sigma[self.nb_inferences] = float(self.parameters['sigma_bwm'])
             d = self.sigmoideModule()
             pdf[self.nb_inferences] = float(self.pA)
         
@@ -182,7 +182,7 @@ class FSelection():
         
         self.pdf.append(pdf)
         self.value.append(value)
-        self.sigma.append(sigma)        
+        #self.sigma.append(sigma)        
                 
     def chooseAction(self, state):
         self.state[-1].append(state)
@@ -204,7 +204,7 @@ class FSelection():
         self.current_action = self.sample(self.p_a)        
         self.action[-1].append(self.actions[self.current_action])                
         self.reaction[-1].append(self.nb_inferences)
-        self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
+        #self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
 
         while self.nb_inferences < self.n_element:            
             self.inferenceModule()
@@ -264,9 +264,9 @@ class KSelection():
                             "length":[6, 11],
                             "threshold":[0.0, -np.log2(1./self.n_action)], 
                             "noise":[0.0, 0.1],
-                            "sigma":[0.0,1.0],
-                            "sigma_bwm":[0.00001, 1.0],
-                            "sigma_ql":[0.00001, 1.0]})        
+                            "sigma":[0.0,1.0]})
+                            #"sigma_bwm":[0.00001, 1.0],
+                            #"sigma_ql":[0.00001, 1.0]})        
         self.var_obs = var_obs
         self.init_cov = init_cov
         self.kappa = kappa
@@ -301,8 +301,8 @@ class KSelection():
         self.value = list()
         self.vpi = list()
         self.rrate = list()
-        self.sigma = list()
-        self.sigma_test = list()
+        #self.sigma = list()
+        #self.sigma_test = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -324,7 +324,7 @@ class KSelection():
         self.reaction.append([])
         self.vpi.append([])
         self.rrate.append([])
-        self.sigma_test.append([])
+        #self.sigma_test.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -345,8 +345,8 @@ class KSelection():
         self.value = list()   
         self.vpi = list()
         self.rrate = list() 
-        self.sigma = list()    
-        self.sigma_test = list()
+        #self.sigma = list()    
+        #self.sigma_test = list()
         self.pdf = list()
 
     def sampleSoftMax(self, values):
@@ -410,14 +410,14 @@ class KSelection():
         
         value = np.zeros(int(self.parameters['length']+1))
         pdf = np.zeros(int(self.parameters['length'])+1)
-        sigma = np.zeros(int(self.parameters['length']+1))
+        #sigma = np.zeros(int(self.parameters['length']+1))
         
         # 1ere transition should be made outside the while
         d = (np.sum(vpi > self.reward_rate[self.current_state])>0)*(self.nb_inferences < self.n_element)*1.0
         values = self.softMax(self.values_mf[self.current_state])
         value[self.nb_inferences] = float(values[self.current_action])
         pdf[self.nb_inferences] = 1.0-float(d)
-        sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
+        #sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
                 
         while self.nb_inferences < self.n_element:
             self.inferenceModule()
@@ -425,7 +425,7 @@ class KSelection():
             d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
             pdf[self.nb_inferences] = 1.0-float(d)
             value[self.nb_inferences] = float(self.values[self.current_action])
-            sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
+            #sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
 
         pdf = np.array(pdf)
         pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
@@ -433,7 +433,7 @@ class KSelection():
 
         self.pdf.append(pdf)
         self.value.append(value)
-        self.sigma.append(sigma)
+        #self.sigma.append(sigma)
 
     def chooseAction(self, state):
         self.state[-1].append(state)
@@ -462,7 +462,7 @@ class KSelection():
         self.current_action = self.sample(values)        
         self.action[-1].append(self.actions[self.current_action])
         self.reaction[-1].append(self.nb_inferences)
-        self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
+        #self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
         
         while self.nb_inferences < self.n_element:            
             self.inferenceModule()

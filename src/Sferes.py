@@ -69,7 +69,7 @@ class EA():
                 self.model.computeValue(int(self.state[i,j])-1, int(self.action[i,j])-1)                
                 self.model.updateValue(self.responses[i,j])
 
-        self.model.sigma = np.array(self.model.sigma)
+        #self.model.sigma = np.array(self.model.sigma)
         self.model.value = np.array(self.model.value)
         self.model.pdf = np.array(self.model.pdf)
         

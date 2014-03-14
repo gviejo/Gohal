@@ -10,7 +10,8 @@ from Selection import *
 from matplotlib import *
 from pylab import *
 from scipy.stats import norm
-p_order = ['alpha','beta', 'gamma', 'noise','length','gain','sigma_bwm', 'sigma_ql']
+#p_order = ['alpha','beta', 'gamma', 'noise','length','gain','sigma_bwm', 'sigma_ql']
+p_order = ['alpha','beta', 'gamma', 'noise','length','gain']
 
 #p = map(float, "0.784762 0.245554 0.815565 0 1 1 0.610446 0.170918".split(" "))
 p = map(float, "0.118246 0.897181 0.946751 0.595232 0.092146 0.922554 0.126166 0.341448".split(" "))

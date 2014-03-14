@@ -26,8 +26,8 @@ class QLearning():
         self.n_state=len(states)
         self.bounds = dict({"gamma":[0.0, 1.0],
                             "beta":[1.0, 5.0],
-                            "alpha":[0.0, 1.0],
-                            "sigma":[0.000001, 1.0]})
+                            "alpha":[0.0, 1.0]})
+                            #"sigma":[0.000001, 1.0]})
         
         #Values Initialization
         self.values = np.zeros((self.n_state, self.n_action))        
@@ -40,7 +40,7 @@ class QLearning():
         self.responses = list()
         self.reaction = list()
         self.value = list()
-        self.sigma = list()
+        #self.sigma = list()
         self.pdf = list()
 
     def setParameters(self, name, value):            
@@ -70,7 +70,7 @@ class QLearning():
         self.state = list()
         self.reaction = list()
         self.value = list()
-        self.sigma = list()      
+        #self.sigma = list()      
         self.pdf = list()  
 
     def sampleSoftMax(self, values):
@@ -86,7 +86,7 @@ class QLearning():
         value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
         self.value.append([float(value[self.current_action])])
         self.pdf.append(np.ones(1))
-        self.sigma.append([self.parameters['sigma']])
+        #self.sigma.append([self.parameters['sigma']])
         
     def chooseAction(self, state):        
         self.state[-1].append(state)
@@ -238,8 +238,8 @@ class BayesianWorkingMemory():
         self.initial_entropy = -np.log2(1./self.n_action)
         self.bounds = dict({"length":[6, 11], 
                             "threshold":[0.0, self.initial_entropy], 
-                            "noise":[0.0, 0.1],
-                            "sigma":[0.000001, 1.0]})
+                            "noise":[0.0, 0.1]})
+                            #"sigma":[0.000001, 1.0]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.values = np.ones(self.n_action)*(1./self.n_action)    
@@ -262,7 +262,7 @@ class BayesianWorkingMemory():
         self.reaction=list()
         self.value=list()
         self.pdf = list()
-        self.sigma = list()
+        #self.sigma = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -302,7 +302,7 @@ class BayesianWorkingMemory():
         self.responses=list()
         self.value=list()
         self.values = np.ones(self.n_action)*(1./self.n_action)
-        self.sigma = list()
+        #self.sigma = list()
         self.pdf = list()
 
     def sample(self, values):
@@ -332,19 +332,19 @@ class BayesianWorkingMemory():
 
         value = np.zeros(int(self.parameters['length']+1))
         pdf = np.zeros(int(self.parameters['length'])+1)
-        sigma = np.zeros(int(self.parameters['length'])+1)
+        #sigma = np.zeros(int(self.parameters['length'])+1)
 
         d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
         value[self.nb_inferences] = 1./float(self.n_action)
         pdf[self.nb_inferences] = 1.0-float(d)
-        sigma[self.nb_inferences] = float(self.parameters['sigma'])        
+        #sigma[self.nb_inferences] = float(self.parameters['sigma'])        
         while self.nb_inferences < self.n_element:                    
             self.inferenceModule()
             self.evaluationModule()                    
             d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
             pdf[self.nb_inferences] = 1.0-float(d)
             value[self.nb_inferences] = float(self.values[self.current_action])
-            sigma[self.nb_inferences] = float(self.parameters['sigma'])
+            #sigma[self.nb_inferences] = float(self.parameters['sigma'])
 
         pdf = np.array(pdf)
         pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
@@ -352,7 +352,7 @@ class BayesianWorkingMemory():
 
         self.pdf.append(pdf)
         self.value.append(value)
-        self.sigma.append(sigma)        
+        #self.sigma.append(sigma)        
 
     def chooseAction(self, state):
         self.state[-1].append(state)
