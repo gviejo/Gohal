@@ -75,7 +75,7 @@ class EA():
         self.rbm.train()
         self.rbm.getInputfromOutput()
         rt = np.sum(np.log(self.rbm.xx[(np.arange(self.rt.shape[0]),self.position)]))
-        
+        if np.isnan(rt): rt = -10000000.0
         #rt = self.computeMutualInformation()
         #self.alignToMedian()        
         #self.computeDistance()        
@@ -154,7 +154,7 @@ class RBM():
     x : Human reaction time
     y : Model Inference
     """
-    def __init__(self, x, y, nh = 8, stop = 0.00001, epsilon = 0.00001):
+    def __init__(self, x, y, nh = 10, stop = 0.0001, epsilon = 0.0001):
         # Parameters
         self.nh = nh
         self.stop = stop
@@ -178,7 +178,7 @@ class RBM():
         self.validset = self.x[np.random.randint(self.x.shape[0], size = 16)]
         self.x1 = np.random.rand(self.x.shape[1])
         self.h1 = np.random.rand(self.nh)        
-        self.Evalid = [200.0,100.0]
+        self.Evalid = []
         self.Error = []
 
     def train(self):
@@ -201,9 +201,8 @@ class RBM():
             self.c = self.c+self.dc#self.epsilon*np.mean((self.h0-self.h1), 0)
             self.b = self.b+self.db#self.epsilon*np.mean((self.x-self.x1), 0)
             count+=1            
-            if count > 20000: break                
+            if count > 50000: break                
             self.test(count)
-            print np.abs(np.mean(self.Error[-100:-50])-np.mean(self.Error[-50:]))
 
     def valid(self):
         #Etrain = np.mean(self.x1)+np.mean(self.h1)
@@ -227,13 +226,12 @@ class RBM():
         x = 1.0/(1.0+np.exp(-x))        
         error = np.sum(np.power(x-self.x, 2))
         self.Error.append(error)
-        #print "Epoch "+str(i)+" error = "+str(error)+" fitting = "+str(np.abs(np.mean(self.Error[-20:-10])-np.mean(self.Error[-10:])))
+        #print "Epoch "+str(i)+" error = "+str(error)+" condition = "+str(np.abs(np.mean(self.Error[-100:-50])-np.mean(self.Error[-50:])))
 
     def getInputfromOutput(self):
         h = self.c+np.dot(self.x[:,self.nx:], self.W.T[self.nx:])
         h = 1.0/(1.0+np.exp(-h))
-        h = (h>np.random.rand(h.shape[0], h.shape[1]))*1.0
-        self.h = h
+        h = (h>np.random.rand(h.shape[0], h.shape[1]))*1.0        
         self.xx = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
         self.xx = 1.0/(1.0+np.exp(-self.xx))
 
@@ -253,10 +251,10 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "selection":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain','sigma_bwm', 'sigma_ql'],
-                            'qlearning':['alpha','beta','gamma', 'sigma'],
-                            'bayesian':['length','noise','threshold', 'sigma'],
-                            'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_bwm', 'sigma_ql']})
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain'],
+                            'qlearning':['alpha','beta','gamma'],
+                            'bayesian':['length','noise','threshold'],
+                            'selection':['gamma','beta','eta','length','threshold','noise','sigma']})
         self.m_order = ['qlearning', 'bayesian', 'selection', 'fusion']
         self.colors_m = dict({'fusion':'r', 'bayesian':'g', 'qlearning':'grey', 'selection':'b'})
         self.opt = dict()
