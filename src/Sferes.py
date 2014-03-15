@@ -154,7 +154,7 @@ class RBM():
     x : Human reaction time
     y : Model Inference
     """
-    def __init__(self, x, y, nh = 10, stop = 0.0001, epsilon = 0.0001):
+    def __init__(self, x, y, nh = 15, stop = 0.0001, epsilon = 0.00001):
         # Parameters
         self.nh = nh
         self.stop = stop
@@ -164,7 +164,8 @@ class RBM():
         self.ny = y.shape[1]
         self.x = np.hstack((x, y))
         # Weights
-        self.W = np.random.normal(0,0.01,size=(self.nh,self.x.shape[1]))
+        #self.W = np.random.normal(0,0.0001,size=(self.nh,self.x.shape[1]))
+        self.W = np.zeros((self.nh,self.x.shape[1]))
         # Gradient
         self.Wpos = np.zeros((self.nh,self.x.shape[1]))
         self.Wneg = np.zeros((self.nh,self.x.shape[1]))        
@@ -174,7 +175,7 @@ class RBM():
         self.dw = np.zeros(shape=self.W.shape)
         self.db = np.zeros(shape=self.b.shape)
         self.dc = np.zeros(shape=self.c.shape)
-        self.momentum = 0.95
+        self.momentum = 0.99
         self.validset = self.x[np.random.randint(self.x.shape[0], size = 16)]
         self.x1 = np.random.rand(self.x.shape[1])
         self.h1 = np.random.rand(self.nh)        
@@ -231,7 +232,8 @@ class RBM():
     def getInputfromOutput(self):
         h = self.c+np.dot(self.x[:,self.nx:], self.W.T[self.nx:])
         h = 1.0/(1.0+np.exp(-h))
-        h = (h>np.random.rand(h.shape[0], h.shape[1]))*1.0        
+        #h = (h>np.random.rand(h.shape[0], h.shape[1]))*1.0        
+        h = (h>0.5)*1.0
         self.xx = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
         self.xx = 1.0/(1.0+np.exp(-self.xx))
 

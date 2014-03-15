@@ -33,32 +33,35 @@ llh, lrs = opt.getFitness()
 
 print llh, lrs
 
-figure()
-subplot(311)
-plot(opt.rt_model)
-plot(opt.rt)
-
-subplot(312)
-m = opt.rt_model[0]
-h = opt.rt[15]
-x = np.arange(-5, 5, 0.01)
-# def f(x, u, v):
-#     return (1/np.sqrt(2*pi*v))*np.exp(-0.5*np.power((x-u)/v, 2))
-# [plot(x, f(x, i, model.parameters['sigma_ql'])) for i in [m[0]]]
-# [plot(x, f(x, i, model.parameters['sigma_bwm'])) for i in m[1:]]
-c, n = np.histogram(opt.rt, 100)
+c, n = np.histogram(opt.rt, opt.edges)
 c = c.astype('float')
 c = c/c.sum()
 n = n[1:]-((n[1]-n[0])/2)
-plot(n, c)
-#axvline(h)
+
+figure()
+subplot(311)
+
+plot(opt.rt)
+
+xx = opt.rbm.xx
+xx = (xx.T/xx.sum(axis=1)).T
+
+rtm = np.array([n[(xx[i].cumsum()<np.random.rand()).sum()] for i in xrange(len(xx))])
+plot(rtm)
 
 
-edges = opt.edges
-size = edges[1]-edges[0]
-[plot(edges, np.array([norm.cdf(i, j, model.parameters['sigma'])-norm.cdf(i-size, j, model.parameters['sigma']) for i in edges])) for j in m]
+subplot(312)
+m = opt.rt_model[0]
+
+
+
+plot(n, c, 'o-')
+tmp = opt.rbm.xx.sum(0)
+tmp = tmp/tmp.sum()
+plot(n, tmp, 'o--')
+
+subplot(313)
+plot(opt.rbm.Error)
+
 
 show()
-
-
-
