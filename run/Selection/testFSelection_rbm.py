@@ -13,6 +13,7 @@ sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
 from Selection import FSelection
+from Sferes import RBM
 from matplotlib import *
 from pylab import *
 from HumanLearning import HLearning
@@ -22,6 +23,10 @@ from time import time
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
+def learnRBM():
+    
+    
+
 def testModel():
     model.startExp()
     for i in xrange(nb_blocs):
@@ -47,6 +52,7 @@ def testModel():
 # HUMAN LEARNING
 # -----------------------------------
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
+rt = human.reaction['fmri'].reshape(14, 156)
 # -----------------------------------
 
 
@@ -60,25 +66,33 @@ very_good_parameters = dict({'noise':0.0001,
                     'gamma':0.4,
                     'threshold':4.0,
                     'gain':2.0})
-parameters = dict({'noise':0.01,
-                    'length':8,
-                    'alpha':0.99,
-                    'beta':1.0,
-                    'gamma':0.5})
-                    #'gain':5})
+parameters = dict({'noise':0.2,
+                    'length':7,
+                    'alpha':0.9,
+                    'beta':3.5,
+                    'gamma':0.5,
+                    'gain':0.6,
+                    'threshold':1.5})
               
 
 nb_trials = 39
-nb_blocs = 50
+nb_blocs = 56
 cats = CATS(nb_trials)
 
 model = FSelection(cats.states, cats.actions, parameters)
-
+rbm = RBM()
 # -----------------------------------
 
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
+t1 = time()
+testModel()
+model.pdf = np.array(model.pdf)
+learnRBM()
+t2 = time()
+
+
 t1 = time()
 testModel()
 t2 = time()

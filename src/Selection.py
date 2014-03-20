@@ -28,10 +28,10 @@ class FSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[1.0, 7.0],
+                            "beta":[1.0, 10.0],
                             "alpha":[0.0, 1.0],
                             "length":[6, 11],
-                            #"threshold":[0.00001, 100.0], 
+                            "threshold":[0.00001, 100.0], 
                             "noise":[0.0, 0.1],
                             "gain":[0.00001, 10.0]})
                             #"sigma_bwm":[0.00001, 1.0],
@@ -131,9 +131,10 @@ class FSelection():
     def sigmoideModule(self):
         x = 2*self.max_entropy-self.Hb-self.Hf
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
-        #self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
-        #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))
-        self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
+        self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
+        #self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['gain'])*np.exp(-x))
+        #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
+        #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))        
         return np.random.uniform(0,1) > self.pA
     
@@ -141,9 +142,9 @@ class FSelection():
     def fusionModule(self):
         np.seterr(invalid='ignore')
         #w = (self.max_entropy-self.Hb)/self.max_entropy
-        #self.values_net = w*self.p_a_mb+self.values_mf[self.current_state]
+        #self.values_net = w*self.p_a_mb+(1-w)*self.values_mf[self.current_state]
         self.values_net = self.p_a_mb+self.values_mf[self.current_state]
-        tmp = np.exp(self.values_net*float(self.parameters['beta']))
+        tmp = np.exp(self.values_net*float(self.parameters['beta']))        
         self.p_a = tmp/np.sum(tmp)        
         # if True in np.isnan(self.p_a):
         #     self.p_a = np.isnan(self.p_a)*0.995+0.001
@@ -212,7 +213,7 @@ class FSelection():
             d = self.sigmoideModule()
             pdf[self.nb_inferences] = float(self.pA)            
         
-        pdf = pdf/pdf.sum()
+        pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
         self.pdf.append(pdf)
         return self.action[-1][-1]
 

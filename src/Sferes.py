@@ -154,7 +154,7 @@ class RBM():
     x : Human reaction time
     y : Model Inference
     """
-    def __init__(self, x, y, nh = 15, stop = 0.0001, epsilon = 0.00001):
+    def __init__(self, x, y, nh = 15, stop = 0.00001, epsilon = 0.0001):
         # Parameters
         self.nh = nh
         self.stop = stop
@@ -175,7 +175,7 @@ class RBM():
         self.dw = np.zeros(shape=self.W.shape)
         self.db = np.zeros(shape=self.b.shape)
         self.dc = np.zeros(shape=self.c.shape)
-        self.momentum = 0.99
+        self.momentum = 0.95
         self.validset = self.x[np.random.randint(self.x.shape[0], size = 16)]
         self.x1 = np.random.rand(self.x.shape[1])
         self.h1 = np.random.rand(self.nh)        
@@ -187,7 +187,7 @@ class RBM():
         while count < 101 or np.abs(np.mean(self.Error[-100:-50])-np.mean(self.Error[-50:]))>self.stop:
             # Positive Phase            
             self.h0 = self.c + np.dot(self.x, self.W.T)
-            self.h0 = 1.0/(1.0+np.exp(-self.h0))   
+            self.h0 = 1.0/(1.0+np.exp(-self.h0))  
             # Negative Phase
             self.h0 = (self.h0>np.random.rand(self.h0.shape[0], self.nh))*1.0
             self.x1 = self.b+np.dot(self.h0, self.W)
@@ -202,7 +202,7 @@ class RBM():
             self.c = self.c+self.dc#self.epsilon*np.mean((self.h0-self.h1), 0)
             self.b = self.b+self.db#self.epsilon*np.mean((self.x-self.x1), 0)
             count+=1            
-            if count > 50000: break                
+            if count > 100000: break                
             self.test(count)
 
     def valid(self):
@@ -227,7 +227,7 @@ class RBM():
         x = 1.0/(1.0+np.exp(-x))        
         error = np.sum(np.power(x-self.x, 2))
         self.Error.append(error)
-        #print "Epoch "+str(i)+" error = "+str(error)+" condition = "+str(np.abs(np.mean(self.Error[-100:-50])-np.mean(self.Error[-50:])))
+        print "Epoch "+str(i)+" error = "+str(error)+" condition = "+str(np.abs(np.mean(self.Error[-100:-50])-np.mean(self.Error[-50:])))
 
     def getInputfromOutput(self):
         h = self.c+np.dot(self.x[:,self.nx:], self.W.T[self.nx:])
@@ -236,6 +236,24 @@ class RBM():
         h = (h>0.5)*1.0
         self.xx = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
         self.xx = 1.0/(1.0+np.exp(-self.xx))
+
+    def getRT(self):
+        """ Get a rt in s from model reaction time """
+        self.xx = self.x
+
+        for i in xrange(100):            
+            #h = self.c+np.dot(self.x[:,self.nx:], self.W.T[self.nx:])
+            h = self.c + np.dot(self.xx, self.W.T)
+            h = 1.0/(1.0+np.exp(-h))
+            h = (h>0.5)*1.0
+            self.xx[:,0:self.nx] = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
+            self.xx[:,0:self.nx] = 1.0/(1.0+np.exp(-self.xx[:,0:self.nx]))
+            self.xx[:,0:self.nx] = (self.xx[:,0:self.nx]>np.random.rand(self.xx[:,0:self.nx].shape[0],self.xx[:,0:self.nx].shape[1]))*1.0
+        h = self.c + np.dot(self.xx, self.W.T)
+        h = 1.0/(1.0+np.exp(-h))
+        h = (h>0.5)*1.0
+        self.xx[:,0:self.nx] = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
+
 
 class pareto():
     """
@@ -270,17 +288,18 @@ class pareto():
         self.constructParetoFrontier()        
         self.constructMixedParetoFrontier()
 
+
     def loadData(self):
         model_in_folders = os.listdir(self.directory)
         if len(model_in_folders) == 0:
             sys.exit("No model found in directory "+self.directory)
-        #self.simpleLoadData()
+        self.simpleLoadData()
 
-        pool = Pool(len(model_in_folders))
-        tmp = pool.map(unwrap_self_load_data, zip([self]*len(model_in_folders), model_in_folders))
-        #tmp = [self.loadPooled(m) for m in model_in_folders]
-        for d in tmp:
-            self.data[d.keys()[0]] = d[d.keys()[0]]
+        # pool = Pool(len(model_in_folders))
+        # tmp = pool.map(unwrap_self_load_data, zip([self]*len(model_in_folders), model_in_folders))
+        # #tmp = [self.loadPooled(m) for m in model_in_folders]
+        # for d in tmp:
+        #     self.data[d.keys()[0]] = d[d.keys()[0]]
 
     def simpleLoadData(self):
         model_in_folders = os.listdir(self.directory)
@@ -301,7 +320,6 @@ class pareto():
                     self.data[m][s][n] = np.genfromtxt(self.directory+"/"+m+"/"+r)                                
                 for p in order:
                     self.data[m][s][n][:,order.index(p)+4] = scale[p][0]+self.data[m][s][n][:,order.index(p)+4]*(scale[p][1]-scale[p][0])
-
 
     def loadPooled(self, m):         
         data = {m:{}}
@@ -338,7 +356,7 @@ class pareto():
         for m in self.data.iterkeys():
             self.pareto[m] = dict()
             for s in self.data[m].iterkeys():
-                print m, s        
+                # print m, s        
                 self.pareto[m][s] = dict()   
                 tmp={n:self.data[m][s][n][self.data[m][s][n][:,0]==np.max(self.data[m][s][n][:,0])] for n in self.data[m][s].iterkeys()}
                 tmp=np.vstack([np.hstack((np.ones((len(tmp[n]),1))*n,tmp[n])) for n in tmp.iterkeys()])
@@ -479,6 +497,41 @@ class pareto():
         xx = xx-(half-np.median(yy))
         self.models[m].reaction = xx.reshape(n_blocs, n_trials)
 
+    def learnRBM(self, m, s, n_blocs, n_trials):
+        rt = np.array([self.human.subject['fmri'][s][i]['rt'][0:n_trials,0] for i in range(1,n_blocs+1)]).flatten()
+        bin_size = 2*(np.percentile(rt, 75)-np.percentile(rt, 25))*np.power(len(rt), -(1/3.))
+        mass, edges = np.histogram(rt, bins=np.arange(rt.min(), rt.max()+ bin_size, bin_size))
+        mass = mass/float(mass.sum())
+        position = np.digitize(rt, edges)-1
+        f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
+
+        tmp = np.zeros((rt.shape[0], position.max()+1))
+        for i in xrange(position.shape[0]): tmp[i,position[i]] = 1.0
+        rbm = RBM(tmp, self.models[m].pdf, stop = 0.000000001, epsilon = 0.001)
+        rbm.train()
+        
+        rt_model = np.zeros(self.models[m].pdf.shape)
+        for i in xrange(len(self.models[m].reaction.flatten())):
+            ind = self.models[m].reaction.flatten()[i]
+            rt_model[i,ind] = 1.0
+        rbm.x = np.zeros(rbm.x.shape)
+        rbm.x[:,rbm.nx:] = rt_model
+    
+        rbm.getRT()
+        self.rbm = rbm
+        
+
+        rbm.xx = rbm.xx/np.vstack(rbm.xx.sum(1))
+        tmp = np.cumsum(rbm.xx, 1)
+        self.tmp = tmp
+        tirage = np.sum(tmp<np.vstack(np.random.rand(tmp.shape[0])), 1)
+        center = edges[1:]-(bin_size/2.)
+        self.center = center
+        self.tirage = tirage
+        self.rt = rt
+        self.rtm = center[tirage]
+        self.rbm = rbm
+        self.models[m].reaction = np.reshape(center[tirage], (n_blocs, n_trials))        
 
     def run(self, plot=True):
         nb_blocs = 4
@@ -499,16 +552,20 @@ class pareto():
                     action = self.models[m].chooseAction(state)
                     reward = cats.getOutcome(state, action)
                     self.models[m].updateValue(reward)
-            
-            self.alignToMedian(m, s, nb_blocs, nb_trials)
+            self.models[m].pdf = np.array(self.models[m].pdf)
+            self.models[m].reaction = np.array(self.models[m].reaction)
 
-            self.reaction = np.random.normal(self.models[m].reaction, np.array(self.models[m].sigma_test))
-            
+            self.learnRBM(m, s, nb_blocs, nb_trials)
+            #sys.exit()
+            #self.alignToMedian(m, s, nb_blocs, nb_trials)
+            #self.reaction = np.random.normal(self.models[m].reaction, np.array(self.models[m].sigma_test))
+
+
             for i in xrange(nb_blocs):
                 self.beh['state'].append(self.models[m].state[i])
                 self.beh['action'].append(self.models[m].action[i])
                 self.beh['responses'].append(self.models[m].responses[i])
-                self.beh['reaction'].append(list(self.reaction[i]))
+                self.beh['reaction'].append(self.models[m].reaction[i])
         for k in self.beh.iterkeys():
             self.beh[k] = np.array(self.beh[k])
         self.beh['state'] = convertStimulus(self.beh['state'])
@@ -537,68 +594,68 @@ class pareto():
             show()
 
 
-    def representativeSteps(self, m, s_order, n_blocs, n_trials):
-        x = np.reshape(self.models[m].reaction, (len(s_order), n_blocs, n_trials))
-        y = np.reshape(self.human.reaction['fmri'], (14, 4, 39))
-        s = np.reshape(self.human.stimulus['fmri'], (14, 4, 39))
-        a = np.reshape(self.human.action['fmri'], (14, 4, 39))
-        r = np.reshape(self.human.responses['fmri'], (14, 4, 39))
-        rt = []
-        rt_model = []
-        for i in xrange(len(s_order)):
-            step, indice = getRepresentativeSteps(x[i], s[i], a[i], r[i])
-            rt.append(np.hstack([np.mean(y[i][indice == j]) for j in step.iterkeys()]))
-            rt_model.append(np.hstack([np.mean(x[i][indice == j]) for j in step.iterkeys()]))
-        rt = np.array(rt)    
-        rt_model = np.array(rt_model)
+    # def representativeSteps(self, m, s_order, n_blocs, n_trials):
+    #     x = np.reshape(self.models[m].reaction, (len(s_order), n_blocs, n_trials))
+    #     y = np.reshape(self.human.reaction['fmri'], (14, 4, 39))
+    #     s = np.reshape(self.human.stimulus['fmri'], (14, 4, 39))
+    #     a = np.reshape(self.human.action['fmri'], (14, 4, 39))
+    #     r = np.reshape(self.human.responses['fmri'], (14, 4, 39))
+    #     rt = []
+    #     rt_model = []
+    #     for i in xrange(len(s_order)):
+    #         step, indice = getRepresentativeSteps(x[i], s[i], a[i], r[i])
+    #         rt.append(np.hstack([np.mean(y[i][indice == j]) for j in step.iterkeys()]))
+    #         rt_model.append(np.hstack([np.mean(x[i][indice == j]) for j in step.iterkeys()]))
+    #     rt = np.array(rt)    
+    #     rt_model = np.array(rt_model)
 
-        Ex = np.percentile(rt_model, 75, 1) - np.median(rt_model, 1)
-        Ey = np.percentile(rt, 75, 1) - np.median(rt, 1)
-        Ex[Ex == 0.0] = 1.0
-        rt_model = rt_model*np.vstack(Ey/Ex)
-        rt_model = rt_model-np.vstack((np.median(rt_model, 1)-np.median(rt, 1)))
+    #     Ex = np.percentile(rt_model, 75, 1) - np.median(rt_model, 1)
+    #     Ey = np.percentile(rt, 75, 1) - np.median(rt, 1)
+    #     Ex[Ex == 0.0] = 1.0
+    #     rt_model = rt_model*np.vstack(Ey/Ex)
+    #     rt_model = rt_model-np.vstack((np.median(rt_model, 1)-np.median(rt, 1)))
 
-        rt_model = (np.mean(rt_model, 0), sem(rt_model, 0))
-        rt_human = (np.mean(rt, 0), sem(rt, 0))
+    #     rt_model = (np.mean(rt_model, 0), sem(rt_model, 0))
+    #     rt_human = (np.mean(rt, 0), sem(rt, 0))
 
-        return rt_model, rt_human
+    #     return rt_model, rt_human
 
-    def alignToMean(self, m, n_subject, n_blocs, n_trials):
-        x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
-        y = np.reshape(self.human.reaction['fmri'], (14, 4*39))     
-        #w = np.reshape(self.human.weight['fmri'], (14, 4*39))
+    # def alignToMean(self, m, n_subject, n_blocs, n_trials):
+    #     x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
+    #     y = np.reshape(self.human.reaction['fmri'], (14, 4*39))     
+    #     #w = np.reshape(self.human.weight['fmri'], (14, 4*39))
 
-        x = x-np.vstack(np.mean(x,1))        
-        y = y-np.vstack(np.mean(y,1))
-        tmp = np.std(x, 1)
-        tmp[tmp == 0.0] = 1.0
-        x = x/np.vstack(tmp)        
-        tmp = np.std(y, 1)
-        tmp[tmp == 0.0] = 1.0
-        y = y/np.vstack(tmp)
+    #     x = x-np.vstack(np.mean(x,1))        
+    #     y = y-np.vstack(np.mean(y,1))
+    #     tmp = np.std(x, 1)
+    #     tmp[tmp == 0.0] = 1.0
+    #     x = x/np.vstack(tmp)        
+    #     tmp = np.std(y, 1)
+    #     tmp[tmp == 0.0] = 1.0
+    #     y = y/np.vstack(tmp)
 
-        #x = x - np.vstack(np.median(x, 1)-np.median(y, 1))
+    #     #x = x - np.vstack(np.median(x, 1)-np.median(y, 1))
 
                 
-        # a = np.vstack((np.sum(y*x,1))/(np.sum(x**2,1)))
-        # x = a*x
+    #     # a = np.vstack((np.sum(y*x,1))/(np.sum(x**2,1)))
+    #     # x = a*x
 
-        self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
-        self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))        
+    #     self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
+    #     self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))        
 
-    def alignToCste(self, m, n_subject, n_blocs, n_trials, s_order):
-        x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
-        y = np.reshape(self.human.reaction['fmri'], (14, 4*39))
-        cste = np.vstack(np.array([self.p_test[m][s]['cste'] for s in s_order]))
-        w = (np.max(y)-cste)/np.vstack(np.max(x+1,1))
-        x = x*w
-        x = x-(np.vstack(np.min(x,1))-cste)
+    # def alignToCste(self, m, n_subject, n_blocs, n_trials, s_order):
+    #     x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
+    #     y = np.reshape(self.human.reaction['fmri'], (14, 4*39))
+    #     cste = np.vstack(np.array([self.p_test[m][s]['cste'] for s in s_order]))
+    #     w = (np.max(y)-cste)/np.vstack(np.max(x+1,1))
+    #     x = x*w
+    #     x = x-(np.vstack(np.min(x,1))-cste)
 
-        self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
-        self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))
+    #     self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
+    #     self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))
 
-        # self.w = w
-        # self.s_order = s_order
-        self.x = x
-        self.y = y
-        # sys.exit()
+    #     # self.w = w
+    #     # self.s_order = s_order
+    #     self.x = x
+    #     self.y = y
+    #     # sys.exit()
