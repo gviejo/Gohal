@@ -32,7 +32,7 @@ opt = EA(human.subject['fmri']['S9'], 'S9', model)
 llh, lrs = opt.getFitness()
 
 print llh, lrs
-
+sys.exit()
 c, n = np.histogram(opt.rt, opt.edges)
 c = c.astype('float')
 c = c/c.sum()

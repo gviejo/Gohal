@@ -24,8 +24,33 @@ from time import time
 # FONCTIONS
 # -----------------------------------
 def learnRBM():
-    
-    
+    pdf = np.array(model.pdf).reshape(14,156,8)
+    rtm = model.reaction.reshape(14,156)
+    new_rtm = []
+    for i in xrange(len(rt)):
+        bin_size = 2*(np.percentile(rt[i], 75)-np.percentile(rt[i], 25))*np.power(len(rt[i]), -(1/3.))
+        mass, edges = np.histogram(rt[i], bins=np.arange(rt[i].min(), rt[i].max()+bin_size, bin_size))
+        mass = mass/float(mass.sum())
+        position = np.digitize(rt[i], edges)-1
+        dataset = np.zeros((len(rt[i]), position.max()+1))
+        for j in xrange(len(position)): dataset[j,position[j]] = 1.0
+        rbm = RBM(dataset, pdf[i], stop=0.0001,epsilon=0.001)
+        rbm.train()        
+        rbm.getInputfromOutput(pdf[i])
+        #tmp = np.zeros((len(rtm[i]),pdf.shape[2]))        
+        #for j in xrange(len(rtm[i])): tmp[j,rtm[i][j]] = 1.0
+        #rbm.x = np.zeros(rbm.x.shape)
+        #rbm.x[:,rbm.nx:] = tmp
+        
+        #p = rbm.xx[:,0:rbm.nx]        
+        #p = np.exp(p*2.0)/np.vstack(np.exp(p*2.0).sum(1))        
+        tirage = np.argmax(rbm.xx[:,0:rbm.nx], 1)
+        center = edges[1:]-(bin_size/2.)
+        
+        new_rtm.append(center[tirage])
+        
+    return np.array(new_rtm).reshape(56,39)
+
 
 def testModel():
     model.startExp()
@@ -80,7 +105,7 @@ nb_blocs = 56
 cats = CATS(nb_trials)
 
 model = FSelection(cats.states, cats.actions, parameters)
-rbm = RBM()
+
 # -----------------------------------
 
 # -----------------------------------
@@ -88,14 +113,14 @@ rbm = RBM()
 # -----------------------------------
 t1 = time()
 testModel()
-model.pdf = np.array(model.pdf)
-learnRBM()
+
+
+rtm = learnRBM()
+model.reaction = rtm
+
 t2 = time()
 
 
-t1 = time()
-testModel()
-t2 = time()
 
 print "\n"
 print t2-t1

@@ -48,6 +48,7 @@ class EA():
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
         self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
+        #self.bin_size = self.bin_size/2.
         self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))
         self.mass = self.mass/float(self.mass.sum())
         self.position = np.digitize(self.rt, self.edges)-1
@@ -68,15 +69,24 @@ class EA():
         tmp = np.log(np.sum(self.model.pdf*self.model.value, 1))
         tmp[np.isinf(tmp)] = -1000.0
         choice = np.sum(tmp)
-        
-        tmp = np.zeros((self.rt.shape[0], self.position.max()+1))
-        for i in xrange(self.position.shape[0]): tmp[i,self.position[i]] = 1.0
-        self.rbm = RBM(tmp, self.model.pdf)
-        self.rbm.train()
-        self.rbm.getInputfromOutput()
-        rt = np.sum(np.log(self.rbm.xx[(np.arange(self.rt.shape[0]),self.position)]))
-        if np.isnan(rt): rt = -10000000.0
-        #rt = self.computeMutualInformation()
+        if np.isnan(choice) or np.isinf(choice): choice = -1000000.0
+        #tmp = np.zeros((self.rt.shape[0], self.position.max()+1))
+        #for i in xrange(self.position.shape[0]): tmp[i,self.position[i]] = 1.0
+
+        #ind = np.sum(self.model.pdf.cumsum(1)<np.vstack(np.random.rand(156)),1)
+        #tmp2 = np.zeros(self.model.pdf.shape)
+        #for i in xrange(len(ind)): tmp2[i,ind[i]] = 1.0
+
+        #self.rbm = RBM(tmp, self.model.pdf)
+        #self.rbm = RBM(tmp, tmp2)
+        #self.rbm.train()        
+        #self.rbm.getInputfromOutput(self.model.pdf)        
+        #rt = np.sum(np.log(self.rbm.xx[(np.arange(self.rt.shape[0]),self.position)]))
+        #if np.isnan(rt): rt = -10000000.0
+
+        rt = self.computeMutualInformation()
+        if np.isnan(rt) or np.isinf(rt): rt = 0.0
+
         #self.alignToMedian()        
         #self.computeDistance()        
         #tmp = np.log(np.sum(self.model.pdf*self.d, 1))        
@@ -86,12 +96,11 @@ class EA():
         return choice, rt
 
     def computeMutualInformation(self):
-        py = np.sum(self.model.pdf, 0)
-        py = py/py.sum()
-        p = np.zeros((self.mass.shape[0], py.shape[0]))
+        py = self.model.pdf.sum(0)/self.model.pdf.sum(0).sum()
+        p = np.zeros((self.mass.shape[0], self.model.pdf.shape[1]))
         for i in xrange(len(self.position)): p[self.position[i]] += self.model.pdf[i]
         p = p/p.sum()
-        tmp = np.log2(p/(np.vstack(self.mass)*py))        
+        tmp = np.log2(p/np.outer(self.mass, py))        
         tmp[np.isinf(tmp)] = 0.0
         return np.sum(p*tmp)        
 
@@ -102,7 +111,6 @@ class EA():
         sup = np.tile(np.vstack(sup), int(self.model.parameters['length'])+1)
         self.d = norm.cdf(sup, self.rt_model, self.model.sigma)-norm.cdf(sup-self.bin_size, self.rt_model, self.model.sigma)
         self.d[np.isnan(self.d)] = 0.0
-
 
     def alignToMedian(self):
         p = np.sum(self.model.pdf, 0)
@@ -140,7 +148,6 @@ class EA():
         
         self.rt_model = self.rt_model-(half-np.median(self.rt))
         
-
     def leastSquares(self):
         self.rt_model = self.rt_model-np.mean(self.rt_model)
         self.rt = self.rt-np.mean(self.rt)
@@ -154,7 +161,7 @@ class RBM():
     x : Human reaction time
     y : Model Inference
     """
-    def __init__(self, x, y, nh = 15, stop = 0.00001, epsilon = 0.0001):
+    def __init__(self, x, y, nh = 50, stop = 0.000000001, epsilon = 0.001):
         # Parameters
         self.nh = nh
         self.stop = stop
@@ -163,9 +170,10 @@ class RBM():
         self.nx = x.shape[1]
         self.ny = y.shape[1]
         self.x = np.hstack((x, y))
+        self.xx = np.zeros(self.x.shape)  # TEST DATASET
         # Weights
-        #self.W = np.random.normal(0,0.0001,size=(self.nh,self.x.shape[1]))
-        self.W = np.zeros((self.nh,self.x.shape[1]))
+        self.W = np.random.normal(0,0.01,size=(self.nh,self.x.shape[1]))
+        #self.W = np.zeros((self.nh,self.x.shape[1]))
         # Gradient
         self.Wpos = np.zeros((self.nh,self.x.shape[1]))
         self.Wneg = np.zeros((self.nh,self.x.shape[1]))        
@@ -175,84 +183,88 @@ class RBM():
         self.dw = np.zeros(shape=self.W.shape)
         self.db = np.zeros(shape=self.b.shape)
         self.dc = np.zeros(shape=self.c.shape)
-        self.momentum = 0.95
+        self.momentum = 0.99
         self.validset = self.x[np.random.randint(self.x.shape[0], size = 16)]
         self.x1 = np.random.rand(self.x.shape[1])
-        self.h1 = np.random.rand(self.nh)        
+        self.h1 = np.random.rand(self.nh)
         self.Evalid = []
         self.Error = []
+
+    def sigmoid(self, x):
+        return 1.0/(1.0+np.exp(-x))
 
     def train(self):
         count = 0        
         while count < 101 or np.abs(np.mean(self.Error[-100:-50])-np.mean(self.Error[-50:]))>self.stop:
             # Positive Phase            
             self.h0 = self.c + np.dot(self.x, self.W.T)
-            self.h0 = 1.0/(1.0+np.exp(-self.h0))  
+            self.h0 = self.sigmoid(self.h0)
             # Negative Phase
             self.h0 = (self.h0>np.random.rand(self.h0.shape[0], self.nh))*1.0
             self.x1 = self.b+np.dot(self.h0, self.W)
-            self.x1 = 1.0/(1.0+np.exp(-self.x1))                                
+            self.x1 = self.sigmoid(self.x1)
             self.h1 = self.c+np.dot(self.x1,self.W.T)
-            self.h1 = 1.0/(1.0+np.exp(-self.h1))            
+            self.h1 = self.sigmoid(self.h1)
             # Update phase            
             self.dw = self.momentum*self.dw+self.epsilon*(np.dot(self.h0.T, self.x) - np.dot(self.h1.T,self.x1))
             self.db = self.momentum*self.db+self.epsilon*np.mean((self.x-self.x1), 0)
             self.dc = self.momentum*self.dc+self.epsilon*np.mean((self.h0-self.h1), 0)
-            self.W = self.W+self.dw#self.epsilon*(np.dot(self.h0.T, self.x) - np.dot(self.h1.T,self.x1))
-            self.c = self.c+self.dc#self.epsilon*np.mean((self.h0-self.h1), 0)
-            self.b = self.b+self.db#self.epsilon*np.mean((self.x-self.x1), 0)
+            self.W = self.W + self.dw#self.epsilon*(np.dot(self.h0.T, self.x) - np.dot(self.h1.T,self.x1))
+            self.c = self.c + self.dc#self.epsilon*np.mean((self.h0-self.h1), 0)
+            self.b = self.b + self.db#self.epsilon*np.mean((self.x-self.x1), 0)
             count+=1            
-            if count > 100000: break                
+            if count > 50000: break
+            #if count%100 == 0: self.epsilon = self.epsilon*0.99
             self.test(count)
 
-    def valid(self):
-        #Etrain = np.mean(self.x1)+np.mean(self.h1)
+    def valid(self):        
         h = self.c+np.dot(self.validset, self.W.T)
         h = 1.0/(1.0+np.exp(-h))
         h = (h>np.random.rand(h.shape[0], h.shape[1]))
         x = self.b+np.dot(h, self.W)
         x = 1.0/(1.0+np.exp(-x))
         Evalid = np.mean(h)+np.mean(x)
-        #print "Train :",str(Etrain), " ", "Valid : ",str(Evalid)
-        #print np.abs(Etrain-Evalid)
-        #self.Etrain.append(Etrain)
         self.Evalid.append(Evalid)
-        #return np.abs(Etrain-Evalid)<2.0
 
     def test(self, i):
         h = self.c+np.dot(self.x, self.W.T)
-        h = 1.0/(1.0+np.exp(-h))
-        h = (h>0.5)*1.0
+        h = self.sigmoid(h)
+        h =  (h>np.random.rand(h.shape[0], h.shape[1]))*1.0
         x = self.b+np.dot(h, self.W)
-        x = 1.0/(1.0+np.exp(-x))        
+        x = self.sigmoid(x)
         error = np.sum(np.power(x-self.x, 2))
         self.Error.append(error)
         print "Epoch "+str(i)+" error = "+str(error)+" condition = "+str(np.abs(np.mean(self.Error[-100:-50])-np.mean(self.Error[-50:])))
 
-    def getInputfromOutput(self):
-        h = self.c+np.dot(self.x[:,self.nx:], self.W.T[self.nx:])
-        h = 1.0/(1.0+np.exp(-h))
-        #h = (h>np.random.rand(h.shape[0], h.shape[1]))*1.0        
-        h = (h>0.5)*1.0
-        self.xx = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
-        self.xx = 1.0/(1.0+np.exp(-self.xx))
+    def getInputfromOutput(self,xx):
+        self.m = []
+        for e in xrange(10):
+            self.xx = np.zeros(self.x.shape)
+            self.xx[:,self.nx:] = xx
+            for i in xrange(10):
+                h = self.c + np.dot(self.xx, self.W.T)
+                h = self.sigmoid(h)
+                h = (h>np.random.rand(h.shape[0], h.shape[1]))*1.0        
+                self.xx[:,0:self.nx] = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
+                self.xx[:,0:self.nx] = self.sigmoid(self.xx[:,0:self.nx])
+            self.m.append(self.xx[:,0:self.nx])
+        self.m = np.array(self.m)
+        #self.xx[:,0:self.nx] = np.mean(self.m, 0)
 
-    def getRT(self):
-        """ Get a rt in s from model reaction time """
-        self.xx = self.x
-
-        for i in xrange(100):            
-            #h = self.c+np.dot(self.x[:,self.nx:], self.W.T[self.nx:])
-            h = self.c + np.dot(self.xx, self.W.T)
-            h = 1.0/(1.0+np.exp(-h))
-            h = (h>0.5)*1.0
-            self.xx[:,0:self.nx] = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
-            self.xx[:,0:self.nx] = 1.0/(1.0+np.exp(-self.xx[:,0:self.nx]))
-            self.xx[:,0:self.nx] = (self.xx[:,0:self.nx]>np.random.rand(self.xx[:,0:self.nx].shape[0],self.xx[:,0:self.nx].shape[1]))*1.0
-        h = self.c + np.dot(self.xx, self.W.T)
-        h = 1.0/(1.0+np.exp(-h))
-        h = (h>0.5)*1.0
-        self.xx[:,0:self.nx] = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
+    # def getRT(self):
+    #     """ Get a rt in s from model reaction time """                
+    #     for i in xrange(5):            
+    #         #h = self.c+np.dot(self.x[:,self.nx:], self.W.T[self.nx:])
+    #         h = self.c + np.dot(self.xx, self.W.T)
+    #         h = 1.0/(1.0+np.exp(-h))
+    #         h = (h>np.random.rand())*1.0
+    #         self.xx[:,0:self.nx] = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
+    #         self.xx[:,0:self.nx] = 1.0/(1.0+np.exp(-self.xx[:,0:self.nx]))
+    #         self.xx[:,0:self.nx] = (self.xx[:,0:self.nx]>np.random.rand(self.xx[:,0:self.nx].shape[0],self.xx[:,0:self.nx].shape[1]))*1.0
+    #     h = self.c + np.dot(self.xx, self.W.T)
+    #     h = 1.0/(1.0+np.exp(-h))
+    #     h = (h>np.random.rand())*1.0
+    #     self.xx[:,0:self.nx] = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
 
 
 class pareto():

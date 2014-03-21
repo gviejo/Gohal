@@ -30,13 +30,10 @@ class FSelection():
         self.bounds = dict({"gamma":[0.0, 1.0],
                             "beta":[1.0, 10.0],
                             "alpha":[0.0, 1.0],
-                            "length":[6, 11],
-                            "threshold":[0.00001, 100.0], 
-                            "noise":[0.0, 0.1],
-                            "gain":[0.00001, 10.0]})
-                            #"sigma_bwm":[0.00001, 1.0],
-                            #"sigma_ql":[0.00001, 1.0]})
-                            
+                            "length":[6, 10],
+                            "threshold":[0.1, 10.0], 
+                            "noise":[0.0, 1.0],
+                            "gain":[0.00001, 10.0]})                            
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -66,8 +63,6 @@ class FSelection():
         self.reaction = list()
         self.value = list()
         self.pdf = list()
-        #self.sigma = list()
-        #self.sigma_test = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -87,7 +82,7 @@ class FSelection():
         self.action.append([])
         self.responses.append([])
         self.reaction.append([])
-        #self.sigma_test.append([])
+        #self.pdf.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -107,8 +102,6 @@ class FSelection():
         self.reaction = list()
         self.value = list()        
         self.pdf = list()
-        #self.sigma = list()
-        #self.sigma_test = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -138,7 +131,6 @@ class FSelection():
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))        
         return np.random.uniform(0,1) > self.pA
     
-
     def fusionModule(self):
         np.seterr(invalid='ignore')
         #w = (self.max_entropy-self.Hb)/self.max_entropy
@@ -160,20 +152,17 @@ class FSelection():
         
         value = np.zeros(int(self.parameters['length']+1))        
         pdf = np.zeros(int(self.parameters['length'])+1)
-        #sigma = np.zeros(int(self.parameters['length']+1))
 
         d = self.sigmoideModule()
         pdf[self.nb_inferences] = float(self.pA)
         self.fusionModule()
         value[self.nb_inferences] = float(self.p_a[self.current_action])        
-        #sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
 
         while self.nb_inferences < self.n_element:
             self.inferenceModule()
             self.evaluationModule()
             self.fusionModule()
             value[self.nb_inferences] = float(self.p_a[self.current_action])        
-            #sigma[self.nb_inferences] = float(self.parameters['sigma_bwm'])
             d = self.sigmoideModule()
             pdf[self.nb_inferences] = float(self.pA)
         
@@ -183,7 +172,6 @@ class FSelection():
         
         self.pdf.append(pdf)
         self.value.append(value)
-        #self.sigma.append(sigma)        
                 
     def chooseAction(self, state):
         self.state[-1].append(state)
@@ -205,7 +193,6 @@ class FSelection():
         self.current_action = self.sample(self.p_a)        
         self.action[-1].append(self.actions[self.current_action])                
         self.reaction[-1].append(self.nb_inferences)
-        #self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
 
         while self.nb_inferences < self.n_element:            
             self.inferenceModule()
@@ -214,7 +201,7 @@ class FSelection():
             pdf[self.nb_inferences] = float(self.pA)            
         
         pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
-        self.pdf.append(pdf)
+        self.pdf[-1].append(pdf)
         return self.action[-1][-1]
 
     def updateValue(self, reward):
@@ -260,11 +247,11 @@ class KSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[1.0, 7.0],
+                            "beta":[1.0, 10.0],
                             "eta":[0.00001, 0.001],
-                            "length":[6, 11],
+                            "length":[6, 10],
                             "threshold":[0.0, -np.log2(1./self.n_action)], 
-                            "noise":[0.0, 0.1],
+                            "noise":[0.0,1.0],
                             "sigma":[0.0,1.0]})
                             #"sigma_bwm":[0.00001, 1.0],
                             #"sigma_ql":[0.00001, 1.0]})        
