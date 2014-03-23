@@ -283,7 +283,7 @@ class pareto():
                             "qlearning":QLearning(self.states, self.actions),
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "selection":KSelection(self.states, self.actions)})
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain','threshold'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma']})
@@ -295,8 +295,8 @@ class pareto():
         self.p_test = dict()
         self.mixed = dict()
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
-        self.loadData()        
-        #self.simpleLoadData()
+        #self.loadData()        
+        self.simpleLoadData()
         self.constructParetoFrontier()        
         self.constructMixedParetoFrontier()
 
@@ -305,13 +305,13 @@ class pareto():
         model_in_folders = os.listdir(self.directory)
         if len(model_in_folders) == 0:
             sys.exit("No model found in directory "+self.directory)
-        self.simpleLoadData()
+        #self.simpleLoadData()
 
-        # pool = Pool(len(model_in_folders))
-        # tmp = pool.map(unwrap_self_load_data, zip([self]*len(model_in_folders), model_in_folders))
-        # #tmp = [self.loadPooled(m) for m in model_in_folders]
-        # for d in tmp:
-        #     self.data[d.keys()[0]] = d[d.keys()[0]]
+        pool = Pool(len(model_in_folders))
+        tmp = pool.map(unwrap_self_load_data, zip([self]*len(model_in_folders), model_in_folders))
+        #tmp = [self.loadPooled(m) for m in model_in_folders]
+        for d in tmp:
+            self.data[d.keys()[0]] = d[d.keys()[0]]
 
     def simpleLoadData(self):
         model_in_folders = os.listdir(self.directory)
@@ -368,12 +368,12 @@ class pareto():
         for m in self.data.iterkeys():
             self.pareto[m] = dict()
             for s in self.data[m].iterkeys():
-                # print m, s        
+                print m, s        
                 self.pareto[m][s] = dict()   
                 tmp={n:self.data[m][s][n][self.data[m][s][n][:,0]==np.max(self.data[m][s][n][:,0])] for n in self.data[m][s].iterkeys()}
                 tmp=np.vstack([np.hstack((np.ones((len(tmp[n]),1))*n,tmp[n])) for n in tmp.iterkeys()])
-                ind = tmp[:,3:5] != 0
-                tmp = tmp[ind[:,0]*ind[:,1]]
+                ind = tmp[:,3] != 0
+                tmp = tmp[ind]
                 tmp = tmp[tmp[:,3].argsort()][::-1]
                 pareto_frontier = [tmp[0]]
                 for pair in tmp[1:]:
@@ -384,7 +384,7 @@ class pareto():
                     self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+t] >= self.threshold[t]]
 
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
-                self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
+                #self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
                 
                 #self.removeDoublon()
 
