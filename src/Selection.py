@@ -149,29 +149,36 @@ class FSelection():
         self.Hf = computeEntropy(self.values_mf[self.current_state], self.parameters['beta'])
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
-        
-        value = np.zeros(int(self.parameters['length']+1))        
-        pdf = np.zeros(int(self.parameters['length'])+1)
 
-        d = self.sigmoideModule()
-        pdf[self.nb_inferences] = float(self.pA)
-        self.fusionModule()
-        value[self.nb_inferences] = float(self.p_a[self.current_action])        
-
-        while self.nb_inferences < self.n_element:
+        while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
-            self.fusionModule()
-            value[self.nb_inferences] = float(self.p_a[self.current_action])        
-            d = self.sigmoideModule()
-            pdf[self.nb_inferences] = float(self.pA)
+        self.fusionModule()
         
-        pdf = np.array(pdf)
-        pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
+        self.value.append(float(self.p_a[self.current_action]))
+        self.reaction[-1].append(self.nb_inferences)
+        #value = np.zeros(int(self.parameters['length']+1))        
+        #pdf = np.zeros(int(self.parameters['length'])+1)
+
+        #d = self.sigmoideModule()
+        #pdf[self.nb_inferences] = float(self.pA)
+        #self.fusionModule()
+        #value[self.nb_inferences] = float(self.p_a[self.current_action])        
+
+        #while self.nb_inferences < self.n_element:
+        #     self.inferenceModule()
+        #     self.evaluationModule()
+        #     self.fusionModule()
+        #     value[self.nb_inferences] = float(self.p_a[self.current_action])        
+        #     d = self.sigmoideModule()
+        #     pdf[self.nb_inferences] = float(self.pA)
+        
+        # pdf = np.array(pdf)
+        # pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
         #pdf = pdf/pdf.sum()
         
-        self.pdf.append(pdf)
-        self.value.append(value)
+        # self.pdf.append(pdf)
+        # self.value.append(value)
                 
     def chooseAction(self, state):
         self.state[-1].append(state)
@@ -388,41 +395,24 @@ class KSelection():
     def computeValue(self, s, a):
         self.current_state = s
         self.current_action = a
-        self.p = self.uniform[:,:,:]
-        self.Hb = self.max_entropy            
         self.nb_inferences = 0
-        self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
-        self.predictionStep()        
+        self.predictionStep()
+        values = self.softMax(self.values_mf[self.current_state])        
         t = self.n_action*self.current_state
         vpi = computeVPIValues(self.values_mf[self.current_state], self.covariance['cov'].diagonal()[t:t+self.n_action])
+
+        if np.sum(vpi > self.reward_rate[self.current_state]):
+            self.p = self.uniform[:,:,:]
+            self.Hb = self.max_entropy            
+            self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
+            while self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element:
+                self.inferenceModule()
+                self.evaluationModule()
+            values = self.p_a_mb/np.sum(self.p_a_mb)
         
-        value = np.zeros(int(self.parameters['length']+1))
-        pdf = np.zeros(int(self.parameters['length'])+1)
-        #sigma = np.zeros(int(self.parameters['length']+1))
+        self.value.append(float(values[self.current_action]))
+        self.reaction[-1].append(self.nb_inferences)
         
-        # 1ere transition should be made outside the while
-        d = (np.sum(vpi > self.reward_rate[self.current_state])>0)*(self.nb_inferences < self.n_element)*1.0
-        values = self.softMax(self.values_mf[self.current_state])
-        value[self.nb_inferences] = float(values[self.current_action])
-        pdf[self.nb_inferences] = 1.0-float(d)
-        #sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
-                
-        while self.nb_inferences < self.n_element:
-            self.inferenceModule()
-            self.evaluationModule()
-            d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
-            pdf[self.nb_inferences] = 1.0-float(d)
-            value[self.nb_inferences] = float(self.values[self.current_action])
-            #sigma[self.nb_inferences] = float(self.parameters['sigma_ql'])
-
-        pdf = np.array(pdf)
-        pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
-        #pdf = pdf/pdf.sum()
-
-        self.pdf.append(pdf)
-        self.value.append(value)
-        #self.sigma.append(sigma)
-
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1

@@ -41,68 +41,50 @@ class EA():
         self.subject = subject
         self.data = data
         self.n_trials = 39
-        self.n_blocs = 4        
+        self.n_blocs = 4
+        self.n_repets = 100
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
-        self.rt_model = np.tile(np.arange(int(self.model.parameters['length'])+1), (self.n_trials*self.n_blocs, 1))        
+        #self.rt_model = np.tile(np.arange(int(self.model.parameters['length'])+1), (self.n_trials*self.n_blocs, 1))        
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
         self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
-        #self.bin_size = self.bin_size/2.
         self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))
         self.mass = self.mass/float(self.mass.sum())
         self.position = np.digitize(self.rt, self.edges)-1
-        self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
+        #self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
+        self.p =np.zeros((len(self.mass), self.model.parameters['length']+1))
 
     def getFitness(self):
         np.seterr(all = 'ignore')
         self.model.startExp()
-        for i in xrange(self.n_blocs):
-            self.model.startBloc()
-            for j in xrange(self.n_trials):                
-                self.model.computeValue(int(self.state[i,j])-1, int(self.action[i,j])-1)                
-                self.model.updateValue(self.responses[i,j])
+        for e in xrange(self.n_repets):
+            for i in xrange(self.n_blocs):
+                self.model.startBloc()
+                for j in xrange(self.n_trials):                
+                    self.model.computeValue(int(self.state[i,j])-1, int(self.action[i,j])-1)                
+                    self.model.updateValue(self.responses[i,j])
         
         self.model.value = np.array(self.model.value)
-        self.model.pdf = np.array(self.model.pdf)
-        
-        tmp = np.log(np.sum(self.model.pdf*self.model.value, 1))
-        tmp[np.isinf(tmp)] = -1000.0
-        choice = np.sum(tmp)
-        if np.isnan(choice) or np.isinf(choice): choice = -1000000.0
-        #tmp = np.zeros((self.rt.shape[0], self.position.max()+1))
-        #for i in xrange(self.position.shape[0]): tmp[i,self.position[i]] = 1.0
-
-        #ind = np.sum(self.model.pdf.cumsum(1)<np.vstack(np.random.rand(156)),1)
-        #tmp2 = np.zeros(self.model.pdf.shape)
-        #for i in xrange(len(ind)): tmp2[i,ind[i]] = 1.0
-
-        #self.rbm = RBM(tmp, self.model.pdf)
-        #self.rbm = RBM(tmp, tmp2)
-        #self.rbm.train()        
-        #self.rbm.getInputfromOutput(self.model.pdf)        
-        #rt = np.sum(np.log(self.rbm.xx[(np.arange(self.rt.shape[0]),self.position)]))
-        #if np.isnan(rt): rt = -10000000.0
+        self.model.reaction = np.array(self.model.reaction).flatten()
+                        
+        choice = np.sum(np.log(self.model.value))
+        if np.isnan(choice) or np.isinf(choice): choice = -1000000.0        
 
         rt = self.computeMutualInformation()
         if np.isnan(rt) or np.isinf(rt): rt = 0.0
 
-        #self.alignToMedian()        
-        #self.computeDistance()        
-        #tmp = np.log(np.sum(self.model.pdf*self.d, 1))        
-        #tmp[np.isinf(tmp)] = -1000.0
-        #rt = np.sum(tmp)
-
         return choice, rt
 
     def computeMutualInformation(self):
-        py = self.model.pdf.sum(0)/self.model.pdf.sum(0).sum()
-        p = np.zeros((self.mass.shape[0], self.model.pdf.shape[1]))
-        for i in xrange(len(self.position)): p[self.position[i]] += self.model.pdf[i]
-        p = p/p.sum()
-        tmp = np.log2(p/np.outer(self.mass, py))        
+        position = np.tile(self.position, self.n_repets)
+        for i in xrange(len(position)): self.p[position[i], self.model.reaction[i]] += 1        
+        p_rtm = self.p.sum(0)/float(self.p.sum())
+        self.p = self.p/float(self.p.sum())
+        
+        tmp = np.log2(self.p/np.outer(self.mass, p_rtm))        
         tmp[np.isinf(tmp)] = 0.0
-        return np.sum(p*tmp)        
+        return np.sum(self.p*tmp)        
 
     def computeDistance(self):
         sup = self.edges[self.position]
@@ -295,7 +277,7 @@ class pareto():
         self.p_test = dict()
         self.mixed = dict()
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
-        #self.loadData()        
+        #self.loadData()
         self.simpleLoadData()
         self.constructParetoFrontier()        
         self.constructMixedParetoFrontier()

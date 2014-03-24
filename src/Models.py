@@ -85,8 +85,10 @@ class QLearning():
 
         value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
         self.value.append([float(value[self.current_action])])
-        self.pdf.append(np.ones(1))
+        self.reaction[-1].append(0)
+        #self.pdf.append(np.ones(1))
         #self.sigma.append([self.parameters['sigma']])
+
         
     def chooseAction(self, state):        
         self.state[-1].append(state)
@@ -238,7 +240,7 @@ class BayesianWorkingMemory():
         self.initial_entropy = -np.log2(1./self.n_action)
         self.bounds = dict({"length":[6, 11], 
                             "threshold":[0.0, self.initial_entropy], 
-                            "noise":[0.0, 0.1]})
+                            "noise":[0.0, 1.0]})
                             #"sigma":[0.000001, 1.0]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -330,28 +332,29 @@ class BayesianWorkingMemory():
         self.entropy = self.initial_entropy
         self.nb_inferences = 0     
 
-        value = np.zeros(int(self.parameters['length']+1))
-        pdf = np.zeros(int(self.parameters['length'])+1)
-        #sigma = np.zeros(int(self.parameters['length'])+1)
+        # value = np.zeros(int(self.parameters['length']+1))
+        # pdf = np.zeros(int(self.parameters['length'])+1)
+        # #sigma = np.zeros(int(self.parameters['length'])+1)
 
-        d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
-        value[self.nb_inferences] = 1./float(self.n_action)
-        pdf[self.nb_inferences] = 1.0-float(d)
+        # d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
+        # value[self.nb_inferences] = 1./float(self.n_action)
+        # pdf[self.nb_inferences] = 1.0-float(d)
         #sigma[self.nb_inferences] = float(self.parameters['sigma'])        
-        while self.nb_inferences < self.n_element:                    
+        while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:                    
             self.inferenceModule()
             self.evaluationModule()                    
-            d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
-            pdf[self.nb_inferences] = 1.0-float(d)
-            value[self.nb_inferences] = float(self.values[self.current_action])
+            #d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
+            #pdf[self.nb_inferences] = 1.0-float(d)
+            #value[self.nb_inferences] = float(self.values[self.current_action])
             #sigma[self.nb_inferences] = float(self.parameters['sigma'])
 
-        pdf = np.array(pdf)
-        pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
+        #pdf = np.array(pdf)
+        #pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
         #pdf = pdf/pdf.sum()
 
-        self.pdf.append(pdf)
-        self.value.append(value)
+        #self.pdf.append(pdf)
+        self.value.append(self.values[self.current_action])
+        self.reaction[-1].append(self.nb_inferences)
         #self.sigma.append(sigma)        
 
     def chooseAction(self, state):
