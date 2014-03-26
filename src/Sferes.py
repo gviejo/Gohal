@@ -42,7 +42,7 @@ class EA():
         self.data = data
         self.n_trials = 39
         self.n_blocs = 4
-        self.n_repets = 100
+        self.n_repets = 20
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
         #self.rt_model = np.tile(np.arange(int(self.model.parameters['length'])+1), (self.n_trials*self.n_blocs, 1))        
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
