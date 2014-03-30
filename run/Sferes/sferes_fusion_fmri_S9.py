@@ -44,28 +44,42 @@ opt = EA(human.subject['fmri']['S9'], 'S9', model)
 llh, lrs = opt.getFitness()
 print llh, lrs
 
-sys.exit()
-tirage = np.argmax(opt.rbm.xx[:,0:opt.rbm.nx], 1)
-center = opt.edges[1:]-(opt.bin_size/2.)
-rtm = center[tirage]
+model.Hfree = np.array(model.Hfree).flatten()
+model.Hbased_onset = np.array(model.Hbased_onset).flatten()
+model.Hbased_last = np.array(model.Hbased_last).flatten()
+
+
 
 figure()
 subplot(311)
+plot(model.Hfree, label = "Free")
+plot(model.Hbased_last, label = "Last")
+plot(model.Hbased_onset, label = "onset")
+legend()
 
-plot(opt.rt,'o-')
-plot(rtm,'o-')
-rt = opt.rt
-ind = np.argsort(rt)
 subplot(312)
-plot(rt[ind],'o-')
-plot(rtm[ind],'o-')
+plot((2*np.log2(5)-model.Hfree-model.Hbased_last))
 
+y = (2*np.log2(5)-model.Hfree-model.Hbased_last)
 subplot(313)
-rtmean = []
-for e in xrange(len(opt.rbm.m)):
-	tirage = np.argmax(opt.rbm.m[e][:,0:opt.rbm.nx], 1)
-	rtmean.append(center[tirage])
-rtmean = np.array(rtmean)
-errorbar(range(156),np.mean(rtmean, 0)[ind], yerr = np.std(rtmean, 0)[ind])
+plot(1/(2*np.log2(5)-model.Hfree-model.Hbased_last))
+
+show()
+
+sys.exit()
+center = opt.edges[1:]-(opt.bin_size/2.)
+
+figure()
+subplot(121)
+hist(opt.rt)
+
+subplot(122)
+hist(1/opt.rt)
+
+irt = 1./opt.rt
+
+ind = np.argsort(irt)
+figure()
+plot(irt[ind], 'o-')
 
 show()

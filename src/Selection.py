@@ -82,6 +82,9 @@ class FSelection():
         self.action.append([])
         self.responses.append([])
         self.reaction.append([])
+        self.Hbased_onset.append([])
+        self.Hbased_last.append([])
+        self.Hfree.append([])
         #self.pdf.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
@@ -102,6 +105,9 @@ class FSelection():
         self.reaction = list()
         self.value = list()        
         self.pdf = list()
+        self.Hfree = list()
+        self.Hbased_onset = list()
+        self.Hbased_last = list()   
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -150,6 +156,9 @@ class FSelection():
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
 
+        self.Hfree[-1].append(self.Hf)
+        self.Hbased_onset[-1].append(self.Hb)
+
         while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()
@@ -157,6 +166,9 @@ class FSelection():
         
         self.value.append(float(self.p_a[self.current_action]))
         self.reaction[-1].append(self.nb_inferences)
+
+        self.Hbased_last[-1].append(self.Hb)
+
         #value = np.zeros(int(self.parameters['length']+1))        
         #pdf = np.zeros(int(self.parameters['length'])+1)
 
