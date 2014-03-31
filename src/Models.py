@@ -354,7 +354,7 @@ class BayesianWorkingMemory():
 
         #self.pdf.append(pdf)
         self.value.append(self.values[self.current_action])
-        self.reaction[-1].append(self.nb_inferences)
+        self.reaction[-1].append((self.initial_entropy-self.entropy)/float(self.nb_inferences+1))
         #self.sigma.append(sigma)        
 
     def chooseAction(self, state):

@@ -60,13 +60,15 @@ very_good_parameters = dict({'noise':0.0001,
                     'gamma':0.4,
                     'threshold':4.0,
                     'gain':2.0})
-parameters = dict({'noise':0.01,
-                    'length':8,
-                    'alpha':0.99,
-                    'beta':1.0,
-                    'gamma':0.5})
-                    #'gain':5})
-              
+
+parameters = dict({'noise':0.2,
+                    'length':7,
+                    'alpha':0.9,
+                    'beta':3.5,
+                    'gamma':0.5,
+                    'gain':0.6,
+                    'threshold':1.5})
+                            
 
 nb_trials = 39
 nb_blocs = 50
@@ -97,7 +99,7 @@ pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus[
 # thr = extractStimulusPresentation(model.thr, model.state, model.action, model.responses)
 # thr_free = extractStimulusPresentation(model.thr_free, model.state, model.action, model.responses)
 
-step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+step, indice = getRepresentativeSteps(1./human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
 rt_fmri = computeMeanRepresentativeSteps(step) 
 
 step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)

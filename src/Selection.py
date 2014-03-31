@@ -82,7 +82,7 @@ class FSelection():
         self.action.append([])
         self.responses.append([])
         self.reaction.append([])
-        #self.pdf.append([])
+        self.pdf.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -201,7 +201,7 @@ class FSelection():
         self.fusionModule()
         self.current_action = self.sample(self.p_a)        
         self.action[-1].append(self.actions[self.current_action])                
-        self.reaction[-1].append(self.nb_inferences)
+        self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))
 
         while self.nb_inferences < self.n_element:            
             self.inferenceModule()
@@ -413,7 +413,8 @@ class KSelection():
             values = self.p_a_mb/np.sum(self.p_a_mb)
         
         self.value.append(float(values[self.current_action]))
-        self.reaction[-1].append(self.nb_inferences)
+        self.reaction[-1].append((self.max_entropy-self.Hb)/float(self.nb_inferences+1))
+        
         
     def chooseAction(self, state):
         self.state[-1].append(state)

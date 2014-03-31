@@ -82,6 +82,7 @@ class EA():
 
     def computeMutualInformation(self):
         bin_size = 2*(np.percentile(self.rtm, 75)-np.percentile(self.rtm, 25))*np.power(len(self.rtm), -(1/3.))
+        if bin_size == 0.0: return 0.0
         self.p_rtm, edges = np.histogram(self.rtm, bins=np.arange(self.rtm.min(), self.rtm.max()+bin_size, bin_size))
         self.p_rtm = self.p_rtm/float(self.p_rtm.sum())
         self.p = np.zeros((len(self.mass), len(self.p_rtm)))
