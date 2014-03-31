@@ -42,18 +42,21 @@ class EA():
         self.data = data
         self.n_trials = 39
         self.n_blocs = 4
-        self.n_repets = 1
+        self.n_repets = 15
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
-        #self.rt_model = np.tile(np.arange(int(self.model.parameters['length'])+1), (self.n_trials*self.n_blocs, 1))        
+        self.rtinv = 1./self.rt
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
-        self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
-        self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))
+        #self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
+        self.bin_size = 2*(np.percentile(self.rtinv, 75)-np.percentile(self.rtinv, 25))*np.power(len(self.rtinv), -(1/3.))
+        self.mass, self.edges = np.histogram(self.rtinv, bins=np.arange(self.rtinv.min(), self.rtinv.max()+self.bin_size, self.bin_size))
         self.mass = self.mass/float(self.mass.sum())
-        self.position = np.digitize(self.rt, self.edges)-1
+        self.position = np.digitize(self.rtinv, self.edges)-1
         #self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
-        self.p =np.zeros((len(self.mass), self.model.parameters['length']+1))
+        self.p = None
+        self.p_rtm = None
+
 
     def getFitness(self):
         np.seterr(all = 'ignore')
@@ -66,10 +69,11 @@ class EA():
                     self.model.updateValue(self.responses[i,j])
         
         self.model.value = np.array(self.model.value)
-        self.model.reaction = np.array(self.model.reaction).flatten()
+        self.rtm = np.array(self.model.reaction).flatten()
                         
         choice = np.sum(np.log(self.model.value))
         if np.isnan(choice) or np.isinf(choice): choice = -1000000.0        
+
 
         rt = self.computeMutualInformation()
         if np.isnan(rt) or np.isinf(rt): rt = 0.0
@@ -77,13 +81,20 @@ class EA():
         return choice, rt
 
     def computeMutualInformation(self):
-        position = np.tile(self.position, self.n_repets)
-        for i in xrange(len(position)): self.p[position[i], self.model.reaction[i]] += 1        
-        p_rtm = self.p.sum(0)/float(self.p.sum())
+        bin_size = 2*(np.percentile(self.rtm, 75)-np.percentile(self.rtm, 25))*np.power(len(self.rtm), -(1/3.))
+        self.p_rtm, edges = np.histogram(self.rtm, bins=np.arange(self.rtm.min(), self.rtm.max()+bin_size, bin_size))
+        self.p_rtm = self.p_rtm/float(self.p_rtm.sum())
+        self.p = np.zeros((len(self.mass), len(self.p_rtm)))
+        positionm = np.digitize(self.rtm, edges)-1
+        self.position = np.tile(self.position, self.n_repets)
+
+        for i in xrange(len(self.position)): self.p[self.position[i], positionm[i]] += 1        
+        
         self.p = self.p/float(self.p.sum())
         
-        tmp = np.log2(self.p/np.outer(self.mass, p_rtm))        
+        tmp = np.log2(self.p/np.outer(self.mass, self.p_rtm))        
         tmp[np.isinf(tmp)] = 0.0
+        tmp[np.isnan(tmp)] = 0.0
         return np.sum(self.p*tmp)        
 
     def computeDistance(self):

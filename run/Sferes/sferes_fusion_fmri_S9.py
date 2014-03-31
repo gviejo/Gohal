@@ -41,45 +41,20 @@ model.parameters = parameters
 
 opt = EA(human.subject['fmri']['S9'], 'S9', model)
 
+
+
 llh, lrs = opt.getFitness()
 print llh, lrs
 
-model.Hfree = np.array(model.Hfree).flatten()
-model.Hbased_onset = np.array(model.Hbased_onset).flatten()
-model.Hbased_last = np.array(model.Hbased_last).flatten()
 
 
 
-figure()
-subplot(311)
-plot(model.Hfree, label = "Free")
-plot(model.Hbased_last, label = "Last")
-plot(model.Hbased_onset, label = "onset")
-legend()
+# center = opt.edges[1:]-(opt.bin_size/2.)
 
-subplot(312)
-plot((2*np.log2(5)-model.Hfree-model.Hbased_last))
+# figure()
+# subplot(121)
 
-y = (2*np.log2(5)-model.Hfree-model.Hbased_last)
-subplot(313)
-plot(1/(2*np.log2(5)-model.Hfree-model.Hbased_last))
+# plot(opt.mass)
+# plot(opt.p_rtm)
 
-show()
-
-sys.exit()
-center = opt.edges[1:]-(opt.bin_size/2.)
-
-figure()
-subplot(121)
-hist(opt.rt)
-
-subplot(122)
-hist(1/opt.rt)
-
-irt = 1./opt.rt
-
-ind = np.argsort(irt)
-figure()
-plot(irt[ind], 'o-')
-
-show()
+# show()
