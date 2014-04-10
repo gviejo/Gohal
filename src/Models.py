@@ -112,7 +112,7 @@ class KalmanQLearning():
     Kalman Temporal Differences : The deterministic case, Geist & al, 2009
     """
 
-    def __init__(self, states, actions, parameters, var_obs = 0.05, init_cov = 10, kappa = 0.1):
+    def __init__(self, states, actions, parameters, var_obs = 0.05, init_cov = 1.0, kappa = 0.1):
         #State Action Space
         self.states=states
         self.actions=actions        

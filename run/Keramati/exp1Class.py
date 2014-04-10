@@ -44,18 +44,20 @@ def transitionRules(state, action):
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-eta = 0.0001     # variance of evolution noise v
-var_obs = 0.05   # variance of observation noise n
-beta = 1.0       # rate of exploration
-gamma = 0.95     # discount factor
-sigma = 0.02     # updating rate of the average reward
-rau = 0.1        # update rate of the reward function
-tau = 0.08       # time step for graph exploration
+kalman_parameters = {   "eta" : 0.0001,     # variance of evolution noise v
+                        "var_obs" : 0.05,   # variance of observation noise n
+                        "beta" : 1.0,       # rate of exploration
+                        "gamma" : 0.95,     # discount factor                        
+                    }
 
+tau = 0.08       # time step for graph exploration
+sigma = 0.02     # updating rate of the average reward                    
+rau = 0.1        # update rate of the reward function                    
 phi = 0.5        # update rate of the transition function
 depth = 3        # depth of search when computing the goal value
 init_cov = 1.0   # initialisation of covariance matrice
 kappa = 0.1      # unscentered transform parameters
+                        
 
 nb_iter_test = 500
 
@@ -78,16 +80,17 @@ data = dict({'mod':dict({'vpi':list(),
 # -----------------------------------
 # Training + devaluation
 # -----------------------------------
-kalman = KalmanQLearning("", states, actions, gamma, beta, eta, var_obs, init_cov, kappa)
+kalman = KalmanQLearning(states, actions, kalman_parameters)
 selection = Keramati(kalman, depth, phi, rau, sigma, tau)
 
 for exp, nb_trials, deval_time in zip(['mod','ext'], [nb_iter_mod, nb_iter_ext], [deval_mod_time, deval_ext_time]):
-    kalman.initialize()
+    kalman.startExp()
     selection.initialize()
     state = 's0'
     rewards[0][rewards[('s1','em')]] = 1.0
     print exp, nb_trials, deval_time
     for i in xrange(nb_trials):
+        kalman.startBloc()
         print "TRIALS :", i
         #Setting Reward
         if i == deval_time:
@@ -100,10 +103,10 @@ for exp, nb_trials, deval_time in zip(['mod','ext'], [nb_iter_mod, nb_iter_ext],
             selection.updateValues(rewards[0][rewards[(state, action)]], next_state)
             if state == 's1' and action == 'em':
                 #Retrieving data
-                data[exp]['vpi'].append(computeVPIValues(kalman.values[0][kalman.values['s0']],kalman.covariance['cov'].diagonal()[kalman.values['s0']]))
+                data[exp]['vpi'].append(computeVPIValues(kalman.values[0],kalman.covariance['cov'].diagonal()[0:2]))
                 data[exp]['r'].append(selection.rrate[-1])                                                       
-                data[exp]['p'].append(testQValues(states, selection.values, kalman.beta, 0, nb_iter_test))
-                data[exp]['q'].append(kalman.values[0][kalman.values[('s0','pl')]]-kalman.values[0][kalman.values[('s0','em')]])                
+                data[exp]['p'].append(testQValues(states, selection.values, selection.beta, 0, nb_iter_test))
+                data[exp]['q'].append(kalman.values[kalman.states.index('s0'),kalman.actions.index('pl')]-kalman.values[kalman.states.index('s0'),kalman.actions.index('em')])                
                 state = next_state
                 break
             else:

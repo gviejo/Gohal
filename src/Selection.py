@@ -156,7 +156,11 @@ class FSelection():
         self.fusionModule()
         
         self.value.append(float(self.p_a[self.current_action]))
-        self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))
+        #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))
+
+        rt = 1+((2*self.max_entropy-self.Hf-self.Hb)/(2*self.max_entropy))**0.2
+
+        self.reaction[-1].append(rt)
 
 
         #value = np.zeros(int(self.parameters['length']+1))        
@@ -203,14 +207,14 @@ class FSelection():
         self.action[-1].append(self.actions[self.current_action])                
         self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))
 
-        while self.nb_inferences < self.n_element:            
-            self.inferenceModule()
-            self.evaluationModule()
-            d = self.sigmoideModule()
-            pdf[self.nb_inferences] = float(self.pA)            
+        # while self.nb_inferences < self.n_element:            
+        #     self.inferenceModule()
+        #     self.evaluationModule()
+        #     d = self.sigmoideModule()
+        #     pdf[self.nb_inferences] = float(self.pA)            
         
-        pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
-        self.pdf[-1].append(pdf)
+        # pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
+        # self.pdf[-1].append(pdf)
         return self.action[-1][-1]
 
     def updateValue(self, reward):
@@ -426,9 +430,9 @@ class KSelection():
         vpi = computeVPIValues(self.values_mf[self.current_state], self.covariance['cov'].diagonal()[t:t+self.n_action])
         self.vpi[-1].append(vpi)
 
-        pdf = np.zeros(int(self.parameters['length'])+1)
-        d = (np.sum(vpi > self.reward_rate[self.current_state])>0)*(self.nb_inferences < self.n_element)*1.0
-        pdf[self.nb_inferences] = 1.0-float(d)
+        #pdf = np.zeros(int(self.parameters['length'])+1)
+        #d = (np.sum(vpi > self.reward_rate[self.current_state])>0)*(self.nb_inferences < self.n_element)*1.0
+        #pdf[self.nb_inferences] = 1.0-float(d)
 
         if np.sum(vpi > self.reward_rate[self.current_state]):
             self.p = self.uniform[:,:,:]
@@ -437,22 +441,22 @@ class KSelection():
             while self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element:
                 self.inferenceModule()
                 self.evaluationModule()
-                d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
-                pdf[self.nb_inferences] = 1.0-float(d)
+                #d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
+                #pdf[self.nb_inferences] = 1.0-float(d)
             values = self.p_a_mb/np.sum(self.p_a_mb)
         self.current_action = self.sample(values)        
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(self.nb_inferences)
+        self.reaction[-1].append((self.max_entropy-self.Hb)/float(self.nb_inferences+1))
         #self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
         
-        while self.nb_inferences < self.n_element:            
-            self.inferenceModule()
-            self.evaluationModule()
-            d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
-            pdf[self.nb_inferences] = 1.0-float(d)            
+        # while self.nb_inferences < self.n_element:            
+        #     self.inferenceModule()
+        #     self.evaluationModule()
+        #     d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
+        #     pdf[self.nb_inferences] = 1.0-float(d)            
 
-        pdf = pdf/pdf.sum()
-        self.pdf.append(pdf)
+        # pdf = pdf/pdf.sum()
+        # self.pdf.append(pdf)
         return self.action[-1][-1]
 
     def updateValue(self, reward):
@@ -601,7 +605,13 @@ class Keramati():
     
     def __init__(self, kalman,depth,phi, rau, sigma, tau):
         self.kalman = kalman
-        self.depth = depth; self.phi = phi; self.rau = rau;self.sigma = sigma; self.tau = tau
+        self.depth = depth
+        self.phi = phi
+        self.rau = rau
+        self.sigma = sigma
+        self.tau = tau
+        self.gamma = self.kalman.parameters['gamma']
+        self.beta = self.kalman.parameters['beta']
         self.actions = kalman.actions; self.states = kalman.states
         self.values = createQValuesDict(kalman.states, kalman.actions)
         self.rfunction = createQValuesDict(kalman.states, kalman.actions)
@@ -626,21 +636,25 @@ class Keramati():
     def chooseAction(self, state):
         self.state = state
         self.kalman.predictionStep()
-        vpi = computeVPIValues(self.kalman.values[0][self.kalman.values[self.state]], self.kalman.covariance['cov'].diagonal()[self.kalman.values[self.state]])
+        n = self.kalman.states.index(self.state)
+        t = len(self.actions)*n
+        vpi = computeVPIValues(self.kalman.values[n], self.kalman.covariance['cov'].diagonal()[t:t+len(self.actions)])        
         
         for i in range(len(vpi)):
             if vpi[i] >= self.rrate[-1]*self.tau:
                 depth = self.depth
                 self.values[0][self.values[(self.state, self.actions[i])]] = self.computeGoalValue(self.state, self.actions[i], depth)
             else:
-                self.values[0][self.values[(self.state, self.actions[i])]] = self.kalman.values[0][self.kalman.values[(self.state,self.actions[i])]]
+                self.values[0][self.values[(self.state, self.actions[i])]] = self.kalman.values[n, i]
 
-        self.action = getBestActionSoftMax(state, self.values, self.kalman.beta)
+        self.action = getBestActionSoftMax(state, self.values, self.beta)
         return self.action
 
     def updateValues(self, reward, next_state):
         self.updateRewardRate(reward, delay = 0.0)
-        self.kalman.updatePartialValue(self.state, self.action, next_state, reward)
+        self.kalman.current_state = self.kalman.states.index(self.state)
+        self.kalman.current_action = self.kalman.actions.index(self.action)        
+        self.kalman.updateValue(reward)
         self.updateRewardFunction(self.state, self.action, reward)
         self.updateTransitionFunction(self.state, self.action)
 
@@ -662,16 +676,16 @@ class Keramati():
         
     def computeGoalValue(self, state, action, depth):
         next_state = self.transition[(state, action)]
-        tmp = np.max([self.computeGoalValueRecursive(next_state, a, depth-1) for a in self.values[next_state]])
-        value =  self.rfunction[0][self.rfunction[(state, action)]] + self.kalman.gamma*self.transition[(state, action, next_state)]*tmp
+        tmp = np.max([self.computeGoalValueRecursive(next_state, a, depth-1) for a in xrange(len(self.actions))])
+        value =  self.rfunction[0][self.rfunction[(state, action)]] + self.gamma*self.transition[(state, action, next_state)]*tmp
         return value
 
     def computeGoalValueRecursive(self, state, a, depth):
-        action = self.values[(state, self.values[state].index(a))]
+        action = self.actions[a]
         next_state = self.transition[(state, action)]
         if depth:
-            tmp = np.max([self.computeGoalValueRecursive(next_state, a, depth-1) for a in self.values[next_state]])
-            return self.rfunction[0][self.rfunction[(state, action)]] + self.kalman.gamma*self.transition[(state, action, next_state)]*tmp
+            tmp = np.max([self.computeGoalValueRecursive(next_state, a, depth-1) for a in xrange(len(self.actions))])
+            return self.rfunction[0][self.rfunction[(state, action)]] + self.gamma*self.transition[(state, action, next_state)]*tmp
         else:
-            return self.rfunction[0][self.rfunction[(state, action)]] + self.kalman.gamma*self.transition[(state, action, next_state)]*np.max(self.kalman.values[0][self.kalman.values[(state, action)]])        
+            return self.rfunction[0][self.rfunction[(state, action)]] + self.gamma*self.transition[(state, action, next_state)]*np.max(self.kalman.values[self.kalman.states.index(state)])        
         

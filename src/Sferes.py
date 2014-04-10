@@ -42,17 +42,19 @@ class EA():
         self.data = data
         self.n_trials = 39
         self.n_blocs = 4
-        self.n_repets = 1
+        self.n_repets = 3
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
         self.rtinv = 1./self.rt
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
-        #self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
-        self.bin_size = 2*(np.percentile(self.rtinv, 75)-np.percentile(self.rtinv, 25))*np.power(len(self.rtinv), -(1/3.))
-        self.mass, self.edges = np.histogram(self.rtinv, bins=np.arange(self.rtinv.min(), self.rtinv.max()+self.bin_size, self.bin_size))
+        self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
+        #self.bin_size = 2*(np.percentile(self.rtinv, 75)-np.percentile(self.rtinv, 25))*np.power(len(self.rtinv), -(1/3.))
+        self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))
+        #self.mass, self.edges = np.histogram(self.rtinv, bins=np.arange(self.rtinv.min(), self.rtinv.max()+self.bin_size, self.bin_size))
         self.mass = self.mass/float(self.mass.sum())
-        self.position = np.digitize(self.rtinv, self.edges)-1
+        #self.position = np.digitize(self.rtinv, self.edges)-1
+        self.position = np.digitize(self.rt, self.edges)-1
         #self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
         self.p = None
         self.p_rtm = None
@@ -82,13 +84,18 @@ class EA():
 
     def computeMutualInformation(self):
         bin_size = 2*(np.percentile(self.rtm, 75)-np.percentile(self.rtm, 25))*np.power(len(self.rtm), -(1/3.))
-        if bin_size == 0.0: return 0.0
-        self.p_rtm, edges = np.histogram(self.rtm, bins=np.arange(self.rtm.min(), self.rtm.max()+bin_size, bin_size))
+        if bin_size < (self.rtm.max()-self.rtm.min())/21.:
+            bin_size = (self.rtm.max()-self.rtm.min())/21.
+            self.p_rtm, edges = np.histogram(self.rtm, bins = np.linspace(self.rtm.min(), self.rtm.max()+bin_size, 21))
+        else:
+            self.p_rtm, edges = np.histogram(self.rtm, bins=np.arange(self.rtm.min(), self.rtm.max()+bin_size, bin_size))
+        
         self.p_rtm = self.p_rtm/float(self.p_rtm.sum())
         self.p = np.zeros((len(self.mass), len(self.p_rtm)))
         positionm = np.digitize(self.rtm, edges)-1
+        self.positionm = positionm
         self.position = np.tile(self.position, self.n_repets)
-
+ 
         for i in xrange(len(self.position)): self.p[self.position[i], positionm[i]] += 1        
         
         self.p = self.p/float(self.p.sum())
@@ -155,110 +162,110 @@ class RBM():
     x : Human reaction time
     y : Model Inference
     """
-    def __init__(self, x, y, nh = 50, stop = 0.000000001, epsilon = 0.001):
+    def __init__(self, x, y, nh = 10, nbiter = 1000):
         # Parameters
         self.nh = nh
-        self.stop = stop
-        self.epsilon = epsilon
-        # data
+        self.nbiter = nbiter
         self.nx = x.shape[1]
         self.ny = y.shape[1]
+        self.nd = x.shape[0]
+        self.nv = self.nx+self.ny
+        self.sig = 0.2        
+        self.epsW = 0.5
+        self.epsA = 0.5
+        self.cost = 0.00001
+        self.momentum = 0.95
+        # data        
         self.x = np.hstack((x, y))
         self.xx = np.zeros(self.x.shape)  # TEST DATASET
         # Weights
-        self.W = np.random.normal(0,0.01,size=(self.nh,self.x.shape[1]))
-        #self.W = np.zeros((self.nh,self.x.shape[1]))
+        self.W = np.random.normal(0, 0.1,size=(self.nh+1,self.nv+1))        
+        self.dW = np.random.normal(0, 0.001, size = (self.nh+1,self.nv+1))
+        # Units
+        self.Svis = np.zeros((self.nv+1))                
+        self.Svis[-1] = 1.0
+        self.Shid = np.zeros((self.nh+1))        
         # Gradient
-        self.Wpos = np.zeros((self.nh,self.x.shape[1]))
-        self.Wneg = np.zeros((self.nh,self.x.shape[1]))        
+        self.Wpos = np.zeros((self.nh+1,self.nv+1))
+        self.Wneg = np.zeros((self.nh+1,self.nv+1))
+        self.apos = np.zeros((self.nd, self.nh+1))
+        self.aneg = np.zeros((self.nd, self.nh+1))        
         # Biais
-        self.b = np.random.rand(self.x.shape[1])
-        self.c = np.random.rand(self.nh)                        
-        self.dw = np.zeros(shape=self.W.shape)
-        self.db = np.zeros(shape=self.b.shape)
-        self.dc = np.zeros(shape=self.c.shape)
-        self.momentum = 0.99
-        self.validset = self.x[np.random.randint(self.x.shape[0], size = 16)]
-        self.x1 = np.random.rand(self.x.shape[1])
-        self.h1 = np.random.rand(self.nh)
-        self.Evalid = []
-        self.Error = []
+        self.Ahid = np.ones(self.nh+1)
+        self.Avis = 0.1*np.ones(self.nv+1)
+        self.dA = np.zeros(self.nv+1)
+    
+        self.Error = np.zeros(self.nbiter)
 
-    def sigmoid(self, x):
-        return 1.0/(1.0+np.exp(-x))
+    def sigmoid(self, x, a):
+        return 1.0/(1.0+np.exp(-a*x))
 
-    def train(self):
-        count = 0        
-        while count < 101 or np.abs(np.mean(self.Error[-100:-50])-np.mean(self.Error[-50:]))>self.stop:
-            # Positive Phase            
-            self.h0 = self.c + np.dot(self.x, self.W.T)
-            self.h0 = self.sigmoid(self.h0)
-            # Negative Phase
-            self.h0 = (self.h0>np.random.rand(self.h0.shape[0], self.nh))*1.0
-            self.x1 = self.b+np.dot(self.h0, self.W)
-            self.x1 = self.sigmoid(self.x1)
-            self.h1 = self.c+np.dot(self.x1,self.W.T)
-            self.h1 = self.sigmoid(self.h1)
-            # Update phase            
-            self.dw = self.momentum*self.dw+self.epsilon*(np.dot(self.h0.T, self.x) - np.dot(self.h1.T,self.x1))
-            self.db = self.momentum*self.db+self.epsilon*np.mean((self.x-self.x1), 0)
-            self.dc = self.momentum*self.dc+self.epsilon*np.mean((self.h0-self.h1), 0)
-            self.W = self.W + self.dw#self.epsilon*(np.dot(self.h0.T, self.x) - np.dot(self.h1.T,self.x1))
-            self.c = self.c + self.dc#self.epsilon*np.mean((self.h0-self.h1), 0)
-            self.b = self.b + self.db#self.epsilon*np.mean((self.x-self.x1), 0)
-            count+=1            
-            if count > 50000: break
-            #if count%100 == 0: self.epsilon = self.epsilon*0.99
-            self.test(count)
+    # visible=0, hidden=1
+    def activ(self, who):
+        if(who==0):
+            self.Svis = np.dot(self.Shid, self.W) + self.sig*np.random.standard_normal(self.nv+1)         
+            self.Svis = self.sigmoid(self.Svis, self.Avis)
+            self.Svis[-1] = 1.0 # bias
+        if(who==1):
+            self.Shid = np.dot(self.Svis, self.W.T) + self.sig*np.random.standard_normal(self.nh+1)
+            self.Shid = self.sigmoid(self.Shid, self.Ahid)
+            #self.Shid = (self.Shid>np.random.rand(self.Shid.shape[0]))*1.0
+            self.Shid[-1] = 1.0 # bias        
 
-    def valid(self):        
-        h = self.c+np.dot(self.validset, self.W.T)
-        h = 1.0/(1.0+np.exp(-h))
-        h = (h>np.random.rand(h.shape[0], h.shape[1]))
-        x = self.b+np.dot(h, self.W)
-        x = 1.0/(1.0+np.exp(-x))
-        Evalid = np.mean(h)+np.mean(x)
-        self.Evalid.append(Evalid)
+    def train(self):        
+        for i in xrange(self.nbiter):            
+            self.Wpos = np.zeros((self.nh+1,self.nv+1))
+            self.Wneg = np.zeros((self.nh+1,self.nv+1))
+            self.apos = np.zeros((self.nh+1))
+            self.aneg = np.zeros((self.nh+1))
+            error = 0.0
+            for point in xrange(self.nd):
+                # Positive Phase
+                self.Svis[0:self.nv] = self.x[point]
+            
+                self.activ(1)            
+                self.Wpos = self.Wpos + np.outer(self.Shid, self.Svis)            
+                self.apos = self.apos + self.Shid*self.Shid
+                # Negative Phase                
+                self.activ(0)
+                self.activ(1)
 
-    def test(self, i):
-        h = self.c+np.dot(self.x, self.W.T)
-        h = self.sigmoid(h)
-        h =  (h>np.random.rand(h.shape[0], h.shape[1]))*1.0
-        x = self.b+np.dot(h, self.W)
-        x = self.sigmoid(x)
-        error = np.sum(np.power(x-self.x, 2))
-        self.Error.append(error)
-        print "Epoch "+str(i)+" error = "+str(error)+" condition = "+str(np.abs(np.mean(self.Error[-100:-50])-np.mean(self.Error[-50:])))
+                error += np.sum(np.power(self.Svis[0:self.nv]-self.x[point], 2))
+                
+                # Update phase                
+                self.Wneg = self.Wneg + np.outer(self.Shid, self.Svis)
+                self.aneg = self.aneg + self.Shid*self.Shid        
 
-    def getInputfromOutput(self,xx):
-        self.m = []
-        for e in xrange(10):
-            self.xx = np.zeros(self.x.shape)
-            self.xx[:,self.nx:] = xx
-            for i in xrange(10):
-                h = self.c + np.dot(self.xx, self.W.T)
-                h = self.sigmoid(h)
-                h = (h>np.random.rand(h.shape[0], h.shape[1]))*1.0        
-                self.xx[:,0:self.nx] = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
-                self.xx[:,0:self.nx] = self.sigmoid(self.xx[:,0:self.nx])
-            self.m.append(self.xx[:,0:self.nx])
-        self.m = np.array(self.m)
-        #self.xx[:,0:self.nx] = np.mean(self.m, 0)
+            self.Error[i] = error
+            self.dW = self.dW*self.momentum + self.epsW * ((self.Wpos - self.Wneg)/float(self.nd) - self.cost*self.W)
+            self.W = self.W + self.dW
+            self.Ahid = self.Ahid + self.epsA*(self.apos - self.aneg)/(float(self.nd)*self.Ahid*self.Ahid)
 
-    # def getRT(self):
-    #     """ Get a rt in s from model reaction time """                
-    #     for i in xrange(5):            
-    #         #h = self.c+np.dot(self.x[:,self.nx:], self.W.T[self.nx:])
-    #         h = self.c + np.dot(self.xx, self.W.T)
-    #         h = 1.0/(1.0+np.exp(-h))
-    #         h = (h>np.random.rand())*1.0
-    #         self.xx[:,0:self.nx] = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
-    #         self.xx[:,0:self.nx] = 1.0/(1.0+np.exp(-self.xx[:,0:self.nx]))
-    #         self.xx[:,0:self.nx] = (self.xx[:,0:self.nx]>np.random.rand(self.xx[:,0:self.nx].shape[0],self.xx[:,0:self.nx].shape[1]))*1.0
-    #     h = self.c + np.dot(self.xx, self.W.T)
-    #     h = 1.0/(1.0+np.exp(-h))
-    #     h = (h>np.random.rand())*1.0
-    #     self.xx[:,0:self.nx] = self.b[0:self.nx]+np.dot(h, self.W[:,0:self.nx])
+            print "Epoch "+str(i)+" Error = "+str(error)
+
+    def getInputfromOutput(self,xx, n = 15):
+        self.xx = xx
+        self.out = np.zeros((self.xx.shape[0], self.nx))
+        for point in xrange(self.xx.shape[0]):
+            self.Svis[0:self.nv] = 0.0
+            self.Svis[self.nx:self.nx+self.ny] = self.xx[point]
+            for i in xrange(n):
+                self.activ(1)
+                self.activ(0)
+                self.Svis[self.nx:self.nx+self.ny] = self.xx[point]
+            self.out[point] = self.Svis[0:self.nx]
+        return self.out
+
+    def reconstruct(self, xx, n = 10):
+        self.xx = xx
+        self.out = np.zeros(self.xx.shape)
+        for point in xrange(self.xx.shape[0]):
+            self.Svis[0:self.nv] = self.xx[point]
+            for i in xrange(n):
+                self.activ(1)
+                self.activ(0)
+            self.out[point] = self.Svis[0:self.nv]
+        return self.out
 
 
 class pareto():
@@ -437,6 +444,7 @@ class pareto():
                 s = self.data[m].keys()[i]
                 ax1 = fig_pareto.add_subplot(4,4,i+1)
                 ax1.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m])
+                ax1.set_title(s)
                 #ax1.scatter(self.pareto[m][s][:,3], self.pareto[m][s][:,4], c = self.rank[m][s])            
         n_params_max = np.max([len(t) for t in [self.p_order[m.split("_")[0]] for m in self.pareto.keys()]])
         n_model = len(self.pareto.keys())
@@ -504,39 +512,34 @@ class pareto():
         self.models[m].reaction = xx.reshape(n_blocs, n_trials)
 
     def learnRBM(self, m, s, n_blocs, n_trials):
-        rt = np.array([self.human.subject['fmri'][s][i]['rt'][0:n_trials,0] for i in range(1,n_blocs+1)]).flatten()
-        bin_size = 2*(np.percentile(rt, 75)-np.percentile(rt, 25))*np.power(len(rt), -(1/3.))
-        mass, edges = np.histogram(rt, bins=np.arange(rt.min(), rt.max()+ bin_size, bin_size))
-        mass = mass/float(mass.sum())
-        position = np.digitize(rt, edges)-1
+        x = np.array([self.human.subject['fmri'][s][i]['rt'][0:n_trials,0] for i in range(1,n_blocs+1)]).flatten()
+        #x = 1./x
+        x_bin_size = 2*(np.percentile(x, 75)-np.percentile(x, 25))*np.power(len(x), -(1/3.))
+        px, xedges = np.histogram(x, bins=np.arange(x.min(), x.max()+ x_bin_size, x_bin_size))
+        px = px/float(px.sum())
+        xposition = np.digitize(x, xedges)-1
+
+        y = self.models[m].reaction.flatten()
+        y_bin_size = 2*(np.percentile(y, 75)-np.percentile(y, 25))*np.power(len(y), -(1/3.))
+        py, yedges = np.histogram(y, bins=np.arange(y.min(), y.max()+y_bin_size, y_bin_size))
+        py = py/float(py.sum())
+        yposition = np.digitize(y, yedges)-1
+
         f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
+        xdata = np.zeros((x.shape[0], xposition.max()+1))
+        for i in xrange(xposition.shape[0]): xdata[i,xposition[i]] = 1.0
+        ydata = np.zeros((y.shape[0], yposition.max()+1))
+        for i in xrange(yposition.shape[0]): ydata[i,yposition[i]] = 1.0
 
-        tmp = np.zeros((rt.shape[0], position.max()+1))
-        for i in xrange(position.shape[0]): tmp[i,position[i]] = 1.0
-        rbm = RBM(tmp, self.models[m].pdf, stop = 0.000000001, epsilon = 0.001)
+        rbm = RBM(xdata, ydata, nh = 10, nbiter = 1000)
         rbm.train()
-        
-        rt_model = np.zeros(self.models[m].pdf.shape)
-        for i in xrange(len(self.models[m].reaction.flatten())):
-            ind = self.models[m].reaction.flatten()[i]
-            rt_model[i,ind] = 1.0
-        rbm.x = np.zeros(rbm.x.shape)
-        rbm.x[:,rbm.nx:] = rt_model
-    
-        rbm.getRT()
-        self.rbm = rbm
-        
+                
+        Y = rbm.getInputfromOutput(ydata)
 
-        rbm.xx = rbm.xx/np.vstack(rbm.xx.sum(1))
-        tmp = np.cumsum(rbm.xx, 1)
-        self.tmp = tmp
-        tirage = np.sum(tmp<np.vstack(np.random.rand(tmp.shape[0])), 1)
-        center = edges[1:]-(bin_size/2.)
-        self.center = center
-        self.tirage = tirage
-        self.rt = rt
-        self.rtm = center[tirage]
-        self.rbm = rbm
+        tirage = np.argmax(Y, 1)
+        
+        center = xedges[1:]-(x_bin_size/2.)
+                
         self.models[m].reaction = np.reshape(center[tirage], (n_blocs, n_trials))        
 
     def run(self, plot=True):
@@ -560,7 +563,7 @@ class pareto():
                     self.models[m].updateValue(reward)
             self.models[m].pdf = np.array(self.models[m].pdf)
             self.models[m].reaction = np.array(self.models[m].reaction)
-
+            
             self.learnRBM(m, s, nb_blocs, nb_trials)
             #sys.exit()
             #self.alignToMedian(m, s, nb_blocs, nb_trials)

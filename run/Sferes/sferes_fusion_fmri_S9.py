@@ -9,35 +9,37 @@ from Models import *
 from Selection import *
 from matplotlib import *
 from pylab import *
-from scipy.stats import norm
 
-p_order = ['alpha','beta', 'gamma', 'noise','length','gain','threshold']
+from sklearn.neural_network import BernoulliRBM
+from sklearn.pipeline import Pipeline
 
-#p = map(float, "0.784762 0.245554 0.815565 0 1 1 0.610446 0.170918".split(" "))
-# p = map(float, "0.118246 0.897181 0.946751 0.595232 0.092146 0.922554 0.126166 0.341448".split(" "))
+
+# model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'])
+
+# p_order = ['alpha','beta', 'gamma', 'noise','length','gain','threshold']
+
+# p = map(float, "1 0.669775 0 0.375395 0.509891 0 1".split(" "))
+
 # tmp = dict()
 # for i in p_order:
 # 	tmp[i] = p[p_order.index(i)]
-
-human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
-model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'])
-
 
 # parameters = tmp
 # for p in parameters.iterkeys():
 # 	if parameters[p]:
 # 		parameters[p] = model.bounds[p][0]+parameters[p]*(model.bounds[p][1]-model.bounds[p][0])
 
-parameters = dict({'noise':0.2,
-                    'length':7,
-                    'alpha':0.9,
-                    'beta':3.5,
-                    'gamma':0.5,
-                    'gain':0.6,
-                    'threshold':1.5})
+parameters = dict({'alpha': 0.92961300000000002,
+				 'beta': 1.1455569999999999,
+				 'gain': 1.0000000000000001e-05,
+				 'gamma': 0.78684500000000002,
+				 'length': 9.3192839999999997,
+				 'noise': 0.010792700000000001,
+				 'threshold': 9.3932982999999997})
 
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
+model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters)
 
-model.parameters = parameters
 
 opt = EA(human.subject['fmri']['S9'], 'S9', model)
 
@@ -46,15 +48,52 @@ opt = EA(human.subject['fmri']['S9'], 'S9', model)
 llh, lrs = opt.getFitness()
 print llh, lrs
 
+figure()
 
+left, width = 0.1, 0.65
+bottom, height = 0.1, 0.65
+bottom_h = left_h = left+width+0.02
+rect_scatter = [left, bottom, width, height]
+rect_histx = [left, bottom_h, width, 0.2]
+rect_histy = [left_h, bottom, 0.2, height]
+plt.figure(1, figsize=(10,10))
+axScatter = plt.axes(rect_scatter)
+axHistx = plt.axes(rect_histx)
+axHisty = plt.axes(rect_histy)
+axScatter.imshow(opt.p, interpolation = 'nearest', origin = 'lower')
+axHistx.plot(opt.p_rtm)
+axHisty.plot(opt.mass, np.arange(len(opt.mass)))
 
+show()
 
-# center = opt.edges[1:]-(opt.bin_size/2.)
+sys.exit()
 
-# figure()
-# subplot(121)
+def createDataSet(x):
+	bin_size = 2*(np.percentile(x, 75)-np.percentile(x, 25))*np.power(len(x), -(1/3.))	
+	if bin_size < (x.max()-x.min())/30.:
+		bin_size = (x.max()-x.min())/30.
+		mass, edges = np.histogram(x, bins = np.linspace(x.min(), x.max()+bin_size, num = 31, endpoint = True))
+	else:
+		mass, edges = np.histogram(x, bins = np.arange(x.min(), x.max()+bin_size, bin_size))
 
-# plot(opt.mass)
-# plot(opt.p_rtm)
+	position = np.digitize(x, edges)-1
+	
+	xx = np.zeros((x.shape[0], mass.shape[0]))
+	for i in xrange(len(position)): xx[i, position[i]] = 1.0
+	
+	return xx
 
-# show()
+x = createDataSet(np.tile(opt.rt, opt.n_repets))
+y = createDataSet(opt.rtm)
+
+rbm = RBM(x, y, nh = 10, nbiter = 800)
+
+rbm.train()
+
+I = rbm.getInputfromOutput(y)
+
+#I = rbm.reconstruct(np.random.random_sample(size = (rbm.nd, rbm.nv)))
+
+map(plot, I[:,0:rbm.nx])
+
+show()
