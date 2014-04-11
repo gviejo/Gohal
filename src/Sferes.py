@@ -42,7 +42,7 @@ class EA():
         self.data = data
         self.n_trials = 39
         self.n_blocs = 4
-        self.n_repets = 3
+        self.n_repets = 10
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
         self.rtinv = 1./self.rt
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
@@ -89,7 +89,7 @@ class EA():
             self.p_rtm, edges = np.histogram(self.rtm, bins = np.linspace(self.rtm.min(), self.rtm.max()+bin_size, 21))
         else:
             self.p_rtm, edges = np.histogram(self.rtm, bins=np.arange(self.rtm.min(), self.rtm.max()+bin_size, bin_size))
-        
+        self.p_rtm, edges = np.histogram(self.rtm, bins = np.linspace(self.rtm.min(), self.rtm.max()+bin_size, 12))        
         self.p_rtm = self.p_rtm/float(self.p_rtm.sum())
         self.p = np.zeros((len(self.mass), len(self.p_rtm)))
         positionm = np.digitize(self.rtm, edges)-1

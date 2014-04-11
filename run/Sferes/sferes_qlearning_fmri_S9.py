@@ -32,7 +32,30 @@ opt = EA(human.subject['fmri']['S9'], 'S9', model)
 llh, lrs = opt.getFitness()
 
 print llh, lrs
+
+
+
+left, width = 0.1, 0.65
+bottom, height = 0.1, 0.65
+bottom_h = left_h = left+width+0.02
+rect_scatter = [left, bottom, width, height]
+rect_histx = [left, bottom_h, width, 0.2]
+rect_histy = [left_h, bottom, 0.2, height]
+plt.figure(1, figsize=(12,9))
+axScatter = plt.axes(rect_scatter)
+axHistx = plt.axes(rect_histx)
+axHisty = plt.axes(rect_histy)
+axScatter.imshow(opt.p, interpolation = 'nearest', origin = 'lower')
+axHistx.plot(opt.p_rtm)
+axHisty.plot(opt.mass, np.arange(len(opt.mass)))
+
+show()
+
+
 sys.exit()
+
+
+
 c, n = np.histogram(opt.rt, opt.edges)
 c = c.astype('float')
 c = c/c.sum()

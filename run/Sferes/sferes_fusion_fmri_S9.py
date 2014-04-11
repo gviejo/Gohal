@@ -29,13 +29,21 @@ from sklearn.pipeline import Pipeline
 # 	if parameters[p]:
 # 		parameters[p] = model.bounds[p][0]+parameters[p]*(model.bounds[p][1]-model.bounds[p][0])
 
+# parameters = dict({'alpha': 0.92961300000000002,
+# 				 'beta': 1.1455569999999999,
+# 				 'gain': 1.0000000000000001e-05,
+# 				 'gamma': 0.78684500000000002,
+# 				 'length': 9.3192839999999997,
+# 				 'noise': 0.010792700000000001,
+# 				 'threshold': 9.3932982999999997})
+
 parameters = dict({'alpha': 0.92961300000000002,
 				 'beta': 1.1455569999999999,
-				 'gain': 1.0000000000000001e-05,
+				 'gain': 1.0,
 				 'gamma': 0.78684500000000002,
-				 'length': 9.3192839999999997,
+				 'length': 8,
 				 'noise': 0.010792700000000001,
-				 'threshold': 9.3932982999999997})
+				 'threshold': 1.0})
 
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters)
@@ -48,7 +56,7 @@ opt = EA(human.subject['fmri']['S9'], 'S9', model)
 llh, lrs = opt.getFitness()
 print llh, lrs
 
-figure()
+#figure()
 
 left, width = 0.1, 0.65
 bottom, height = 0.1, 0.65
@@ -56,14 +64,54 @@ bottom_h = left_h = left+width+0.02
 rect_scatter = [left, bottom, width, height]
 rect_histx = [left, bottom_h, width, 0.2]
 rect_histy = [left_h, bottom, 0.2, height]
-plt.figure(1, figsize=(10,10))
+plt.figure(1, figsize=(12,9))
 axScatter = plt.axes(rect_scatter)
 axHistx = plt.axes(rect_histx)
 axHisty = plt.axes(rect_histy)
 axScatter.imshow(opt.p, interpolation = 'nearest', origin = 'lower')
 axHistx.plot(opt.p_rtm)
 axHisty.plot(opt.mass, np.arange(len(opt.mass)))
+#axHistx.set_title("dh/n")
+#axHistx.set_title("dh")
+axHistx.set_title("n")
+plt.text(s = "MI "+str(lrs), x = 0.0, y = 16.0)
 
+#savefig("/home/viejo/Desktop/meeting_11_04_14/mutual_fusion_h_n.pdf")
+#savefig("/home/viejo/Desktop/meeting_11_04_14/mutual_fusion_h.pdf")
+#savefig("/home/viejo/Desktop/meeting_11_04_14/mutual_fusion_n.pdf")
+
+
+
+plt.figure(2, figsize=(8,8))
+rt = np.tile(opt.rt, opt.n_repets)
+ind = np.argsort(rt)
+subplot(211)
+plot(rt[ind])
+subplot(212)
+plot(opt.rtm[ind])
+
+#np.save("rtm_h_n", opt.rtm[ind])
+#np.save("rtm_h", opt.rtm[ind])
+np.save("rtm_n", opt.rtm[ind])
+
+
+hn = np.load("rtm_h_n.npy")
+h = np.load("rtm_h.npy")
+n = np.load("rtm_n.npy")
+
+figure(figsize = (9, 13))
+subplot(411)
+plot(rt[ind])
+subplot(412)
+plot(hn)
+title("h/n")
+subplot(413)
+plot(h)
+title("h")
+subplot(414)
+plot(n)
+title("n")
+savefig("/home/viejo/Desktop/meeting_11_04_14/cumul_fusion.pdf")
 show()
 
 sys.exit()

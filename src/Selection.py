@@ -156,11 +156,13 @@ class FSelection():
         self.fusionModule()
         
         self.value.append(float(self.p_a[self.current_action]))
-        #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))
+        #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))        
+        #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb))
+        #self.reaction[-1].append(float(self.nb_inferences+1))
 
-        rt = 1+((2*self.max_entropy-self.Hf-self.Hb)/(2*self.max_entropy))**0.2
+        #rt = 1+((2*self.max_entropy-self.Hf-self.Hb)/(2*self.max_entropy))**0.2
 
-        self.reaction[-1].append(rt)
+        #self.reaction[-1].append(rt)
 
 
         #value = np.zeros(int(self.parameters['length']+1))        

@@ -85,7 +85,7 @@ class QLearning():
 
         value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
         self.value.append([float(value[self.current_action])])
-        self.reaction[-1].append(0)
+        self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.parameters['beta']))
         #self.pdf.append(np.ones(1))
         #self.sigma.append([self.parameters['sigma']])
 
@@ -325,6 +325,15 @@ class BayesianWorkingMemory():
         self.values = self.values/np.sum(self.values)
         self.entropy = -np.sum(self.values*np.log2(self.values))
 
+    def sigmoideModule(self):
+        x = self.initial_entropy-self.entropy
+        self.pA = 1/(1+((self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['threshold'])))
+        #self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['gain'])*np.exp(-x))
+        #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
+        #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
+        #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))        
+        return np.random.uniform(0,1) > self.pA
+
     def computeValue(self, s, a):
         self.current_state = s
         self.current_action = a
@@ -340,7 +349,8 @@ class BayesianWorkingMemory():
         # value[self.nb_inferences] = 1./float(self.n_action)
         # pdf[self.nb_inferences] = 1.0-float(d)
         #sigma[self.nb_inferences] = float(self.parameters['sigma'])        
-        while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:                    
+        #while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:                    
+        while self.sigmoideModule():
             self.inferenceModule()
             self.evaluationModule()                    
             #d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
@@ -354,7 +364,9 @@ class BayesianWorkingMemory():
 
         #self.pdf.append(pdf)
         self.value.append(self.values[self.current_action])
-        self.reaction[-1].append((self.initial_entropy-self.entropy)/float(self.nb_inferences+1))
+        #self.reaction[-1].append((self.initial_entropy-self.entropy)/float(self.nb_inferences+1))
+        self.reaction[-1].append((self.initial_entropy-self.entropy))
+        #self.reaction[-1].append(float(self.nb_inferences+1))
         #self.sigma.append(sigma)        
 
     def chooseAction(self, state):
