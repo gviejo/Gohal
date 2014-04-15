@@ -10,8 +10,9 @@ from Selection import *
 from matplotlib import *
 from pylab import *
 
-from sklearn.neural_network import BernoulliRBM
-from sklearn.pipeline import Pipeline
+from scipy.optimize import curve_fit, leastsq
+
+
 
 
 # model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'])
@@ -56,6 +57,33 @@ opt = EA(human.subject['fmri']['S9'], 'S9', model)
 llh, lrs = opt.getFitness()
 print llh, lrs
 
+mean = []
+for i in [opt.rt, opt.rtm]:
+	tmp = i.reshape(4, 39)
+	step, indice = getRepresentativeSteps(tmp, opt.state, opt.action, opt.responses)
+	mean.append(computeMeanRepresentativeSteps(step))
+
+mean = np.array(mean)
+
+
+#def errfunc(p): return np.sum((rt - (p[0]*rtm+p[1]))**2)
+
+fitfunc = lambda p, x: p[0] + p[1] * x
+errfunc = lambda p, x, y: (y - fitfunc(p, x))
+pinit = [1.0, -1.0]
+
+rt = mean[0][0]
+rtm = mean[1][0]
+#p = curve_fit(f = func, xdata = mean[0][0], ydata = mean[1][0])
+p = leastsq(errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)
+
+plot(mean[0][0],'o-')
+#plot(mean[1][0],'o--')
+plot(fitfunc(p[0], rtm), '*-')
+
+show()
+sys.exit()
+
 #figure()
 
 left, width = 0.1, 0.65
@@ -76,9 +104,9 @@ axHisty.plot(opt.mass, np.arange(len(opt.mass)))
 axHistx.set_title("n")
 plt.text(s = "MI "+str(lrs), x = 0.0, y = 16.0)
 
-#savefig("/home/viejo/Desktop/meeting_11_04_14/mutual_fusion_h_n.pdf")
-#savefig("/home/viejo/Desktop/meeting_11_04_14/mutual_fusion_h.pdf")
-#savefig("/home/viejo/Desktop/meeting_11_04_14/mutual_fusion_n.pdf")
+show()
+
+sys.exit()
 
 
 
@@ -90,6 +118,7 @@ plot(rt[ind])
 subplot(212)
 plot(opt.rtm[ind])
 
+
 #np.save("rtm_h_n", opt.rtm[ind])
 #np.save("rtm_h", opt.rtm[ind])
 np.save("rtm_n", opt.rtm[ind])
@@ -99,7 +128,7 @@ hn = np.load("rtm_h_n.npy")
 h = np.load("rtm_h.npy")
 n = np.load("rtm_n.npy")
 
-figure(figsize = (9, 13))
+figure(figsize = (9, 14))
 subplot(411)
 plot(rt[ind])
 subplot(412)
@@ -112,7 +141,7 @@ subplot(414)
 plot(n)
 title("n")
 savefig("/home/viejo/Desktop/meeting_11_04_14/cumul_fusion.pdf")
-show()
+
 
 sys.exit()
 

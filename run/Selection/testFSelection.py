@@ -99,7 +99,7 @@ pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus[
 # thr = extractStimulusPresentation(model.thr, model.state, model.action, model.responses)
 # thr_free = extractStimulusPresentation(model.thr_free, model.state, model.action, model.responses)
 
-step, indice = getRepresentativeSteps(1./human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
 rt_fmri = computeMeanRepresentativeSteps(step) 
 
 step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)

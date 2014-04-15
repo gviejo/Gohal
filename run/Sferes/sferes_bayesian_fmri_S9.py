@@ -35,6 +35,7 @@ llh, lrs = opt.getFitness()
 
 print llh, lrs
 
+
 left, width = 0.1, 0.65
 bottom, height = 0.1, 0.65
 bottom_h = left_h = left+width+0.02
@@ -57,7 +58,7 @@ plt.text(s = "MI "+str(lrs), x = 0.0, y = 16.0)
 #savefig("/home/viejo/Desktop/meeting_11_04_14/mutual_bayesian_h.pdf")
 #savefig("/home/viejo/Desktop/meeting_11_04_14/mutual_bayesian_n.pdf")
 
-
+sys.exit()
 #plt.figure(2, figsize=(8,8))
 rt = np.tile(opt.rt, opt.n_repets)
 ind = np.argsort(rt)

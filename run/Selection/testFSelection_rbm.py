@@ -77,7 +77,7 @@ def testModel():
 # HUMAN LEARNING
 # -----------------------------------
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
-rt = human.reaction['fmri'].reshape(14, 156)
+#rt = human.reaction['fmri'].reshape(14, 156)
 # -----------------------------------
 
 
@@ -115,8 +115,8 @@ t1 = time()
 testModel()
 
 
-rtm = learnRBM()
-model.reaction = rtm
+#rtm = learnRBM()
+#model.reaction = rtm
 
 t2 = time()
 
