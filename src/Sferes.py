@@ -43,7 +43,7 @@ class EA():
         self.data = data
         self.n_trials = 39
         self.n_blocs = 4
-        self.n_repets = 1
+        self.n_repets = 5
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
         #self.rtinv = 1./self.rt
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
@@ -81,19 +81,25 @@ class EA():
 
 
         #rt = self.computeMutualInformation()
-        rt = self.leastSquares()
+        rt = -np.exp(self.leastSquares())
         #if np.isnan(rt) or np.isinf(rt): rt = -1000.0
         return choice, rt
 
     def leastSquares(self):
+        self.rt = np.tile(self.rt, self.n_repets)        
+        self.state = np.tile(self.state, (self.n_repets, 1))
+        self.action = np.tile(self.action, (self.n_repets, 1))
+        self.responses = np.tile(self.responses, (self.n_repets, 1))
         pinit = [1.0, -1.0]
         mean = []
         for i in [self.rt, self.rtm]:
-            tmp = i.reshape(4, 39)
+            tmp = i.reshape(self.n_blocs*self.n_repets, self.n_trials)            
             step, indice = getRepresentativeSteps(tmp, self.state, self.action, self.responses)
             mean.append(computeMeanRepresentativeSteps(step))
         mean = np.array(mean)
         p = leastsq(self.errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)        
+        self.p = p
+        self.mean = mean
         return np.sum(np.power(self.errfunc(p[0], mean[1][0], mean[0][0]), 2))
 
     def computeMutualInformation(self):
@@ -552,11 +558,34 @@ class pareto():
                 
         self.models[m].reaction = np.reshape(center[tirage], (n_blocs, n_trials))        
 
+    def leastSquares(self, m, s, n_blocs, n_trials):
+        rt = np.array([self.human.subject['fmri'][s][i]['rt'][0:n_trials,0] for i in range(1,n_blocs+1)]).flatten()
+        rtm = self.models[m].reaction.flatten()
+        state = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,0] for i in range(1,n_blocs+1)])
+        action = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,1] for i in range(1,n_blocs+1)])
+        responses = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,2] for i in range(1,n_blocs+1)])
+        pinit = [1.0, -1.0]
+        fitfunc = lambda p, x: p[0] + p[1] * x
+        errfunc = lambda p, x, y : (y - fitfunc(p, x))
+        mean = []
+        for i in [rt,rtm]:
+            tmp = i.reshape(n_blocs, n_trials)
+            step, indice = getRepresentativeSteps(tmp, state, action, responses)
+            mean.append(computeMeanRepresentativeSteps(step))
+        mean = np.array(mean)
+        p = leastsq(errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)        
+        self.models[m].reaction = fitfunc(p[0], mean[1][0])
+        ###
+        self.hrt.append(mean[0][0])
+        ###
+
     def run(self, plot=True):
         nb_blocs = 4
         nb_trials = self.human.responses['fmri'].shape[1]
         cats = CATS(nb_trials)
-        
+        ###
+        self.hrt = []
+        ###
         for s in self.p_test.iterkeys():             
             m = self.p_test[s].keys()[0]
             print "Testing "+s+" with "+m            
@@ -570,21 +599,21 @@ class pareto():
                     state = cats.getStimulus(j)
                     action = self.models[m].chooseAction(state)
                     reward = cats.getOutcome(state, action)
-                    self.models[m].updateValue(reward)
-            self.models[m].pdf = np.array(self.models[m].pdf)
+                    self.models[m].updateValue(reward)            
             self.models[m].reaction = np.array(self.models[m].reaction)
             
-            self.learnRBM(m, s, nb_blocs, nb_trials)
+            #self.learnRBM(m, s, nb_blocs, nb_trials)
             #sys.exit()
             #self.alignToMedian(m, s, nb_blocs, nb_trials)
-            #self.reaction = np.random.normal(self.models[m].reaction, np.array(self.models[m].sigma_test))
+            self.leastSquares(m, s, nb_blocs, nb_trials)
 
-
+            self.beh['reaction'].append(self.models[m].reaction)
             for i in xrange(nb_blocs):
                 self.beh['state'].append(self.models[m].state[i])
                 self.beh['action'].append(self.models[m].action[i])
                 self.beh['responses'].append(self.models[m].responses[i])
-                self.beh['reaction'].append(self.models[m].reaction[i])
+
+        self.hrt = np.array(self.hrt)
         for k in self.beh.iterkeys():
             self.beh[k] = np.array(self.beh[k])
         self.beh['state'] = convertStimulus(self.beh['state'])
@@ -595,11 +624,11 @@ class pareto():
             pcr = extractStimulusPresentation(self.beh['responses'], self.beh['state'], self.beh['action'], self.beh['responses'])
             pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])            
                                                             
-            step, indice = getRepresentativeSteps(self.beh['reaction'], self.beh['state'], self.beh['action'], self.beh['responses'])
-            rt = computeMeanRepresentativeSteps(step)
+            #step, indice = getRepresentativeSteps(self.beh['reaction'], self.beh['state'], self.beh['action'], self.beh['responses'])
+            #rt = computeMeanRepresentativeSteps(step)
             step, indice = getRepresentativeSteps(self.human.reaction['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
             rt_human = computeMeanRepresentativeSteps(step) 
-
+            rt = (np.mean(self.beh['reaction'], 0), np.var(self.beh['reaction'], 0))
 
             colors = ['blue', 'red', 'green']
             self.fig_quick = figure(figsize=(10,5))

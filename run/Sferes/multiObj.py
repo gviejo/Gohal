@@ -43,11 +43,11 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 front = pareto(options.input, threshold = [-100000, -150000], N = 156)
 
-front.preview()
+#front.preview()
 
-#front.rankMixedFront([0.5,0.5])
+front.rankMixedFront([0.5,0.5])
 
-#front.run(plot=True)
+front.run(plot=True)
 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
 #     pickle.dump(front.pareto, handle)
@@ -56,11 +56,11 @@ front.preview()
 #     pickle.dump(front.mixed, handle)
 
 
-# data = front.data['fusion']['S5'][0]
-# gen = data[:,0]
-# gen = gen/gen.max()
+figure()
 
-
-# [plot(data[:,2][gen == i],data[:,3][gen == i], 'o', markersize = 8*i) for i in np.unique(gen)]
-
-# show()
+for i, s in zip(xrange(14), front.p_test.keys()):
+	subplot(4,4,i+1)
+	plot(front.hrt[i], 'o-')
+	plot(front.beh['reaction'][i], 'o--')
+	title(s)
+show()

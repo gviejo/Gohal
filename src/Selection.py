@@ -70,7 +70,7 @@ class FSelection():
         elif value > self.bounds[name][1]:
             self.parameters[name] = self.bounds[name][1]
         else:
-            self.parameters[name] = value                
+            self.parameters[name] = value
 
     def setAllParameters(self, parameters):
         for i in parameters.iterkeys():
@@ -156,7 +156,8 @@ class FSelection():
         self.fusionModule()
         
         self.value.append(float(self.p_a[self.current_action]))
-        self.reaction[-1].append(-(self.p_a*np.log(self.p_a)).sum())
+        H = -(self.p_a*np.log(self.p_a)).sum()
+        self.reaction[-1].append(H)
         #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))        
         #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb))
         #self.reaction[-1].append(float(self.nb_inferences+1))

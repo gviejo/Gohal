@@ -57,29 +57,10 @@ opt = EA(human.subject['fmri']['S9'], 'S9', model)
 llh, lrs = opt.getFitness()
 print llh, lrs
 
-mean = []
-for i in [opt.rt, opt.rtm]:
-	tmp = i.reshape(4, 39)
-	step, indice = getRepresentativeSteps(tmp, opt.state, opt.action, opt.responses)
-	mean.append(computeMeanRepresentativeSteps(step))
 
-mean = np.array(mean)
+plot(opt.fitfunc(opt.p[0], opt.mean[1][0]), '+-')
+plot(opt.mean[0][0], 'o-')
 
-
-#def errfunc(p): return np.sum((rt - (p[0]*rtm+p[1]))**2)
-
-fitfunc = lambda p, x: p[0] + p[1] * x
-errfunc = lambda p, x, y: (y - fitfunc(p, x))
-pinit = [1.0, -1.0]
-
-rt = mean[0][0]
-rtm = mean[1][0]
-#p = curve_fit(f = func, xdata = mean[0][0], ydata = mean[1][0])
-p = leastsq(errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)
-
-plot(mean[0][0],'o-')
-#plot(mean[1][0],'o--')
-plot(fitfunc(p[0], rtm), '*-')
 
 show()
 sys.exit()
