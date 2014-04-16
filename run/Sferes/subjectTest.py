@@ -113,14 +113,14 @@ fig = figure(figsize = (15, 12))
 for i, s in zip(xrange(14), p_test.keys()):
   ax1 = fig.add_subplot(4,4,i+1)
   ax1.plot(hrt[i], 'o-')
-  ax2 = ax1.twinx()
+  #ax2 = ax1.twinx()
   ax1.plot(hrtm[i], 'o--', color = 'green')
   ax1.set_title(s)
 
 fig2 = figure()
 ax3 = fig2.add_subplot(111)
 ax3.plot(np.mean(hrt, 0), 'o-')
-ax4 = ax3.twinx()
+#ax4 = ax3.twinx()
 ax3.plot(np.mean(hrtm, 0), 'o-', color = 'green')
 
 show()

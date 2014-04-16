@@ -17,7 +17,7 @@ from matplotlib import *
 from pylab import *
 from HumanLearning import HLearning
 from time import time
-
+from scipy.optimize import leastsq
 
 # -----------------------------------
 # FONCTIONS
@@ -67,7 +67,8 @@ parameters = dict({'noise':0.2,
                     'beta':3.5,
                     'gamma':0.5,
                     'gain':0.6,
-                    'threshold':1.5})
+                    'threshold':1.5,
+                    'sigma':0.01})
                             
 
 nb_trials = 39
@@ -105,13 +106,12 @@ rt_fmri = computeMeanRepresentativeSteps(step)
 step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
 rt = computeMeanRepresentativeSteps(step)
 
-# step, indice = getRepresentativeSteps(model.thr, model.state, model.action, model.responses)
-# thr_step = computeMeanRepresentativeSteps(step) 
-
-# step, indice = getRepresentativeSteps(model.thr_free, model.state, model.action, model.responses)
-# thr_free_step = computeMeanRepresentativeSteps(step) 
-
-
+rt = np.array(rt)
+fitfunc = lambda p, x: p[0] + p[1] * x
+errfunc = lambda p, x, y : (y - fitfunc(p, x))
+p = leastsq(errfunc, [1.0, -1.0], args = (rt[0], rt_fmri[0]), full_output = False)
+rt[0] = fitfunc(p[0], rt[0])
+#rt[1] = fitfunc(p[0], rt[1])
 # -----------------------------------
 
 
@@ -149,39 +149,13 @@ ax1 = plt.subplot(2,2,2)
 ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
 ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
 
-ax2 = ax1.twinx()
-ax2.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
-ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
-ax2.set_ylabel("Inference Level")
+#ax2 = ax1.twinx()
+ax1.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
+#ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
+#ax2.set_ylabel("Inference Level")
 #x2.set_ylim(-5, 15)
 ax1.grid()
 ############
-
-# subplot(2,2,3)
-# for i in xrange(3):
-#     plot(range(1, len(thr['mean'][i])+1), thr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
-#     errorbar(range(1, len(thr['mean'][i])+1), thr['mean'][i], thr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
-#     plot(range(1, len(thr_free['mean'][i])+1), thr_free['mean'][i], linewidth = 2, linestyle = '--', color = colors[i], label= 'Stim '+str(i+1))    
-#     errorbar(range(1, len(thr_free['mean'][i])+1), thr_free['mean'][i], thr_free['sem'][i], linewidth = 2, linestyle = '--', color = colors[i])
-#     ylabel("H(p(r/s))")
-#     xticks(range(2,11,2))
-#     xlabel("Trial")
-#     xlim(0.8, 10.2)
-#     ylim(-0.05, model.max_entropy+0.2)
-#     #yticks(np.arange(0, 1.2, 0.2))    
-#     grid()
-# subplot(2,2,4)
-# plot(range(1, len(thr_step[0])+1), thr_step[0], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
-# errorbar(range(1, len(thr_step[0])+1), thr_step[0], thr_step[1], linewidth = 2, linestyle = '-', color = 'black', alpha = 0.9)
-# plot(range(1, len(thr_free_step[0])+1), thr_free_step[0], linewidth = 2, linestyle = '-', color = 'grey', alpha = 0.9)
-# errorbar(range(1, len(thr_free_step[0])+1), thr_free_step[0], thr_free_step[1], linewidth = 2, linestyle = '-', color = 'grey', alpha = 0.9)
-# ylim(-0.05, model.max_entropy+0.2)
-# ylabel("H(p(r/s))")
-# xlabel("Representative step")
-# grid()
-
-
-
 
 subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
 
