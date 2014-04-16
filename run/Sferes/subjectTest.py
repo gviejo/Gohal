@@ -26,6 +26,7 @@ from pylab import *
 import pickle
 import matplotlib.pyplot as plt
 from time import time
+from scipy.optimize import leastsq
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
@@ -36,6 +37,17 @@ from time import time
 # -----------------------------------
 def _convertStimulus(s):
         return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
+
+fitfunc = lambda p, x: p[0] + p[1] * x
+errfunc = lambda p, x, y : (y - fitfunc(p, x))
+
+def leastSquares(x, y):
+    for i in xrange(len(x)):
+        pinit = [1.0, -1.0]
+        p = leastsq(errfunc, pinit, args = (x[i], y[i]), full_output = False)
+        x[i] = fitfunc(p[0], x[i])
+    return x    
+
 
 # -----------------------------------
 
@@ -94,31 +106,40 @@ for s in p_test.iterkeys():
 hrt = np.array(hrt)
 hrtm = np.array(hrtm)
 
+hrtm = leastSquares(hrtm, hrt)
+
 fig = figure(figsize = (15, 12))
 
 for i, s in zip(xrange(14), p_test.keys()):
   ax1 = fig.add_subplot(4,4,i+1)
   ax1.plot(hrt[i], 'o-')
   ax2 = ax1.twinx()
-  ax2.plot(hrtm[i], 'o--', color = 'green')
+  ax1.plot(hrtm[i], 'o--', color = 'green')
   ax1.set_title(s)
+
+fig2 = figure()
+ax3 = fig2.add_subplot(111)
+ax3.plot(np.mean(hrt, 0), 'o-')
+ax4 = ax3.twinx()
+ax3.plot(np.mean(hrtm, 0), 'o-', color = 'green')
 
 show()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 sys.exit()
+
+
+
+
+
+
+
+
+
+
+
+
+
 # -----------------------------------
 #order data
 # -----------------------------------

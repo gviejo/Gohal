@@ -157,8 +157,9 @@ class FSelection():
         self.fusionModule()
         
         self.value.append(float(self.p_a[self.current_action]))
-        H = -(self.p_a*np.log(self.p_a)).sum()
-        self.reaction[-1].append(H+(self.parameters['sigma']*float(self.nb_inferences+1)))
+        H = -(self.p_a*np.log2(self.p_a)).sum()
+        N = float(self.nb_inferences+1)
+        self.reaction[-1].append(H+self.parameters['sigma']*np.log2(N))
         #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))        
         #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb))
         #self.reaction[-1].append(float(self.nb_inferences+1))
@@ -211,8 +212,10 @@ class FSelection():
         self.current_action = self.sample(self.p_a)        
         self.action[-1].append(self.actions[self.current_action])                
         
-        H = -(self.p_a*np.log(self.p_a)).sum()
-        self.reaction[-1].append(H+(self.parameters['sigma']*float(self.nb_inferences+1)))
+        H = -(self.p_a*np.log2(self.p_a)).sum()
+        N = float(self.nb_inferences+1)
+        self.reaction[-1].append(H+self.parameters['sigma']*np.log2(N))
+        
         # while self.nb_inferences < self.n_element:            
         #     self.inferenceModule()
         #     self.evaluationModule()

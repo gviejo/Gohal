@@ -43,7 +43,7 @@ class EA():
         self.data = data
         self.n_trials = 39
         self.n_blocs = 4
-        self.n_repets = 4
+        self.n_repets = 5
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
         #self.rtinv = 1./self.rt
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
@@ -77,14 +77,14 @@ class EA():
         self.rtm = np.array(self.model.reaction).flatten()
                         
         choice = np.sum(np.log(self.model.value))
-        if np.isnan(choice) or np.isinf(choice): choice = -1000000.0        
+        if np.isnan(choice) or np.isinf(choice): choice = -10000.0        
 
-        rt = -np.exp(self.leastSquares())
-        if np.isnan([rt]) or np.isinf([rt]): rt = -1000.0
+        #rt = -np.exp(self.leastSquares())
+        #if np.isnan([rt]) or np.isinf([rt]): rt = -1000.0
         
         #rt = self.computeMutualInformation()
-        
-        
+        rt = self.computeMutualInformation()-self.leastSquares()
+        if np.isnan([rt]) or np.isinf([rt]): rt = -1000.0
         return choice, rt
 
     def leastSquares(self):
@@ -100,22 +100,15 @@ class EA():
             mean.append(computeMeanRepresentativeSteps(step))
         mean = np.array(mean)
         p = leastsq(self.errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)        
-        self.p = p
+        self.pa = p
         self.mean = mean
         return np.sum(np.power(self.errfunc(p[0], mean[1][0], mean[0][0]), 2))
 
     def computeMutualInformation(self):
-        bin_size = 2*(np.percentile(self.rtm, 75)-np.percentile(self.rtm, 25))*np.power(len(self.rtm), -(1/3.))
-        # if bin_size < (self.rtm.max()-self.rtm.min())/21.:
-        #     bin_size = (self.rtm.max()-self.rtm.min())/21.
-        #     self.p_rtm, edges = np.histogram(self.rtm, bins = np.linspace(self.rtm.min(), self.rtm.max()+bin_size, 21))
-        # else:
-        #     self.p_rtm, edges = np.histogram(self.rtm, bins=np.arange(self.rtm.min(), self.rtm.max()+bin_size, bin_size))
-        self.p_rtm, edges = np.histogram(self.rtm, bins = np.linspace(self.rtm.min(), self.rtm.max()+bin_size, 30))        
+        self.p_rtm, edges = np.histogram(self.rtm, bins = np.linspace(self.rtm.min(), self.rtm.max()+0.00001, 25))        
         self.p_rtm = self.p_rtm/float(self.p_rtm.sum())
         self.p = np.zeros((len(self.mass), len(self.p_rtm)))
-        positionm = np.digitize(self.rtm, edges)-1
-        self.positionm = positionm
+        positionm = np.digitize(self.rtm, edges)-1        
         self.position = np.tile(self.position, self.n_repets)
  
         for i in xrange(len(self.position)): self.p[self.position[i], positionm[i]] += 1        

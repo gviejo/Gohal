@@ -39,13 +39,13 @@ from scipy.optimize import curve_fit, leastsq
 # 				 'threshold': 9.3932982999999997})
 
 parameters = dict({'alpha': 0.92961300000000002,
-				 'beta': 1.1455569999999999,
+				 'beta': 2.1455569999999999,
 				 'gain': 1.0,
 				 'gamma': 0.78684500000000002,
 				 'length': 8,
 				 'noise': 0.010792700000000001,
 				 'threshold': 1.0,
-				 'sigma':0.1})
+				 'sigma':0.8})
 
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters)
@@ -58,12 +58,12 @@ opt = EA(human.subject['fmri']['S9'], 'S9', model)
 llh, lrs = opt.getFitness()
 print llh, lrs
 
-
-plot(opt.fitfunc(opt.p[0], opt.mean[1][0]), '+-')
+figure(2)
+plot(opt.fitfunc(opt.pa[0], opt.mean[1][0]), '+-')
 plot(opt.mean[0][0], 'o-')
-show()
 
-sys.exit()
+
+
 
 
 
@@ -86,20 +86,18 @@ axHisty.plot(opt.mass, np.arange(len(opt.mass)))
 axHistx.set_title("n")
 plt.text(s = "MI "+str(lrs), x = 0.0, y = 16.0)
 
-show()
 
-sys.exit()
-
-
-
-plt.figure(2, figsize=(8,8))
-rt = np.tile(opt.rt, opt.n_repets)
+plt.figure(3, figsize=(8,8))
+rt = opt.rt
 ind = np.argsort(rt)
 subplot(211)
 plot(rt[ind])
 subplot(212)
 plot(opt.rtm[ind])
 
+
+show()
+sys.exit()
 
 #np.save("rtm_h_n", opt.rtm[ind])
 #np.save("rtm_h", opt.rtm[ind])
