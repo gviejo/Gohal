@@ -44,7 +44,8 @@ parameters = dict({'alpha': 0.92961300000000002,
 				 'gamma': 0.78684500000000002,
 				 'length': 8,
 				 'noise': 0.010792700000000001,
-				 'threshold': 1.0})
+				 'threshold': 1.0,
+				 'sigma':0.1})
 
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters)
@@ -60,12 +61,12 @@ print llh, lrs
 
 plot(opt.fitfunc(opt.p[0], opt.mean[1][0]), '+-')
 plot(opt.mean[0][0], 'o-')
-
-
 show()
+
 sys.exit()
 
-#figure()
+
+
 
 left, width = 0.1, 0.65
 bottom, height = 0.1, 0.65

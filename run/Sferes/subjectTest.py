@@ -4,9 +4,8 @@
 subjectTest.py
 
 load and test a dictionnary of parameters for each subject
-for sferes
 
-run subjectTest.py -i sferes_fmri.txt -m kalman
+run subjectTest.py -i data
 
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
@@ -24,100 +23,238 @@ from Models import *
 from Selection import *
 from matplotlib import *
 from pylab import *
-
+import pickle
+import matplotlib.pyplot as plt
 from time import time
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
-if not sys.argv[1:]:
-    sys.stdout.write("Sorry: you must specify at least 1 argument")
-    sys.stdout.write("More help avalaible with -h or --help option")
-    sys.exit(0)
-parser = OptionParser()
-parser.add_option("-i", "--input", action="store", help="The name of the parameters file to load", default=False)
-parser.add_option("-o", "--output", action="store", help="The output file with pcr and rt for each model", default=False)
 
-(options, args) = parser.parse_args() 
-# -----------------------------------
 
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-def convertStimulus_(s):
-    return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
+def _convertStimulus(s):
+        return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
 
-def loadParameters():
-    return eval(open(options.input, 'r').read())
-
-def testParameters():
-    data = loadParameters()
-    pcr = dict()
-    rt = dict()
-    for m in data.iterkeys():      
-        model = models[m.split("_")[0]]
-        model.startExp()
-        for s in data[m].iterkeys():
-            model.setAllParameters(data[m][s])
-            for i in xrange(nb_blocs):        
-                cats.reinitialize()
-                cats.stimuli = np.array(map(convertStimulus_, human.subject['fmri'][s][i+1]['sar'][0:nb_trials,0]))
-                model.startBloc()
-                for j in xrange(nb_trials):
-                    sys.stdout.write("\r Model : "+m+" | Sujet : "+s+"| Blocs : "+str(i)+" | Trials : "+str(j));sys.stdout.flush()
-                    state = cats.getStimulus(j)
-                    action = model.chooseAction(state)
-                    reward = cats.getOutcome(state, action)
-                    model.updateValue(reward)            
-            #tmp = np.array(model.reaction[-nb_blocs:])
-            #tmp = tmp-np.min(tmp)
-            #tmp = tmp/float(np.max(tmp))
-            #for i,j in zip(xrange(-nb_blocs, 0), xrange(len(tmp))):
-            #    model.reaction[i] = list(tmp[j])
-        model.state = convertStimulus(np.array(model.state))
-        model.action = convertAction(np.array(model.action))
-        model.responses = np.array(model.responses)
-        model.reaction = np.array(model.reaction)
-        pcr[m] = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
-        step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
-        rt[m] = computeMeanRepresentativeSteps(step)
-    return pcr, rt
 # -----------------------------------
 
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
-
-# # -----------------------------------
+# -----------------------------------
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-nb_trials = human.responses['fmri'].shape[1]
 nb_blocs = 4
+nb_trials = 39
 cats = CATS(nb_trials)
-
-models = dict({"fusion":FSelection(cats.states, cats.actions, {'alpha':0.0,'beta':0.0,'gamma':0.0,'length':0.0,'noise':0.0,'threshold':0.0,'gain':0.0}),
-              "qlearning":QLearning(cats.states, cats.actions, {'alpha':0.0, 'beta':0.0, 'gamma':0.0}),
-              "bayesian":BayesianWorkingMemory(cats.states, cats.actions, {'length':0.0, 'noise':0.0, 'threshold':0.0}),
-              "keramati":KSelection(cats.states, cats.actions,{"gamma":0.0,"beta":1.0,"eta":0.0001,"length":10.0,"threshold":0.0,"noise":0.0,"sigma":0.0})})
+models = dict({"fusion":FSelection(cats.states, cats.actions),
+                "qlearning":QLearning(cats.states, cats.actions),
+                "bayesian":BayesianWorkingMemory(cats.states, cats.actions),
+                "selection":KSelection(cats.states, cats.actions)})
 
 # ------------------------------------
-# Parameters testing
+# Parameter testing
 # ------------------------------------
-t1 = time()
-pcr, rt = testParameters()
-t2 = time()
+with open("parameters.pickle", 'r') as f:
+  p_test = pickle.load(f)
 
-print "\n"
-print t2-t1
 
-# ----------------------------------
-# SAving data
-# ----------------------------------
+hrt = []
+hrtm = []
 
-if options.output:
-    saveData(options.output, dict({'rt':rt,'pcr':pcr}))
-  
-os.system("python plot_test.py -i "+options.output)
+for s in p_test.iterkeys():
+    m = p_test[s].keys()[0]
+    models[m].setAllParameters(p_test[s][m])
+    models[m].startExp()
+    for i in xrange(nb_blocs):
+        cats.reinitialize()
+        cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))
+        models[m].startBloc()
+        for j in xrange(nb_trials):
+            state = cats.getStimulus(j)
+            action = models[m].chooseAction(state)
+            reward = cats.getOutcome(state, action)
+            models[m].updateValue(reward)
+    models[m].reaction = np.array(models[m].reaction)
+    
+    rt = np.array([human.subject['fmri'][s][i]['rt'][0:nb_trials,0] for i in range(1,nb_blocs+1)]).flatten()
+    rtm = models[m].reaction.flatten()
+    state = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,0] for i in range(1,nb_blocs+1)])
+    action = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,1] for i in range(1,nb_blocs+1)])
+    responses = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,2] for i in range(1,nb_blocs+1)])
+
+    for i, j in zip([rt, rtm], [hrt, hrtm]):
+        tmp = i.reshape(nb_blocs, nb_trials)
+        step, indice = getRepresentativeSteps(tmp, state, action, responses)
+        j.append(computeMeanRepresentativeSteps(step)[0])
+hrt = np.array(hrt)
+hrtm = np.array(hrtm)
+
+fig = figure(figsize = (15, 12))
+
+for i, s in zip(xrange(14), p_test.keys()):
+  ax1 = fig.add_subplot(4,4,i+1)
+  ax1.plot(hrt[i], 'o-')
+  ax2 = ax1.twinx()
+  ax2.plot(hrtm[i], 'o--', color = 'green')
+  ax1.set_title(s)
+
+show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+sys.exit()
+# -----------------------------------
+#order data
+# -----------------------------------
+pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
+pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+
+step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
+rt = computeMeanRepresentativeSteps(step)
+step, indice = getRepresentativeSteps(model.responses, model.state, model.action, model.responses)
+y = computeMeanRepresentativeSteps(step)
+distance = computeDistanceMatrix(model.state, indice)
+
+correct = np.array([model.reaction[np.where((distance == i) & (model.responses == 1) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
+incorrect = np.array([model.reaction[np.where((distance == i) & (model.responses  == 0) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
+mean_correct = np.array([np.mean(model.reaction[np.where((distance == i) & (model.responses  == 1) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+var_correct = np.array([sem(model.reaction[np.where((distance == i) & (model.responses  == 1) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+mean_incorrect = np.array([np.mean(model.reaction[np.where((distance == i) & (model.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+var_incorrect = np.array([sem(model.reaction[np.where((distance == i) & (model.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
+
+step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+rt_fmri = computeMeanRepresentativeSteps(step) 
+step, indice = getRepresentativeSteps(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+indice_fmri = indice
+y_fmri = computeMeanRepresentativeSteps(step)
+distance_fmri = computeDistanceMatrix(human.stimulus['fmri'], indice)
+
+step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+rt_fmri = computeMeanRepresentativeSteps(step) 
+step, indice = getRepresentativeSteps(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+y_fmri = computeMeanRepresentativeSteps(step)
+
+
+
+# -----------------------------------
+
+
+# -----------------------------------
+# Plot
+# -----------------------------------
+
+# Probability of correct responses
+figure(figsize = (9,4))
+ion()
+params = {'backend':'pdf',
+          'axes.labelsize':10,
+          'text.fontsize':10,
+          'legend.fontsize':10,
+          'xtick.labelsize':8,
+          'ytick.labelsize':8,
+          'text.usetex':False}          
+#rcParams.update(params)                  
+colors = ['blue', 'red', 'green']
+subplot(1,2,1)
+for i in xrange(3):
+    plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+    errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+    plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
+    #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
+    ylabel("Probability correct responses")
+    legend(loc = 'lower right')
+    xticks(range(2,len(pcr['mean'][i])+1,2))
+    xlabel("Trial")
+    xlim(0.8, len(pcr['mean'][i])+1.02)
+    ylim(-0.05, 1.05)
+    yticks(np.arange(0, 1.2, 0.2))
+    title('A')
+    grid()
+
+
+ax1 = plt.subplot(1,2,2)
+ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0]-0.2, linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0]-0.2, rt_fmri[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+
+ax2 = ax1.twinx()
+ax2.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
+ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
+ax2.set_ylabel("Inference Level")
+ax2.set_ylim(-4, 12)
+##
+msize = 8.0
+mwidth = 2.5
+ax1.plot(1, 0.455, 'x', color = 'blue', markersize=msize, markeredgewidth=mwidth)
+ax1.plot(1, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(1, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(2, 0.455, 'o', color = 'blue', markersize=msize)
+ax1.plot(2, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(2, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(3, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(3, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(4, 0.4445, 'o', color = 'red', markersize=msize)
+ax1.plot(4, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
+ax1.plot(5, 0.435, 'o', color = 'green', markersize=msize)
+for i in xrange(6,16,1):
+    ax1.plot(i, 0.455, 'o', color = 'blue', markersize=msize)
+    ax1.plot(i, 0.4445, 'o', color = 'red', markersize=msize)
+    ax1.plot(i, 0.435, 'o', color = 'green', markersize=msize)
+
+##
+ax1.set_ylabel("Reaction time (s)")
+ax1.grid()
+ax1.set_xlabel("Representative steps")
+ax1.set_xticks([1,5,10,15])
+#ax1.set_yticks([0.46, 0.50, 0.54])
+#ax1.set_ylim(0.43, 0.56)
+ax1.set_title('B')
+
+################
+
+# ind = np.arange(1, len(rt[0])+1)
+# ax5 = subplot(2,2,3)
+# for i,j,k,l,m in zip([y, y_meg, y_fmri], 
+#                    ['blue', 'grey', 'grey'], 
+#                    ['model', 'MEG', 'FMRI'],
+#                    [1.0, 0.9, 0.9], 
+#                    ['-', '--', ':']):
+#     ax5.plot(ind, i[0], linewidth = 2, color = j, label = k, alpha = l, linestyle = m)
+#     ax5.errorbar(ind, i[0], i[1], linewidth = 2, color = j, alpha = l, linestyle = m)
+
+# ax5.grid()
+# ax5.set_ylabel("PCR %")    
+# ax5.set_yticks(np.arange(0, 1.2, 0.2))
+# ax5.set_xticks(range(2, 15, 2))
+# ax5.set_ylim(-0.05, 1.05)
+# ax5.legend(loc = 'lower right')
+
+
+################
+subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
+#savefig('../../../Dropbox/ISIR/B2V_council/images/fig_subject'+options.model+'.pdf', bbox_inches='tight')
+savefig('test.pdf', bbox_inches='tight')
+
+
+
+
+
+
+
+
 

@@ -33,7 +33,8 @@ class FSelection():
                             "length":[6, 10],
                             "threshold":[0.1, 10.0], 
                             "noise":[0.0, 1.0],
-                            "gain":[0.00001, 10.0]})                            
+                            "gain":[0.00001, 10.0],
+                            "sigma":[0.0000001, 10.0]})                            
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -157,7 +158,7 @@ class FSelection():
         
         self.value.append(float(self.p_a[self.current_action]))
         H = -(self.p_a*np.log(self.p_a)).sum()
-        self.reaction[-1].append(H)
+        self.reaction[-1].append(H+(self.parameters['sigma']*float(self.nb_inferences+1)))
         #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))        
         #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb))
         #self.reaction[-1].append(float(self.nb_inferences+1))
@@ -209,8 +210,9 @@ class FSelection():
         self.fusionModule()
         self.current_action = self.sample(self.p_a)        
         self.action[-1].append(self.actions[self.current_action])                
-        self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))
-
+        
+        H = -(self.p_a*np.log(self.p_a)).sum()
+        self.reaction[-1].append(H+(self.parameters['sigma']*float(self.nb_inferences+1)))
         # while self.nb_inferences < self.n_element:            
         #     self.inferenceModule()
         #     self.evaluationModule()

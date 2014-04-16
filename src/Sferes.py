@@ -43,7 +43,7 @@ class EA():
         self.data = data
         self.n_trials = 39
         self.n_blocs = 4
-        self.n_repets = 5
+        self.n_repets = 4
         self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
         #self.rtinv = 1./self.rt
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
@@ -51,16 +51,16 @@ class EA():
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
         self.fitfunc = lambda p, x: p[0] + p[1] * x
         self.errfunc = lambda p, x, y : (y - self.fitfunc(p, x))
-        #self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
+        self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
         #self.bin_size = 2*(np.percentile(self.rtinv, 75)-np.percentile(self.rtinv, 25))*np.power(len(self.rtinv), -(1/3.))
-        #self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))
+        self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))
         #self.mass, self.edges = np.histogram(self.rtinv, bins=np.arange(self.rtinv.min(), self.rtinv.max()+self.bin_size, self.bin_size))
-        #self.mass = self.mass/float(self.mass.sum())
+        self.mass = self.mass/float(self.mass.sum())
+        self.position = np.digitize(self.rt, self.edges)-1
         #self.position = np.digitize(self.rtinv, self.edges)-1
-        #self.position = np.digitize(self.rt, self.edges)-1
         #self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
-        #self.p = None
-        #self.p_rtm = None
+        self.p = None
+        self.p_rtm = None
 
 
     def getFitness(self):
@@ -79,10 +79,12 @@ class EA():
         choice = np.sum(np.log(self.model.value))
         if np.isnan(choice) or np.isinf(choice): choice = -1000000.0        
 
-
-        #rt = self.computeMutualInformation()
         rt = -np.exp(self.leastSquares())
-        #if np.isnan(rt) or np.isinf(rt): rt = -1000.0
+        if np.isnan([rt]) or np.isinf([rt]): rt = -1000.0
+        
+        #rt = self.computeMutualInformation()
+        
+        
         return choice, rt
 
     def leastSquares(self):
@@ -109,7 +111,7 @@ class EA():
         #     self.p_rtm, edges = np.histogram(self.rtm, bins = np.linspace(self.rtm.min(), self.rtm.max()+bin_size, 21))
         # else:
         #     self.p_rtm, edges = np.histogram(self.rtm, bins=np.arange(self.rtm.min(), self.rtm.max()+bin_size, bin_size))
-        self.p_rtm, edges = np.histogram(self.rtm, bins = np.linspace(self.rtm.min(), self.rtm.max()+bin_size, 15))        
+        self.p_rtm, edges = np.histogram(self.rtm, bins = np.linspace(self.rtm.min(), self.rtm.max()+bin_size, 30))        
         self.p_rtm = self.p_rtm/float(self.p_rtm.sum())
         self.p = np.zeros((len(self.mass), len(self.p_rtm)))
         positionm = np.digitize(self.rtm, edges)-1
@@ -574,7 +576,8 @@ class pareto():
             mean.append(computeMeanRepresentativeSteps(step))
         mean = np.array(mean)
         p = leastsq(errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)        
-        self.models[m].reaction = fitfunc(p[0], mean[1][0])
+        #self.models[m].reaction = fitfunc(p[0], mean[1][0])
+        self.models[m].reaction = mean[1][0]
         ###
         self.hrt.append(mean[0][0])
         ###

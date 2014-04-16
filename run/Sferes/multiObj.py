@@ -56,11 +56,13 @@ front.run(plot=True)
 #     pickle.dump(front.mixed, handle)
 
 
-figure()
+fig = figure()
 
 for i, s in zip(xrange(14), front.p_test.keys()):
-	subplot(4,4,i+1)
-	plot(front.hrt[i], 'o-')
-	plot(front.beh['reaction'][i], 'o--')
-	title(s)
+	ax1 = fig.add_subplot(4,4,i+1)
+	ax1.plot(front.hrt[i], 'o-')
+	ax2 = ax1.twinx()
+	ax2.plot(front.beh['reaction'][i], 'o--', color = 'green')
+	ax1.set_title(s)
+
 show()
