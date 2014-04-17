@@ -48,6 +48,23 @@ def leastSquares(x, y):
         x[i] = fitfunc(p[0], x[i])
     return x    
 
+def mutualInformation(x, y):
+    bin_size = 2*(np.percentile(y, 75)-np.percentile(y, 25))*np.power(len(y), -(1/3.))
+    py, edges = np.histogram(y, bins=np.arange(y.min(), y.max()+bin_size, bin_size))
+    py = py/float(py.sum())
+    yp = np.digitize(y, edges)-1
+    px, edges = np.histogram(x, bins = np.linspace(x.min(), x.max()+0.00001, 25))
+    px = px/float(px.sum())
+    xp = np.digitize(x, edges)-1
+    p = np.zeros((len(py), len(px)))
+    for i in xrange(len(yp)): p[yp[i], xp[i]] += 1
+    p = p/float(p.sum())
+    tmp = np.log2(p/np.outer(py, px))
+    tmp[np.isinf(tmp)] = 0.0
+    tmp[np.isnan(tmp)] = 0.0
+    return (np.sum(p*tmp), p)
+
+
 
 # -----------------------------------
 
@@ -77,6 +94,8 @@ with open("parameters.pickle", 'r') as f:
 
 hrt = []
 hrtm = []
+mi = []
+pmi = []
 
 for s in p_test.iterkeys():
     m = p_test[s].keys()[0]
@@ -99,12 +118,21 @@ for s in p_test.iterkeys():
     action = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,1] for i in range(1,nb_blocs+1)])
     responses = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,2] for i in range(1,nb_blocs+1)])
 
+    # LEAST SQUARES
     for i, j in zip([rt, rtm], [hrt, hrtm]):
         tmp = i.reshape(nb_blocs, nb_trials)
         step, indice = getRepresentativeSteps(tmp, state, action, responses)
         j.append(computeMeanRepresentativeSteps(step)[0])
+
+    # MUTUAL INFORMATION
+    v, p = mutualInformation(rtm , rt)
+    mi.append(v)
+    pmi.append(p)
+
 hrt = np.array(hrt)
 hrtm = np.array(hrtm)
+mi = np.array(mi)
+pmi = np.array(pmi)
 
 hrtm = leastSquares(hrtm, hrt)
 
@@ -122,6 +150,13 @@ ax3 = fig2.add_subplot(111)
 ax3.plot(np.mean(hrt, 0), 'o-')
 #ax4 = ax3.twinx()
 ax3.plot(np.mean(hrtm, 0), 'o-', color = 'green')
+
+
+fig3 = figure(figsize = (15, 12))
+for i, s in zip(xrange(14), p_test.keys()):
+    subplot(4,4,i+1)
+    imshow(pmi[i], origin = 'lower', interpolation = 'nearest')
+    title(s + " " + str(mi[i]))
 
 show()
 

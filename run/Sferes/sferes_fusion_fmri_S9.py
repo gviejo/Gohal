@@ -15,20 +15,20 @@ from scipy.optimize import curve_fit, leastsq
 
 
 
-# model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'])
+model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'])
 
-# p_order = ['alpha','beta', 'gamma', 'noise','length','gain','threshold']
+p_order = ['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma']
 
-# p = map(float, "1 0.669775 0 0.375395 0.509891 0 1".split(" "))
+p = map(float, "1 0.130219 0.1 0.420989 0.0154722 0 1 0.998014".split(" "))
 
-# tmp = dict()
-# for i in p_order:
-# 	tmp[i] = p[p_order.index(i)]
+tmp = dict()
+for i in p_order:
+	tmp[i] = p[p_order.index(i)]
 
-# parameters = tmp
-# for p in parameters.iterkeys():
-# 	if parameters[p]:
-# 		parameters[p] = model.bounds[p][0]+parameters[p]*(model.bounds[p][1]-model.bounds[p][0])
+parameters = tmp
+for p in parameters.iterkeys():
+	if parameters[p]:
+		parameters[p] = model.bounds[p][0]+parameters[p]*(model.bounds[p][1]-model.bounds[p][0])
 
 # parameters = dict({'alpha': 0.92961300000000002,
 # 				 'beta': 1.1455569999999999,
@@ -38,14 +38,14 @@ from scipy.optimize import curve_fit, leastsq
 # 				 'noise': 0.010792700000000001,
 # 				 'threshold': 9.3932982999999997})
 
-parameters = dict({'alpha': 0.92961300000000002,
-				 'beta': 2.1455569999999999,
-				 'gain': 1.0,
-				 'gamma': 0.78684500000000002,
-				 'length': 8,
-				 'noise': 0.010792700000000001,
-				 'threshold': 1.0,
-				 'sigma':0.8})
+# parameters = dict({'alpha': 0.92961300000000002,
+# 				 'beta': 2.1455569999999999,
+# 				 'gain': 1.0,
+# 				 'gamma': 0.78684500000000002,
+# 				 'length': 8,
+# 				 'noise': 0.010792700000000001,
+# 				 'threshold': 1.0,
+# 				 'sigma':0.8})
 
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters)

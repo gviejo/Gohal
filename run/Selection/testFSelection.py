@@ -65,10 +65,10 @@ parameters = dict({'noise':0.2,
                     'length':7,
                     'alpha':0.9,
                     'beta':3.5,
-                    'gamma':0.5,
+                    'gamma':0.1,
                     'gain':0.6,
                     'threshold':1.5,
-                    'sigma':0.01})
+                    'sigma':0.1})
                             
 
 nb_trials = 39
@@ -107,6 +107,7 @@ step, indice = getRepresentativeSteps(model.reaction, model.state, model.action,
 rt = computeMeanRepresentativeSteps(step)
 
 rt = np.array(rt)
+
 fitfunc = lambda p, x: p[0] + p[1] * x
 errfunc = lambda p, x, y : (y - fitfunc(p, x))
 p = leastsq(errfunc, [1.0, -1.0], args = (rt[0], rt_fmri[0]), full_output = False)

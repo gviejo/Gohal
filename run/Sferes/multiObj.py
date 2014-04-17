@@ -45,27 +45,24 @@ front = pareto(options.input, threshold = [-100000, -150000], N = 156)
 
 #front.preview()
 
-front.rankMixedFront([0.5,0.5])
+front.rankMixedFront([0.7,0.3])
 
 #front.run(plot=True)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
-    pickle.dump(front.pareto, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
+#     pickle.dump(front.pareto, handle)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
-    pickle.dump(front.mixed, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
+#     pickle.dump(front.mixed, handle)
 
 with open("parameters.pickle", 'wb') as f:
     pickle.dump(front.p_test, f)
 
-sys.exit()
-fig = figure()
+# data = front.data['fusion']['S5'][0]
+# gen = data[:,0]
+# gen = gen/gen.max()
 
-for i, s in zip(xrange(14), front.p_test.keys()):
-	ax1 = fig.add_subplot(4,4,i+1)
-	ax1.plot(front.hrt[i], 'o-')
-	ax2 = ax1.twinx()
-	ax2.plot(front.beh['reaction'][i], 'o--', color = 'green')
-	ax1.set_title(s)
 
-show()
+# [plot(data[:,2][gen == i],data[:,3][gen == i], 'o', markersize = 8*i) for i in np.unique(gen)]
+
+# show()

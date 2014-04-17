@@ -31,7 +31,7 @@ class FSelection():
                             "beta":[1.0, 10.0],
                             "alpha":[0.0, 1.0],
                             "length":[6, 10],
-                            "threshold":[0.1, 10.0], 
+                            "threshold":[0.1, 20.0], 
                             "noise":[0.0, 1.0],
                             "gain":[0.00001, 10.0],
                             "sigma":[0.0000001, 10.0]})                            
@@ -160,6 +160,7 @@ class FSelection():
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
         self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
+        
         #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))        
         #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb))
         #self.reaction[-1].append(float(self.nb_inferences+1))

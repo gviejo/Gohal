@@ -77,14 +77,15 @@ class EA():
         self.rtm = np.array(self.model.reaction).flatten()
                         
         choice = np.sum(np.log(self.model.value))
-        if np.isnan(choice) or np.isinf(choice): choice = -10000.0        
+        if np.isnan(choice) or np.isinf(choice) or choice == 0.0: choice = -10000.0        
 
         #rt = -np.exp(self.leastSquares())
         #if np.isnan([rt]) or np.isinf([rt]): rt = -1000.0
         
         #rt = self.computeMutualInformation()
-        rt = self.computeMutualInformation()-self.leastSquares()
-        if np.isnan([rt]) or np.isinf([rt]): rt = -1000.0
+        #self.leastSquares()
+        rt = self.computeMutualInformation()-np.exp(self.leastSquares())
+        if np.isnan([rt]) or np.isinf([rt]): rt = -10000.0
         return choice, rt
 
     def leastSquares(self):
