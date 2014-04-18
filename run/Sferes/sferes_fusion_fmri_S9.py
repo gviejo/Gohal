@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/python                                                       
 # encoding: utf-8                                                                   
 import sys                                                                          
@@ -19,6 +22,7 @@ model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little
 
 p_order = ['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma']
 
+#p = map(float, "1 0.130219 0.1 0.420989 0.0154722 0 1 0.998014".split(" "))
 p = map(float, "1 0.130219 0.1 0.420989 0.0154722 0 1 0.998014".split(" "))
 
 tmp = dict()

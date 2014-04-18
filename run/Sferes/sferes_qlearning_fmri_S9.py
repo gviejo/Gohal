@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/python                                                       
 # encoding: utf-8                                                                   
 import sys                                                                          
@@ -34,6 +37,15 @@ llh, lrs = opt.getFitness()
 print llh, lrs
 
 
+figure(2)
+plot(opt.fitfunc(opt.pa[0], opt.mean[1][0]), '+-')
+plot(opt.mean[0][0], 'o-')
+
+
+
+
+
+
 
 left, width = 0.1, 0.65
 bottom, height = 0.1, 0.65
@@ -48,43 +60,18 @@ axHisty = plt.axes(rect_histy)
 axScatter.imshow(opt.p, interpolation = 'nearest', origin = 'lower')
 axHistx.plot(opt.p_rtm)
 axHisty.plot(opt.mass, np.arange(len(opt.mass)))
-
-show()
-
-
-sys.exit()
-
+#axHistx.set_title("dh/n")
+#axHistx.set_title("dh")
+axHistx.set_title("n")
+plt.text(s = "MI "+str(lrs), x = 0.0, y = 16.0)
 
 
-c, n = np.histogram(opt.rt, opt.edges)
-c = c.astype('float')
-c = c/c.sum()
-n = n[1:]-((n[1]-n[0])/2)
-
-figure()
-subplot(311)
-
-plot(opt.rt)
-
-xx = opt.rbm.xx
-xx = (xx.T/xx.sum(axis=1)).T
-
-rtm = np.array([n[(xx[i].cumsum()<np.random.rand()).sum()] for i in xrange(len(xx))])
-plot(rtm)
-
-
-subplot(312)
-m = opt.rt_model[0]
-
-
-
-plot(n, c, 'o-')
-tmp = opt.rbm.xx.sum(0)
-tmp = tmp/tmp.sum()
-plot(n, tmp, 'o--')
-
-subplot(313)
-plot(opt.rbm.Error)
-
+plt.figure(3, figsize=(8,8))
+rt = opt.rt
+ind = np.argsort(rt)
+subplot(211)
+plot(rt[ind])
+subplot(212)
+plot(opt.rtm[ind])
 
 show()

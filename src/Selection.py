@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/python
 # encoding: utf-8
 """
@@ -275,8 +278,8 @@ class KSelection():
                             "length":[6, 10],
                             "threshold":[0.0, -np.log2(1./self.n_action)], 
                             "noise":[0.0,1.0],
-                            "sigma":[0.0,1.0]})
-                            #"sigma_bwm":[0.00001, 1.0],
+                            "sigma":[0.0,1.0],
+                            "sigma_rt":[0.0000001, 1.0]})
                             #"sigma_ql":[0.00001, 1.0]})        
         self.var_obs = var_obs
         self.init_cov = init_cov
@@ -427,7 +430,9 @@ class KSelection():
             values = self.p_a_mb/np.sum(self.p_a_mb)
         
         self.value.append(float(values[self.current_action]))
-        self.reaction[-1].append((self.max_entropy-self.Hb)/float(self.nb_inferences+1))
+        H = -(values*np.log2(values)).sum()
+        N = float(self.nb_inferences+1)
+        self.reaction[-1].append(H*self.parameters['sigma_rt']+np.log2(N))
         
         
     def chooseAction(self, state):
@@ -456,7 +461,9 @@ class KSelection():
             values = self.p_a_mb/np.sum(self.p_a_mb)
         self.current_action = self.sample(values)        
         self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append((self.max_entropy-self.Hb)/float(self.nb_inferences+1))
+        H = -(values*np.log2(values)).sum()
+        N = float(self.nb_inferences+1)
+        self.reaction[-1].append(H*self.parameters['sigma_rt']+np.log2(N))
         #self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
         
         # while self.nb_inferences < self.n_element:            

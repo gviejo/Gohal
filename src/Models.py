@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/python
 #encoding: utf-8
 """
@@ -85,7 +88,9 @@ class QLearning():
 
         value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
         self.value.append([float(value[self.current_action])])
-        self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.parameters['beta']))
+        
+        H = -(value*np.log2(value)).sum()        
+        self.reaction[-1].append(H)
         #self.pdf.append(np.ones(1))
         #self.sigma.append([self.parameters['sigma']])
 
@@ -95,7 +100,7 @@ class QLearning():
         self.current_state = convertStimulus(state)-1
         self.current_action = self.sampleSoftMax(self.values[self.current_state])
         self.action[-1].append(self.actions[self.current_action])
-        #self.reaction[-1].append(computeEntropy(self.values[self.current_state], self.parameters['beta']))
+        
         
         self.reaction[-1].append(0.0)
         return self.action[-1][-1]
@@ -240,8 +245,8 @@ class BayesianWorkingMemory():
         self.initial_entropy = -np.log2(1./self.n_action)
         self.bounds = dict({"length":[6, 11], 
                             "threshold":[0.0, self.initial_entropy], 
-                            "noise":[0.0, 1.0]})
-                            #"sigma":[0.000001, 1.0]})
+                            "noise":[0.0, 1.0],
+                            "sigma":[0.0000001, 1.0]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.values = np.ones(self.n_action)*(1./self.n_action)    
@@ -364,9 +369,10 @@ class BayesianWorkingMemory():
 
         #self.pdf.append(pdf)
         self.value.append(self.values[self.current_action])
-        #self.reaction[-1].append((self.initial_entropy-self.entropy)/float(self.nb_inferences+1))
-        self.reaction[-1].append((self.initial_entropy-self.entropy))
-        #self.reaction[-1].append(float(self.nb_inferences+1))
+        H = -(self.values*np.log2(self.values)).sum()
+        N = float(self.nb_inferences+1)
+        self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
+
         #self.sigma.append(sigma)        
 
     def chooseAction(self, state):

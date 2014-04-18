@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/python
 # encoding: utf-8
 """
@@ -308,6 +311,7 @@ class pareto():
         self.p_test = dict()
         self.mixed = dict()
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
+        self.indd = dict()
         #self.loadData()
         self.simpleLoadData()
         self.constructParetoFrontier()        
@@ -419,10 +423,13 @@ class pareto():
 
     def rankMixedFront(self, w):    
         for s in self.mixed.iterkeys():
-            self.rank[s] = self.OWA((self.mixed[s][:,4:]), w)            
-            i = np.argmax(self.rank[s])
+            #self.rank[s] = self.OWA((self.mixed[s][:,4:]), w)            
+            self.rank[s] = self.Tchebychev(self.mixed[s][:,4:], w, 0.01)
+            #i = np.argmax(self.rank[s])
+            i = np.argmin(self.rank[s])
             m = self.m_order[int(self.mixed[s][i,0])]            
             ind = self.pareto[m][s][(self.pareto[m][s][:,0] == self.mixed[s][i][1])*(self.pareto[m][s][:,1] == self.mixed[s][i][2])*(self.pareto[m][s][:,2] == self.mixed[s][i][3])][0]
+            self.indd[s] = ind            
             self.p_test[s] = {m:{}}
             for p in self.p_order[m.split("_")[0]]:
                 self.p_test[s][m][p] = ind[self.p_order[m].index(p)+5]
@@ -457,7 +464,10 @@ class pareto():
                 ax1 = fig_pareto.add_subplot(4,4,i+1)
                 ax1.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m])
                 ax1.set_title(s)
-                #ax1.scatter(self.pareto[m][s][:,3], self.pareto[m][s][:,4], c = self.rank[m][s])            
+                if s in self.indd.keys():
+                    ind = self.indd[s]
+                    ax1.plot(ind[3], ind[4], 'o', markersize = 5)
+
         n_params_max = np.max([len(t) for t in [self.p_order[m.split("_")[0]] for m in self.pareto.keys()]])
         n_model = len(self.pareto.keys())
         for i in xrange(n_model):

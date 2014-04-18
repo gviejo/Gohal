@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/python
 # encoding: utf-8
 """
@@ -42,18 +45,18 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # LOADING DATA
 # -----------------------------------
 front = pareto(options.input, threshold = [-100000, -150000], N = 156)
+front.rankMixedFront([0.01,0.99])
+front.preview()
 
-#front.preview()
 
-front.rankMixedFront([0.7,0.3])
 
 #front.run(plot=True)
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
-#     pickle.dump(front.pareto, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
+    pickle.dump(front.pareto, handle)
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
-#     pickle.dump(front.mixed, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
+    pickle.dump(front.mixed, handle)
 
 with open("parameters.pickle", 'wb') as f:
     pickle.dump(front.p_test, f)

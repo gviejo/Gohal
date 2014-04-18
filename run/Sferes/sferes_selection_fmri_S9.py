@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/python                                                       
 # encoding: utf-8                                                                   
 import sys                                                                          
@@ -10,9 +13,9 @@ from Selection import *
 from matplotlib import *
 from pylab import *
 
-p_order = ["gamma", "beta", "eta", "length", "threshold", "noise", "sigma"]
+p_order = ["gamma", "beta", "eta", "length", "threshold", "noise", "sigma", "sigma_rt"]
 
-p = map(float, "1 0.867443 0.2 0.506596 0.172783 0.0321344 0.2 1 0.2".split(" "))
+p = map(float, "1 0.867443 0.2 0.506596 0.172783 0.0321344 0.2 1 0.2 0.1".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]
@@ -30,36 +33,42 @@ opt = EA(human.subject['fmri']['S2'], 'S2', model)
 llh, lrs = opt.getFitness()
 
 print llh, lrs
-sys.exit()
-c, n = np.histogram(opt.rt, opt.edges)
-c = c.astype('float')
-c = c/c.sum()
-n = n[1:]-((n[1]-n[0])/2)
 
-figure()
-subplot(311)
-
-plot(opt.rt)
-
-xx = opt.rbm.xx
-xx = (xx.T/xx.sum(axis=1)).T
-
-rtm = np.array([n[(xx[i].cumsum()<np.random.rand()).sum()] for i in xrange(len(xx))])
-plot(rtm)
-
-
-subplot(312)
-m = opt.rt_model[0]
+figure(2)
+plot(opt.fitfunc(opt.pa[0], opt.mean[1][0]), '+-')
+plot(opt.mean[0][0], 'o-')
 
 
 
-plot(n, c, 'o-')
-tmp = opt.rbm.xx.sum(0)
-tmp = tmp/tmp.sum()
-plot(n, tmp, 'o--')
 
-subplot(313)
-plot(opt.rbm.Error)
 
+
+
+left, width = 0.1, 0.65
+bottom, height = 0.1, 0.65
+bottom_h = left_h = left+width+0.02
+rect_scatter = [left, bottom, width, height]
+rect_histx = [left, bottom_h, width, 0.2]
+rect_histy = [left_h, bottom, 0.2, height]
+plt.figure(1, figsize=(12,9))
+axScatter = plt.axes(rect_scatter)
+axHistx = plt.axes(rect_histx)
+axHisty = plt.axes(rect_histy)
+axScatter.imshow(opt.p, interpolation = 'nearest', origin = 'lower')
+axHistx.plot(opt.p_rtm)
+axHisty.plot(opt.mass, np.arange(len(opt.mass)))
+#axHistx.set_title("dh/n")
+#axHistx.set_title("dh")
+axHistx.set_title("n")
+plt.text(s = "MI "+str(lrs), x = 0.0, y = 16.0)
+
+
+plt.figure(3, figsize=(8,8))
+rt = opt.rt
+ind = np.argsort(rt)
+subplot(211)
+plot(rt[ind])
+subplot(212)
+plot(opt.rtm[ind])
 
 show()
