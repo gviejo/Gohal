@@ -300,9 +300,9 @@ class pareto():
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "selection":KSelection(self.states, self.actions)})
         self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma'],
-                            'qlearning':['alpha','beta','gamma'],
-                            'bayesian':['length','noise','threshold'],
-                            'selection':['gamma','beta','eta','length','threshold','noise','sigma']})
+                            'qlearning':['alpha','beta','gamma', 'sigma'],
+                            'bayesian':['length','noise','threshold', 'sigma'],
+                            'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_rt']})
         self.m_order = ['qlearning', 'bayesian', 'selection', 'fusion']
         self.colors_m = dict({'fusion':'r', 'bayesian':'g', 'qlearning':'grey', 'selection':'b'})
         self.opt = dict()

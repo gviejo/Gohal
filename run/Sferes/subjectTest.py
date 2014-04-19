@@ -134,7 +134,7 @@ hrtm = np.array(hrtm)
 mi = np.array(mi)
 pmi = np.array(pmi)
 
-hrtm = leastSquares(hrtm, hrt)
+#hrtm = leastSquares(hrtm, hrt)
 
 fig = figure(figsize = (15, 12))
 

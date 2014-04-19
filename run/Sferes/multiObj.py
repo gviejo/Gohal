@@ -46,17 +46,17 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 front = pareto(options.input, threshold = [-100000, -150000], N = 156)
 front.rankMixedFront([0.01,0.99])
-front.preview()
+#front.preview()
 
 
 
 #front.run(plot=True)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
-    pickle.dump(front.pareto, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
+#     pickle.dump(front.pareto, handle)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
-    pickle.dump(front.mixed, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
+#     pickle.dump(front.mixed, handle)
 
 with open("parameters.pickle", 'wb') as f:
     pickle.dump(front.p_test, f)
