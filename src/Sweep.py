@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/python
 # encoding: utf-8
 """
@@ -16,9 +19,14 @@ from fonctions import *
 from scipy.stats import norm
 import scipy.optimize
 from multiprocessing import Pool, Process
+from itertools import izip
+from ColorAssociationTasks import CATS
 
 def unwrap_self_multiOptimize(arg, **kwarg):
     return Likelihood.multiOptimize(*arg, **kwarg)
+
+def unwrap_self_multiSampling(arg, **kwarg):
+    return SamplingPareto.multiSampling(*arg, **kwarg)
 
 class Sweep_performances():
     """
@@ -145,79 +153,6 @@ class Sweep_performances():
             if q[i] <> 0.0 and p[i] <> 0.0:
                 tmp+=p[i]*np.log2(p[i]/q[i])
         return tmp
-
-
-class Sferes():
-    """
-    class for multi-objective optimization
-    to interface with sferes2 : see
-    http://sferes2.isir.upmc.fr/
-    fitness function is made of Bayesian Information Criterion
-    and either Linear Regression
-    or possible Reaction Time Likelihood
-
-    Optimization is made for one subject
-
-    """
-    def __init__(self, data, subject, ptr_model):
-        self.model = ptr_model
-        self.subject = subject
-        self.data = data                
-        self.rt = list()
-        self.rt_model = list()
-        self.normalizeRT3()        
-
-    def getFitness(self):
-        llh = 0.0
-        lrs = 0.0
-        self.model.startExp()
-        for bloc in self.data.iterkeys():
-            self.model.startBloc()            
-            for trial in self.data[bloc]['sar']:
-                true_action = trial[1]-1
-                values = self.model.computeValue(self.model.states[trial[0]-1])
-                llh = llh + np.log(values[trial[1]-1])
-                self.model.current_action = trial[1]-1
-                self.model.updateValue(trial[2])                                                        
-                self.rt_model.append(float(self.model.reaction[-1][-1]))
-
-        self.rt_model = np.array(self.rt_model)
-        #self.rt_model = self.rt_model-np.min(self.rt_model)        
-        self.rt_model = self.rt_model-np.mean(self.rt_model)
-        if np.std(self.rt_model):
-            self.rt_model = self.rt_model/np.std(self.rt_model)
-        # if np.max(self.rt_model):
-        #     self.rt_model = self.rt_model/np.max(self.rt_model)
-        lrs = np.sum(np.power((self.rt_model-self.rt),2))        
-        max_llh = -float(len(self.rt_model))*np.log(0.2)
-        max_lrs = float(len(self.rt_model))*2
-        #return -llh, lrs
-        return max_llh+llh, max_lrs-lrs
-
-    def normalizeRT(self):
-        for i in self.data.iterkeys():
-            for  j in self.data[i]['rt']:
-                self.rt.append(j)
-        self.rt = np.array(self.rt)
-        self.rt = self.rt - np.min(self.rt)
-        self.rt = (self.rt/np.max(self.rt)).flatten()
-    
-    def normalizeRT2(self):
-        for i in self.data.iterkeys():
-            self.data[i]['rt'] = self.data[i]['rt']-np.min(self.data[i]['rt'])
-            self.data[i]['rt'] = self.data[i]['rt']/np.max(self.data[i]['rt'])
-            for j in self.data[i]['rt']:
-                self.rt.append(j)
-        self.rt = np.array(self.rt)
-
-    def normalizeRT3(self):
-        for i in self.data.iterkeys():
-            for  j in self.data[i]['rt']:
-                self.rt.append(j)
-        self.rt = np.array(self.rt)
-        self.rt = self.rt - np.mean(self.rt)
-        self.rt = (self.rt/np.std(self.rt)).flatten()    
-
 
 class Likelihood():
     """
@@ -548,7 +483,7 @@ class Likelihood():
 
     def run(self):        
         #subject = ['S1', 'S9', 'S8', 'S3']        
-        subject = ['S2', 'S8', 'S9', 'S11']
+        subject = ['S2', 'S8']
         #subject = self.subject
         pool = Pool(len(subject))
         self.data = pool.map(unwrap_self_multiOptimize, zip([self]*len(subject), subject))                
@@ -595,4 +530,115 @@ class Likelihood():
         pickle.dump(data, output)
         output.close()
 
-        
+
+class SamplingPareto():
+    """ Simple sampling of parameters to
+    draw pareto front """
+
+    def __init__(self, human, model, n = 10000):
+        self.human = human
+        self.model = model
+        self.subject = self.human.keys()
+        self.n = n
+        self.nb_repeat = 8
+        self.nb_blocs = 4
+        self.nb_trials = 39
+        self.nb_param = len(self.model.bounds.keys())
+        self.p_order = self.model.bounds.keys()
+        self.cats = CATS(self.nb_trials)
+        self.rt = dict()
+        self.state = dict()
+        self.action = dict()
+        self.responses = dict()
+        self.indice = dict()
+        self.hrt = dict()        
+        for s in self.human.keys():
+            self.rt[s] = np.array([self.human[s][i]['rt'][0:self.nb_trials,0] for i in range(1,self.nb_blocs+1)])
+            self.rt[s] = np.tile(self.rt[s], (self.nb_repeat,1))
+            self.state[s] = np.array([self.human[s][i]['sar'][0:self.nb_trials,0] for i in range(1,self.nb_blocs+1)])
+            self.state[s] = np.tile(self.state[s], (self.nb_repeat,1))
+            self.action[s] = np.array([self.human[s][i]['sar'][0:self.nb_trials,1] for i in range(1,self.nb_blocs+1)])
+            self.action[s] = np.tile(self.action[s], (self.nb_repeat,1))
+            self.responses[s] = np.array([self.human[s][i]['sar'][0:self.nb_trials,2] for i in range(1,self.nb_blocs+1)])
+            self.responses[s] = np.tile(self.responses[s], (self.nb_repeat,1))
+            step, indice = getRepresentativeSteps(self.rt[s], self.state[s], self.action[s], self.responses[s])
+            self.hrt[s] = computeMeanRepresentativeSteps(step)[0]
+            self.hrt[s] = self.center(self.hrt[s])
+
+    def _convertStimulus(self, s):
+            return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
+
+    def center(self, x):
+        x = x - np.median(x)
+        x = x / float(np.percentile(x, 75)-np.percentile(x, 25))
+        return x
+
+    def evaluate(self, s):
+        p_test = {k:np.random.uniform(self.model.bounds[k][0],self.model.bounds[k][1]) for k in self.model.bounds.keys()}
+        self.model.setAllParameters(p_test)
+        self.model.startExp()
+        for i in xrange(self.nb_repeat):
+            for j in xrange(self.nb_blocs):
+                self.cats.reinitialize()
+                self.cats.stimuli = np.array(map(self._convertStimulus, self.human[s][j+1]['sar'][:,0]))
+                self.model.startBloc()
+                for k in xrange(self.nb_trials):
+                    state = self.cats.getStimulus(k)
+                    action = self.model.chooseAction(state)
+                    reward = self.cats.getOutcome(state, action)
+                    self.model.updateValue(reward)
+        self.model.reaction = np.array(self.model.reaction)
+        self.model.action = np.array(self.model.action)
+        self.model.responses = np.array(self.model.responses)
+        self.model.value = np.array(self.model.value)
+        step, indice = getRepresentativeSteps(self.model.reaction, self.state[s], self.model.action, self.model.responses)
+        hrtm = computeMeanRepresentativeSteps(step)[0]
+        hrtm = self.center(hrtm)
+
+        rt = -np.sum(np.power(hrtm-self.hrt[s], 2))
+
+        choice = np.sum(np.log(self.model.value))
+        return np.array([choice, rt])
+
+    def multiSampling(self, s):
+        n = 100
+        data = np.zeros((n, 3))
+        pareto = np.array([[-1, -1000., -1000.0]])
+        p = np.zeros((n,self.nb_param+1))        
+        good = np.zeros((1, self.nb_param+1))
+        good[0,0] = -1.0
+        for i in xrange(1,self.n+1):
+            ind = (i-1)%n            
+            data[ind,0] = i
+            p[ind,0] = i
+            data[ind,1:] = self.evaluate(s)
+            p[ind,1:] = np.array([self.model.parameters[k] for k in self.p_order])
+            if i%n == 0:
+                pareto, good = self.constructParetoFrontier(np.vstack((data, pareto)), np.vstack((p, good)))
+                
+        return dict({s:np.hstack((pareto, good[:,1:]))})
+
+    def constructParetoFrontier(self, front, param):
+        front = front[front[:,1].argsort()][::-1]
+        pareto_frontier = [front[0]]
+        for pair in front[1:]:
+            if pair[2] >= pareto_frontier[-1][2]:
+                pareto_frontier.append(pair)
+        pareto_frontier = np.array(pareto_frontier)        
+        good = np.array([param[param[:,0] == i][0] for i in pareto_frontier[:,0]])
+        return pareto_frontier, good
+
+    def run(self):
+        subject = self.subject
+        pool = Pool(len(subject))
+        self.data = pool.map(unwrap_self_multiSampling, zip([self]*len(subject), subject))
+        tmp = dict()
+        for i in self.data:
+            s = i.keys()[0]
+            tmp[s] = i[s]            
+        self.data = tmp
+
+    def save(self, output_file):
+        output = open(output_file, 'wb')
+        pickle.dump(self.data, output)
+        output.close()

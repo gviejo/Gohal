@@ -205,16 +205,17 @@ class FSelection():
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
 
-        pdf = np.zeros(int(self.parameters['length'])+1)
+        #pdf = np.zeros(int(self.parameters['length'])+1)
         
         while self.sigmoideModule():
-            pdf[self.nb_inferences] = float(self.pA)
+            #pdf[self.nb_inferences] = float(self.pA)
             self.inferenceModule()
             self.evaluationModule()
-        pdf[self.nb_inferences] = float(self.pA)            
+        #pdf[self.nb_inferences] = float(self.pA)            
         self.fusionModule()
-        self.current_action = self.sample(self.p_a)        
-        self.action[-1].append(self.actions[self.current_action])                
+        self.current_action = self.sample(self.p_a)
+        self.value.append(float(self.p_a[self.current_action]))
+        self.action[-1].append(self.current_action)                
         
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
@@ -228,7 +229,7 @@ class FSelection():
         
         # pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
         # self.pdf[-1].append(pdf)
-        return self.action[-1][-1]
+        return self.actions[self.current_action]
 
     def updateValue(self, reward):
         r = int((reward==1)*1)
