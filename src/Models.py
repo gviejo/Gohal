@@ -99,11 +99,12 @@ class QLearning():
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
         self.current_action = self.sampleSoftMax(self.values[self.current_state])
-        self.action[-1].append(self.actions[self.current_action])
+        self.value.append(float(self.values[self.current_action]))
+        self.action[-1].append(self.current_action)
         
-        
-        self.reaction[-1].append(0.0)
-        return self.action[-1][-1]
+        H = -(value*np.log2(value)).sum()        
+        self.reaction[-1].append(H)
+        return self.actions[self.current_action]
     
     def updateValue(self, reward):
         self.responses[-1].append(int((reward==1)*1))
@@ -246,7 +247,7 @@ class BayesianWorkingMemory():
         self.bounds = dict({"length":[6, 11], 
                             "threshold":[0.0, self.initial_entropy], 
                             "noise":[0.0, 1.0],
-                            "sigma":[0.0000001, 1.0]})
+                            "sigma":[0.0001, 1.0]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.values = np.ones(self.n_action)*(1./self.n_action)    
@@ -385,10 +386,13 @@ class BayesianWorkingMemory():
             self.inferenceModule()
             self.evaluationModule()
         self.current_action = self.sample(self.values)                    
-        self.action[-1].append(self.actions[self.current_action])
-        self.reaction[-1].append(float(self.nb_inferences))
+        self.value.append(float(self.values[self.current_action]))
+        self.action[-1].append(self.current_action)
+        H = -(self.values*np.log2(self.values)).sum()
+        N = float(self.nb_inferences+1)
+        self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
 
-        return self.action[-1][-1]
+        return self.actions[self.current_action]
 
     def updateValue(self, reward):
         r = int((reward==1)*1)

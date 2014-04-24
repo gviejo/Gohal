@@ -281,7 +281,7 @@ class KSelection():
                             "threshold":[0.0, -np.log2(1./self.n_action)], 
                             "noise":[0.0,1.0],
                             "sigma":[0.0,1.0],
-                            "sigma_rt":[0.0000001, 1.0]})
+                            "sigma_rt":[0.0001, 1.0]})
                             #"sigma_ql":[0.00001, 1.0]})        
         self.var_obs = var_obs
         self.init_cov = init_cov
@@ -461,8 +461,9 @@ class KSelection():
                 #d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
                 #pdf[self.nb_inferences] = 1.0-float(d)
             values = self.p_a_mb/np.sum(self.p_a_mb)
-        self.current_action = self.sample(values)        
-        self.action[-1].append(self.actions[self.current_action])
+        self.current_action = self.sample(values)
+        self.value.append(float(values[self.current_action]))
+        self.action[-1].append(self.current_action)
         H = -(values*np.log2(values)).sum()
         N = float(self.nb_inferences+1)
         self.reaction[-1].append(H*self.parameters['sigma_rt']+np.log2(N))

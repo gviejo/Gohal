@@ -11,7 +11,7 @@ from Selection import *
 from matplotlib import *
 from pylab import *
 
-from scipy.optimize import curve_fit, leastsq
+
 
 
 
@@ -20,7 +20,7 @@ model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little
 
 p_order = ['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma']
 
-pp = map(float, "1 0 0.956894 0 0.000325347 0.0753905 1 0.00911822".split(" "))
+pp = map(float, "0.905331 1 0.985419 0.631207 0.159728 0.0923251 0.0875467 0.865847".split(" "))
 
 tmp = dict()
 for i in p_order:
@@ -36,7 +36,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters)
 
 
-opt = EA(human.subject['fmri']['S8'], 'S8', model)
+opt = EA(human.subject['fmri']['S9'], 'S9', model)
 
 
 
@@ -53,23 +53,23 @@ plot(opt.mean[1], 'o--')
 
 
 
-left, width = 0.1, 0.65
-bottom, height = 0.1, 0.65
-bottom_h = left_h = left+width+0.02
-rect_scatter = [left, bottom, width, height]
-rect_histx = [left, bottom_h, width, 0.2]
-rect_histy = [left_h, bottom, 0.2, height]
-plt.figure(1, figsize=(12,9))
-axScatter = plt.axes(rect_scatter)
-axHistx = plt.axes(rect_histx)
-axHisty = plt.axes(rect_histy)
-axScatter.imshow(opt.p, interpolation = 'nearest', origin = 'lower')
-axHistx.plot(opt.p_rtm)
-axHisty.plot(opt.mass, np.arange(len(opt.mass)))
-#axHistx.set_title("dh/n")
-#axHistx.set_title("dh")
-axHistx.set_title("n")
-plt.text(s = "MI "+str(lrs), x = 0.0, y = 16.0)
+# left, width = 0.1, 0.65
+# bottom, height = 0.1, 0.65
+# bottom_h = left_h = left+width+0.02
+# rect_scatter = [left, bottom, width, height]
+# rect_histx = [left, bottom_h, width, 0.2]
+# rect_histy = [left_h, bottom, 0.2, height]
+# plt.figure(1, figsize=(12,9))
+# axScatter = plt.axes(rect_scatter)
+# axHistx = plt.axes(rect_histx)
+# axHisty = plt.axes(rect_histy)
+# axScatter.imshow(opt.p, interpolation = 'nearest', origin = 'lower')
+# axHistx.plot(opt.p_rtm)
+# axHisty.plot(opt.mass, np.arange(len(opt.mass)))
+# #axHistx.set_title("dh/n")
+# #axHistx.set_title("dh")
+# axHistx.set_title("n")
+# plt.text(s = "MI "+str(lrs), x = 0.0, y = 16.0)
 
 
 plt.figure(3, figsize=(8,8))

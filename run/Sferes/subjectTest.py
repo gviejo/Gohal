@@ -97,7 +97,7 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 # ------------------------------------
 # Parameter testing
 # ------------------------------------
-with open("../Optimization/parameters.pickle", 'r') as f:
+with open("parameters.pickle", 'r') as f:
   p_test = pickle.load(f)
 
 
@@ -141,14 +141,14 @@ for s in p_test.iterkeys():
     hrt.append(computeMeanRepresentativeSteps(step)[0])
     
     # MUTUAL INFORMATION
-    v, p = mutualInformation(rtm.flatten() , rt.flatten())
-    mi.append(v)
-    pmi.append(p)
+    #v, p = mutualInformation(rtm.flatten() , rt.flatten())
+    #mi.append(v)
+    #pmi.append(p)
 
 hrt = np.array(map(center, hrt))
 hrtm = np.array(map(center, hrtm))
-mi = np.array(mi)
-pmi = np.array(pmi)
+#mi = np.array(mi)
+#pmi = np.array(pmi)
 pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
 for i in pcrm.iterkeys():
     pcrm[i] = np.array(pcrm[i])
@@ -177,165 +177,11 @@ for i, s in zip(xrange(14), p_test.keys()):
   ax1.set_title(s)
 
 
-fig3 = figure(figsize = (15, 12))
-for i, s in zip(xrange(14), p_test.keys()):
-    subplot(4,4,i+1)
-    imshow(pmi[i], origin = 'lower', interpolation = 'nearest')
-    title(s + " " + str(mi[i]))
+# fig3 = figure(figsize = (15, 12))
+# for i, s in zip(xrange(14), p_test.keys()):
+#     subplot(4,4,i+1)
+#     imshow(pmi[i], origin = 'lower', interpolation = 'nearest')
+#     title(s + " " + str(mi[i]))
 
 show()
-
-
-sys.exit()
-
-
-
-
-
-
-
-
-
-
-
-
-
-# -----------------------------------
-#order data
-# -----------------------------------
-pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
-pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
-
-step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
-rt = computeMeanRepresentativeSteps(step)
-step, indice = getRepresentativeSteps(model.responses, model.state, model.action, model.responses)
-y = computeMeanRepresentativeSteps(step)
-distance = computeDistanceMatrix(model.state, indice)
-
-correct = np.array([model.reaction[np.where((distance == i) & (model.responses == 1) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
-incorrect = np.array([model.reaction[np.where((distance == i) & (model.responses  == 0) & (indice > 5))] for i in xrange(1, int(np.max(distance))+1)])
-mean_correct = np.array([np.mean(model.reaction[np.where((distance == i) & (model.responses  == 1) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
-var_correct = np.array([sem(model.reaction[np.where((distance == i) & (model.responses  == 1) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
-mean_incorrect = np.array([np.mean(model.reaction[np.where((distance == i) & (model.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
-var_incorrect = np.array([sem(model.reaction[np.where((distance == i) & (model.responses == 0) & (indice > 5))]) for i in xrange(1, int(np.max(distance))+1)])
-
-step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
-rt_fmri = computeMeanRepresentativeSteps(step) 
-step, indice = getRepresentativeSteps(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
-indice_fmri = indice
-y_fmri = computeMeanRepresentativeSteps(step)
-distance_fmri = computeDistanceMatrix(human.stimulus['fmri'], indice)
-
-step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
-rt_fmri = computeMeanRepresentativeSteps(step) 
-step, indice = getRepresentativeSteps(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
-y_fmri = computeMeanRepresentativeSteps(step)
-
-
-
-# -----------------------------------
-
-
-# -----------------------------------
-# Plot
-# -----------------------------------
-
-# Probability of correct responses
-figure(figsize = (9,4))
-ion()
-params = {'backend':'pdf',
-          'axes.labelsize':10,
-          'text.fontsize':10,
-          'legend.fontsize':10,
-          'xtick.labelsize':8,
-          'ytick.labelsize':8,
-          'text.usetex':False}          
-#rcParams.update(params)                  
-colors = ['blue', 'red', 'green']
-subplot(1,2,1)
-for i in xrange(3):
-    plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
-    errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
-    plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
-    #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
-    ylabel("Probability correct responses")
-    legend(loc = 'lower right')
-    xticks(range(2,len(pcr['mean'][i])+1,2))
-    xlabel("Trial")
-    xlim(0.8, len(pcr['mean'][i])+1.02)
-    ylim(-0.05, 1.05)
-    yticks(np.arange(0, 1.2, 0.2))
-    title('A')
-    grid()
-
-
-ax1 = plt.subplot(1,2,2)
-ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0]-0.2, linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
-ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0]-0.2, rt_fmri[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
-
-ax2 = ax1.twinx()
-ax2.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
-ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
-ax2.set_ylabel("Inference Level")
-ax2.set_ylim(-4, 12)
-##
-msize = 8.0
-mwidth = 2.5
-ax1.plot(1, 0.455, 'x', color = 'blue', markersize=msize, markeredgewidth=mwidth)
-ax1.plot(1, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
-ax1.plot(1, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
-ax1.plot(2, 0.455, 'o', color = 'blue', markersize=msize)
-ax1.plot(2, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
-ax1.plot(2, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
-ax1.plot(3, 0.4445, 'x', color = 'red', markersize=msize,markeredgewidth=mwidth)
-ax1.plot(3, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
-ax1.plot(4, 0.4445, 'o', color = 'red', markersize=msize)
-ax1.plot(4, 0.435, 'x', color = 'green', markersize=msize,markeredgewidth=mwidth)
-ax1.plot(5, 0.435, 'o', color = 'green', markersize=msize)
-for i in xrange(6,16,1):
-    ax1.plot(i, 0.455, 'o', color = 'blue', markersize=msize)
-    ax1.plot(i, 0.4445, 'o', color = 'red', markersize=msize)
-    ax1.plot(i, 0.435, 'o', color = 'green', markersize=msize)
-
-##
-ax1.set_ylabel("Reaction time (s)")
-ax1.grid()
-ax1.set_xlabel("Representative steps")
-ax1.set_xticks([1,5,10,15])
-#ax1.set_yticks([0.46, 0.50, 0.54])
-#ax1.set_ylim(0.43, 0.56)
-ax1.set_title('B')
-
-################
-
-# ind = np.arange(1, len(rt[0])+1)
-# ax5 = subplot(2,2,3)
-# for i,j,k,l,m in zip([y, y_meg, y_fmri], 
-#                    ['blue', 'grey', 'grey'], 
-#                    ['model', 'MEG', 'FMRI'],
-#                    [1.0, 0.9, 0.9], 
-#                    ['-', '--', ':']):
-#     ax5.plot(ind, i[0], linewidth = 2, color = j, label = k, alpha = l, linestyle = m)
-#     ax5.errorbar(ind, i[0], i[1], linewidth = 2, color = j, alpha = l, linestyle = m)
-
-# ax5.grid()
-# ax5.set_ylabel("PCR %")    
-# ax5.set_yticks(np.arange(0, 1.2, 0.2))
-# ax5.set_xticks(range(2, 15, 2))
-# ax5.set_ylim(-0.05, 1.05)
-# ax5.legend(loc = 'lower right')
-
-
-################
-subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
-#savefig('../../../Dropbox/ISIR/B2V_council/images/fig_subject'+options.model+'.pdf', bbox_inches='tight')
-savefig('test.pdf', bbox_inches='tight')
-
-
-
-
-
-
-
-
 
