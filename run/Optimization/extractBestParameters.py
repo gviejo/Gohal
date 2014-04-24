@@ -20,6 +20,7 @@ from fonctions import *
 from ColorAssociationTasks import CATS
 from HumanLearning import HLearning
 from Models import *
+from Selection import *
 from matplotlib import *
 from pylab import *
 
@@ -41,66 +42,58 @@ parser.add_option("-o", "--output", action="store", help="The name of the output
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
+def rank(value, lambdaa, epsilon):
+    m,n = value.shape
+    #assert m>=n
+    assert len(lambdaa) == n
+    assert np.sum(lambdaa) == 1
+    assert epsilon < 1.0
+    ideal = np.max(value, 0)
+    nadir = np.min(value, 0)
+    tmp = lambdaa*((ideal-value)/(ideal-nadir))
+    return np.max(tmp, 1)+epsilon*np.sum(tmp,1) 
 
 # -----------------------------------
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
+cats = CATS(0)
+models = dict({"fusion":FSelection(cats.states, cats.actions),
+                "qlearning":QLearning(cats.states, cats.actions),
+                "bayesian":BayesianWorkingMemory(cats.states, cats.actions),
+                "selection":KSelection(cats.states, cats.actions)})
 
+p_order = models['fusion'].bounds.keys()
 # -----------------------------------
 
 # -----------------------------------
 # PARAMETERS Loading
 # -----------------------------------
 f = open(options.input, 'rb')
-p = pickle.load(f)
+data = pickle.load(f)
 f.close()
 # -----------------------------------
-
+r = dict()
+p_test = dict()
+for s in data.keys():
+    r[s] = rank(data[s][:,1:3], [0.5, 0.5], 0.1)
+    ind = np.argmin(r[s])
+    p_test[s] = dict({'fusion':{}})
+    for i in xrange(len(p_order)):
+        p_test[s]['fusion'][p_order[i]] = data[s][ind][i]
 # -----------------------------------
 # Order data
 # -----------------------------------
+fig_pareto = figure(figsize = (12, 9))
+ax1 = fig_pareto.add_subplot(1,1,1)
+for i, s in zip(range(len(data.keys())), data.iterkeys()):    
+    ax1.plot(data[s][:,1], data[s][:,2], "-o")
+    
+    ax1.set_title(s)
+    
 
-n_search = p['search']
-subject = p['subject']
-n_parameters = len(p['p_order'])
-fname = p['fname']
-X = p['opt']
-if fname == 'minimize':
-    tmp = np.zeros((len(subject), n_search, n_parameters))
-    fun = np.zeros((len(subject), n_search))
-    X = np.reshape(X, (len(subject), n_search))
-    for i in xrange(len(X)):
-        for j in xrange(len(X[i])):
-            if X[i][j].success == True:
-                tmp[i][j] = X[i][j].x
-                fun[i][j] = -X[i][j].fun        
-    X = tmp
-elif fname == 'fmin':
-    X = np.reshape(X, (len(subject), n_search, n_parameters))
-else:
-    print "scipy function not specified\n"
-    sys.exit()
+show()        
 
-
-# -----------------------------------
-
-# -----------------------------------
-# Saving 
-# -----------------------------------
-output = open(options.output, 'w')
-output.write("# Optimization function : "+fname+"\n")
-output.write("# Nb search : "+str(n_search)+"\n")
-
-for i in xrange(len(p['subject'])):
-    best = X[i][fun[i] == np.max(fun[i])]
-    l = round(np.max(fun[i]), 2)
-     
-    line = p['subject'][i]+" (likelihood:"+str(l)+","
-    for j in xrange(len(p['p_order'])):
-        line = line+p['p_order'][j]+":"+str(round(best[0][j], 2))+","    
-    line = line[0:-1] + ")\n"
-    output.write(line)
-
-output.close()    
+with open("parameters.pickle", 'wb') as f:
+    pickle.dump(p_test, f)
