@@ -47,24 +47,20 @@ class EA():
         self.n_trials = 39
         self.n_blocs = 4
         self.n_repets = 5
-        self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()
-        #self.rtinv = 1./self.rt
+        self.fit = np.zeros(2)
+        self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()        
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
         self.fitfunc = lambda p, x: p[0] + p[1] * x
         self.errfunc = lambda p, x, y : (y - self.fitfunc(p, x))
-        self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))
-        #self.bin_size = 2*(np.percentile(self.rtinv, 75)-np.percentile(self.rtinv, 25))*np.power(len(self.rtinv), -(1/3.))
-        self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))
-        #self.mass, self.edges = np.histogram(self.rtinv, bins=np.arange(self.rtinv.min(), self.rtinv.max()+self.bin_size, self.bin_size))
-        self.mass = self.mass/float(self.mass.sum())
-        self.position = np.digitize(self.rt, self.edges)-1
-        #self.position = np.digitize(self.rtinv, self.edges)-1
+        #self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))        
+        #self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))        
+        #self.mass = self.mass/float(self.mass.sum())
+        #self.position = np.digitize(self.rt, self.edges)-1
         #self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
-        self.p = None
-        self.p_rtm = None
-
+        #self.p = None
+        #self.p_rtm = None
 
     def getFitness(self):
         np.seterr(all = 'ignore')
@@ -76,19 +72,23 @@ class EA():
                     self.model.computeValue(int(self.state[i,j])-1, int(self.action[i,j])-1)                
                     self.model.updateValue(self.responses[i,j])
         
-        self.model.value = np.array(self.model.value)
+        self.model.value = np.array(self.model.value)        
         self.rtm = np.array(self.model.reaction).flatten()
-                        
-        choice = np.sum(np.log(self.model.value))
-        if np.isnan(choice) or np.isinf(choice) or choice == 0.0: choice = -10000.0        
 
-        #rt = -np.exp(self.leastSquares())
-        #if np.isnan([rt]) or np.isinf([rt]): rt = -1000.0
+        self.fit[0] = float(np.sum(np.log(self.model.value)))
+        #tmp = self.computeMutualInformation()
+        self.alignToMedian()
+        self.fit[1] = float(-self.leastSquares())        
+        self.fit = np.round(self.fit, 4)
+        self.fit[np.isnan(self.fit)] = -10000.0
+        self.fit[np.isinf(self.fit)] = -10000.0        
+        choice = str(self.fit[0])
+        rt = str(self.fit[1])
+        # FUCKING UGLY ########
+        if choice == '0.0' or choice == '0': choice = '-10000.0'
+        if rt == '0.0' or rt == '0': rt = '-10000.0'
+        #######################
         
-        #rt = self.computeMutualInformation()
-        #self.leastSquares()
-        rt = self.computeMutualInformation()-np.exp(self.leastSquares())
-        if np.isnan([rt]) or np.isinf([rt]): rt = -10000.0
         return choice, rt
 
     def leastSquares(self):
@@ -97,16 +97,15 @@ class EA():
         self.action = np.tile(self.action, (self.n_repets, 1))
         self.responses = np.tile(self.responses, (self.n_repets, 1))
         pinit = [1.0, -1.0]
-        mean = []
+        self.mean = []
         for i in [self.rt, self.rtm]:
             tmp = i.reshape(self.n_blocs*self.n_repets, self.n_trials)            
             step, indice = getRepresentativeSteps(tmp, self.state, self.action, self.responses)
-            mean.append(computeMeanRepresentativeSteps(step))
-        mean = np.array(mean)
-        p = leastsq(self.errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)        
-        self.pa = p
-        self.mean = mean
-        return np.sum(np.power(self.errfunc(p[0], mean[1][0], mean[0][0]), 2))
+            self.mean.append(computeMeanRepresentativeSteps(step)[0])
+        self.mean = np.array(self.mean)
+        #p = leastsq(self.errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)                
+        return np.sum(np.power(self.mean[0]-self.mean[1], 2))            
+        #return np.sum(np.power(self.errfunc(p[0], mean[1][0], mean[0][0]), 2))
 
     def computeMutualInformation(self):
         self.p_rtm, edges = np.histogram(self.rtm, bins = np.linspace(self.rtm.min(), self.rtm.max()+0.00001, 25))        
@@ -133,43 +132,11 @@ class EA():
         self.d[np.isnan(self.d)] = 0.0
 
     def alignToMedian(self):
-        p = np.sum(self.model.pdf, 0)
-        p = p/p.sum()
-        self.p = p
-        wp = []
-        tmp = np.cumsum(p)
-        f = lambda x: (x-np.sum(tmp<x)*tmp[np.sum(tmp<x)-1]+(np.sum(tmp<x)-1.0)*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-        for i in [0.25, 0.75]:
-            if np.min(tmp)>i:
-                wp.append(0.0)
-            else:
-                wp.append(f(i))              
+        self.rt = self.rt - np.median(self.rt)
+        self.rtm = self.rtm - np.median(self.rtm)
+        self.rtm = self.rtm / (np.percentile(self.rtm, 75)-np.percentile(self.rtm, 25))
+        self.rt = self.rt / (np.percentile(self.rt, 75)-np.percentile(self.rt, 25))
 
-        # h, b = np.histogram(self.rt, self.model.parameters['length']+1)
-        # b = b[0:-1]+(b[1:]-b[0:-1])/2.
-        # h = h.astype(float)
-        # h = h/h.sum()
-        # wh = []
-        # tmp = np.cumsum(h)
-        # f = lambda x: (x*(b[np.sum(tmp<x)]-b[np.sum(tmp<x)-1])-b[np.sum(tmp<x)]*tmp[np.sum(tmp<x)-1]+b[np.sum(tmp<x)-1]*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-        # for i in [0.25, 0.5, 0.75]:
-        #     if np.min(tmp)>i:
-        #         wh.append(0.0)
-        #     else:
-        #         wh.append(f(i))
-        wh = [np.percentile(self.rt, i) for i in [25, 75]]
-        
-        if (wp[1]-wp[0]):
-             self.rt_model = self.rt_model*((wh[1]-wh[0])/(wp[1]-wp[0]))
-        b = self.rt_model[0]
-        f = lambda x: (x*(b[np.sum(tmp<x)]-b[np.sum(tmp<x)-1])-b[np.sum(tmp<x)]*tmp[np.sum(tmp<x)-1]+b[np.sum(tmp<x)-1]*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-        
-        half = f(0.5) if np.min(tmp)<0.5 else 0.0        
-        
-        self.rt_model = self.rt_model-(half-np.median(self.rt))
-        
-    
-        
 
 class RBM():
     """

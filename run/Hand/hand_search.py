@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#!/usr/bin/python
-# encoding: utf-8
 """
 
 """
@@ -94,10 +92,7 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 # ------------------------------------
 # Parameter testing
 # ------------------------------------
-#p_test = eval(open('parameters.txt', 'r').read())
-with open("../Optimization/parameters.pickle", 'r') as f:
-    p_test = pickle.load(f)
-
+p_test = eval(open('parameters.txt', 'r').read())
 #keys = ['S13','S9','S8']
 #keys = ['S13']
 keys = ['S13', 'S9', 'S8', 'S2', 'S11', 'S17', 'S19', 'S5', 'S6', 'S20', 'S15', 'S12', 'S14', 'S16']

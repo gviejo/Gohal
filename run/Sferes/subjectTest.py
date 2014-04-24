@@ -67,7 +67,12 @@ def mutualInformation(x, y):
     tmp[np.isnan(tmp)] = 0.0
     return (np.sum(p*tmp), p)
 
-
+def center(x):
+    #x = x-np.mean(x)
+    #x = x/np.std(x)
+    x = x-np.median(x)
+    x = x/(np.percentile(x, 75)-np.percentile(x, 25))
+    return x
 
 # -----------------------------------
 
@@ -82,6 +87,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
+nb_repeat = 5
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -91,7 +97,7 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 # ------------------------------------
 # Parameter testing
 # ------------------------------------
-with open("parameters.pickle", 'r') as f:
+with open("../Optimization/parameters.pickle", 'r') as f:
   p_test = pickle.load(f)
 
 
@@ -99,60 +105,76 @@ hrt = []
 hrtm = []
 mi = []
 pmi = []
+pcrm = dict({'s':[], 'a':[], 'r':[]})
 
 for s in p_test.iterkeys():
     m = p_test[s].keys()[0]
     models[m].setAllParameters(p_test[s][m])
     models[m].startExp()
-    for i in xrange(nb_blocs):
-        cats.reinitialize()
-        cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))
-        models[m].startBloc()
-        for j in xrange(nb_trials):
-            state = cats.getStimulus(j)
-            action = models[m].chooseAction(state)
-            reward = cats.getOutcome(state, action)
-            models[m].updateValue(reward)
-    models[m].reaction = np.array(models[m].reaction)
-    
-    rt = np.array([human.subject['fmri'][s][i]['rt'][0:nb_trials,0] for i in range(1,nb_blocs+1)]).flatten()
-    rtm = models[m].reaction.flatten()
-    state = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,0] for i in range(1,nb_blocs+1)])
+    for k in xrange(nb_repeat):
+        for i in xrange(nb_blocs):
+            cats.reinitialize()
+            cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))
+            models[m].startBloc()
+            for j in xrange(nb_trials):
+                state = cats.getStimulus(j)
+                action = models[m].chooseAction(state)
+                reward = cats.getOutcome(state, action)
+                models[m].updateValue(reward)
+    rtm = np.array(models[m].reaction)
+    state = convertStimulus(np.array(models[m].state))
+    action = np.array(models[m].action)
+    responses = np.array(models[m].responses)
+    step, indice = getRepresentativeSteps(rtm, state, action, responses)
+    hrtm.append(computeMeanRepresentativeSteps(step)[0])
+    pcrm['s'].append(state)
+    pcrm['a'].append(action)
+    pcrm['r'].append(responses)
+
+    rt = np.array([human.subject['fmri'][s][i]['rt'][0:nb_trials,0] for i in range(1,nb_blocs+1)])
+    rt = np.tile(rt, (nb_repeat, 1))    
     action = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,1] for i in range(1,nb_blocs+1)])
     responses = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,2] for i in range(1,nb_blocs+1)])
-
-    # LEAST SQUARES
-    for i, j in zip([rt, rtm], [hrt, hrtm]):
-        tmp = i.reshape(nb_blocs, nb_trials)
-        step, indice = getRepresentativeSteps(tmp, state, action, responses)
-        j.append(computeMeanRepresentativeSteps(step)[0])
-
+    action = np.tile(action, (nb_repeat, 1))
+    responses = np.tile(responses, (nb_repeat, 1))
+    step, indice2 = getRepresentativeSteps(rt, state, action, responses)
+    hrt.append(computeMeanRepresentativeSteps(step)[0])
+    
     # MUTUAL INFORMATION
-    v, p = mutualInformation(rtm , rt)
+    v, p = mutualInformation(rtm.flatten() , rt.flatten())
     mi.append(v)
     pmi.append(p)
 
-hrt = np.array(hrt)
-hrtm = np.array(hrtm)
+hrt = np.array(map(center, hrt))
+hrtm = np.array(map(center, hrtm))
 mi = np.array(mi)
 pmi = np.array(pmi)
+pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+for i in pcrm.iterkeys():
+    pcrm[i] = np.array(pcrm[i])
+    pcrm[i] = np.reshape(pcrm[i], (pcrm[i].shape[0]*pcrm[i].shape[1], pcrm[i].shape[2]))
+pcr = extractStimulusPresentation(pcrm['r'], pcrm['s'], pcrm['a'], pcrm['r'])
 
-hrtm = leastSquares(hrtm, hrt)
+#hrtm = leastSquares(hrtm, hrt)
 
 fig = figure(figsize = (15, 12))
+colors = ['blue', 'red', 'green']
+ax1 = fig.add_subplot(4,4,1)
+for i in xrange(3):
+    plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+    errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+    plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
+    #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
 
+ax1 = fig.add_subplot(4,4,2)
+plot(np.mean(hrt, 0), 'o-')
+plot(np.mean(hrtm, 0), 'o--')
 for i, s in zip(xrange(14), p_test.keys()):
-  ax1 = fig.add_subplot(4,4,i+1)
+  ax1 = fig.add_subplot(4,4,i+3)
   ax1.plot(hrt[i], 'o-')
   #ax2 = ax1.twinx()
   ax1.plot(hrtm[i], 'o--', color = 'green')
   ax1.set_title(s)
-
-fig2 = figure()
-ax3 = fig2.add_subplot(111)
-ax3.plot(np.mean(hrt, 0), 'o-')
-#ax4 = ax3.twinx()
-ax3.plot(np.mean(hrtm, 0), 'o-', color = 'green')
 
 
 fig3 = figure(figsize = (15, 12))

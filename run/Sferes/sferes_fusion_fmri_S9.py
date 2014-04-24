@@ -20,40 +20,23 @@ model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little
 
 p_order = ['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma']
 
-#p = map(float, "1 0.130219 0.1 0.420989 0.0154722 0 1 0.998014".split(" "))
-p = map(float, "1 0.130219 0.1 0.420989 0.0154722 0 1 0.998014".split(" "))
+pp = map(float, "1 0 0.956894 0 0.000325347 0.0753905 1 0.00911822".split(" "))
 
 tmp = dict()
 for i in p_order:
-	tmp[i] = p[p_order.index(i)]
+	tmp[i] = pp[p_order.index(i)]
 
 parameters = tmp
 for p in parameters.iterkeys():
 	if parameters[p]:
 		parameters[p] = model.bounds[p][0]+parameters[p]*(model.bounds[p][1]-model.bounds[p][0])
 
-# parameters = dict({'alpha': 0.92961300000000002,
-# 				 'beta': 1.1455569999999999,
-# 				 'gain': 1.0000000000000001e-05,
-# 				 'gamma': 0.78684500000000002,
-# 				 'length': 9.3192839999999997,
-# 				 'noise': 0.010792700000000001,
-# 				 'threshold': 9.3932982999999997})
-
-# parameters = dict({'alpha': 0.92961300000000002,
-# 				 'beta': 2.1455569999999999,
-# 				 'gain': 1.0,
-# 				 'gamma': 0.78684500000000002,
-# 				 'length': 8,
-# 				 'noise': 0.010792700000000001,
-# 				 'threshold': 1.0,
-# 				 'sigma':0.8})
 
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters)
 
 
-opt = EA(human.subject['fmri']['S9'], 'S9', model)
+opt = EA(human.subject['fmri']['S8'], 'S8', model)
 
 
 
@@ -61,8 +44,8 @@ llh, lrs = opt.getFitness()
 print llh, lrs
 
 figure(2)
-plot(opt.fitfunc(opt.pa[0], opt.mean[1][0]), '+-')
-plot(opt.mean[0][0], 'o-')
+plot(opt.mean[0], 'o-')
+plot(opt.mean[1], 'o--')
 
 
 

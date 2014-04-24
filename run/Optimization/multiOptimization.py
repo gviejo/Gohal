@@ -11,15 +11,17 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 import sys
 from optparse import OptionParser
 sys.path.append("../../src")
+#sys.path.append("/home/viejo/Gohal/src")
 from fonctions import *
 from ColorAssociationTasks import CATS
 from Models import *
 from Selection import *
-from matplotlib import *
-from pylab import *
+if os.uname()[1] in ['atlantis', 'paradise']:
+	from matplotlib import *
+	from pylab import *
 from HumanLearning import HLearning
 from Sweep import *
-from time import time
+
 
 # -----------------------------------
 # ARGUMENT MANAGER
@@ -45,6 +47,7 @@ parser.add_option("-f", "--fonction", action="store", help="Scipy function", def
 # HUMAN LEARNING
 # -----------------------------------
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
+#human = HLearning(dict({'meg':('/home/viejo/Beh/MEG/Beh_Model/',48), 'fmri':('/home/viejo/Beh/fMRI',39)}))
 # -----------------------------------
 
 # -----------------------------------
@@ -54,7 +57,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 #optimization parameters
 n_run = 5000
 n_grid = 10
-maxiter = 10000
+maxiter = 5000
 maxfun = 10000
 xtol = 0.01
 ftol = 0.01
@@ -75,17 +78,12 @@ opt = SamplingPareto(human.subject['fmri'], models[options.model], maxiter)
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
-t1 = time()
+
 
 opt.run()
-opt.save(options.output+"_"+str(datetime.datetime.now()).replace(" ", "_"))
-
-t2 = time()
+opt.save(options.output)
 
 
-
-print "\n"
-print t2-t1
 # -----------------------------------
 
 

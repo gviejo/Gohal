@@ -37,7 +37,7 @@ class FSelection():
                             "threshold":[0.1, 20.0], 
                             "noise":[0.0, 1.0],
                             "gain":[0.00001, 10.0],
-                            "sigma":[0.0000001, 1.0]})                            
+                            "sigma":[0.0001, 1.0]})                            
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -162,6 +162,7 @@ class FSelection():
         self.value.append(float(self.p_a[self.current_action]))
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
+        
         self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
         
         #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))        

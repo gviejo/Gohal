@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/python
 # encoding: utf-8
 """
@@ -76,12 +79,16 @@ f.close()
 # -----------------------------------
 r = dict()
 p_test = dict()
+best = dict()
+
 for s in data.keys():
     r[s] = rank(data[s][:,1:3], [0.5, 0.5], 0.1)
     ind = np.argmin(r[s])
+    best[s] = data[s][ind]
     p_test[s] = dict({'fusion':{}})
     for i in xrange(len(p_order)):
         p_test[s]['fusion'][p_order[i]] = data[s][ind][i]
+
 # -----------------------------------
 # Order data
 # -----------------------------------
@@ -89,7 +96,7 @@ fig_pareto = figure(figsize = (12, 9))
 ax1 = fig_pareto.add_subplot(1,1,1)
 for i, s in zip(range(len(data.keys())), data.iterkeys()):    
     ax1.plot(data[s][:,1], data[s][:,2], "-o")
-    
+    ax1.scatter(best[s][1], best[s][2], s = 50)
     ax1.set_title(s)
     
 
