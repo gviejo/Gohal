@@ -30,14 +30,14 @@ class FSelection():
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
-        self.bounds = dict({"gamma":[0.0, 1.0],
+        self.bounds = dict({"gamma":[0.1, 1.0],
                             "beta":[1.0, 10.0],
-                            "alpha":[0.0, 1.0],
+                            "alpha":[0.01, 1.0],
                             "length":[6, 10],
-                            "threshold":[0.1, 20.0], 
-                            "noise":[0.0, 1.0],
-                            "gain":[0.00001, 10.0],
-                            "sigma":[0.0001, 1.0]})                            
+                            "threshold":[0.5, 20.0], 
+                            "noise":[0.0001, 1.0],
+                            "gain":[0.01, 10.0],
+                            "sigma":[0.01, 1.0]})                            
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -274,14 +274,14 @@ class KSelection():
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
-        self.bounds = dict({"gamma":[0.0, 1.0],
+        self.bounds = dict({"gamma":[0.1, 1.0],
                             "beta":[1.0, 10.0],
                             "eta":[0.00001, 0.001],
                             "length":[6, 10],
-                            "threshold":[0.0, -np.log2(1./self.n_action)], 
-                            "noise":[0.0,1.0],
+                            "threshold":[0.01, -np.log2(1./self.n_action)], 
+                            "noise":[0.001,1.0],
                             "sigma":[0.0,1.0],
-                            "sigma_rt":[0.0001, 1.0]})
+                            "sigma_rt":[0.001, 1.0]})
                             #"sigma_ql":[0.00001, 1.0]})        
         self.var_obs = var_obs
         self.init_cov = init_cov

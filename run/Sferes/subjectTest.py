@@ -121,7 +121,7 @@ for s in p_test.iterkeys():
                 action = models[m].chooseAction(state)
                 reward = cats.getOutcome(state, action)
                 models[m].updateValue(reward)
-    rtm = np.array(models[m].reaction)
+    rtm = center(np.array(models[m].reaction))    
     state = convertStimulus(np.array(models[m].state))
     action = np.array(models[m].action)
     responses = np.array(models[m].responses)
@@ -132,7 +132,8 @@ for s in p_test.iterkeys():
     pcrm['r'].append(responses)
 
     rt = np.array([human.subject['fmri'][s][i]['rt'][0:nb_trials,0] for i in range(1,nb_blocs+1)])
-    rt = np.tile(rt, (nb_repeat, 1))    
+    rt = np.tile(rt, (nb_repeat, 1))
+    rt = center(rt)
     action = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,1] for i in range(1,nb_blocs+1)])
     responses = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,2] for i in range(1,nb_blocs+1)])
     action = np.tile(action, (nb_repeat, 1))
@@ -145,8 +146,7 @@ for s in p_test.iterkeys():
     #mi.append(v)
     #pmi.append(p)
 
-hrt = np.array(map(center, hrt))
-hrtm = np.array(map(center, hrtm))
+
 #mi = np.array(mi)
 #pmi = np.array(pmi)
 pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])

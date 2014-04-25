@@ -81,9 +81,9 @@ class EA():
         self.fit[1] = float(-self.leastSquares())        
         self.fit = np.round(self.fit, 4)
         self.fit[np.isnan(self.fit)] = -10000.0
-        self.fit[np.isinf(self.fit)] = -10000.0        
-        choice = str(self.fit[0])
-        rt = str(self.fit[1])
+        self.fit[np.isinf(self.fit)] = -10000.0                
+        choice = str(self.fit[0]+2000.0)
+        rt = str(self.fit[1]+500.0)
         # FUCKING UGLY ########
         if choice == '0.0' or choice == '0': choice = '-10000.0'
         if rt == '0.0' or rt == '0': rt = '-10000.0'
@@ -614,70 +614,3 @@ class pareto():
             #ax3 = ax2.twinx()
             ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
             show()
-
-
-    # def representativeSteps(self, m, s_order, n_blocs, n_trials):
-    #     x = np.reshape(self.models[m].reaction, (len(s_order), n_blocs, n_trials))
-    #     y = np.reshape(self.human.reaction['fmri'], (14, 4, 39))
-    #     s = np.reshape(self.human.stimulus['fmri'], (14, 4, 39))
-    #     a = np.reshape(self.human.action['fmri'], (14, 4, 39))
-    #     r = np.reshape(self.human.responses['fmri'], (14, 4, 39))
-    #     rt = []
-    #     rt_model = []
-    #     for i in xrange(len(s_order)):
-    #         step, indice = getRepresentativeSteps(x[i], s[i], a[i], r[i])
-    #         rt.append(np.hstack([np.mean(y[i][indice == j]) for j in step.iterkeys()]))
-    #         rt_model.append(np.hstack([np.mean(x[i][indice == j]) for j in step.iterkeys()]))
-    #     rt = np.array(rt)    
-    #     rt_model = np.array(rt_model)
-
-    #     Ex = np.percentile(rt_model, 75, 1) - np.median(rt_model, 1)
-    #     Ey = np.percentile(rt, 75, 1) - np.median(rt, 1)
-    #     Ex[Ex == 0.0] = 1.0
-    #     rt_model = rt_model*np.vstack(Ey/Ex)
-    #     rt_model = rt_model-np.vstack((np.median(rt_model, 1)-np.median(rt, 1)))
-
-    #     rt_model = (np.mean(rt_model, 0), sem(rt_model, 0))
-    #     rt_human = (np.mean(rt, 0), sem(rt, 0))
-
-    #     return rt_model, rt_human
-
-    # def alignToMean(self, m, n_subject, n_blocs, n_trials):
-    #     x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
-    #     y = np.reshape(self.human.reaction['fmri'], (14, 4*39))     
-    #     #w = np.reshape(self.human.weight['fmri'], (14, 4*39))
-
-    #     x = x-np.vstack(np.mean(x,1))        
-    #     y = y-np.vstack(np.mean(y,1))
-    #     tmp = np.std(x, 1)
-    #     tmp[tmp == 0.0] = 1.0
-    #     x = x/np.vstack(tmp)        
-    #     tmp = np.std(y, 1)
-    #     tmp[tmp == 0.0] = 1.0
-    #     y = y/np.vstack(tmp)
-
-    #     #x = x - np.vstack(np.median(x, 1)-np.median(y, 1))
-
-                
-    #     # a = np.vstack((np.sum(y*x,1))/(np.sum(x**2,1)))
-    #     # x = a*x
-
-    #     self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
-    #     self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))        
-
-    # def alignToCste(self, m, n_subject, n_blocs, n_trials, s_order):
-    #     x = np.reshape(self.models[m.split("_")[0]].reaction, (n_subject, n_blocs*n_trials))        
-    #     y = np.reshape(self.human.reaction['fmri'], (14, 4*39))
-    #     cste = np.vstack(np.array([self.p_test[m][s]['cste'] for s in s_order]))
-    #     w = (np.max(y)-cste)/np.vstack(np.max(x+1,1))
-    #     x = x*w
-    #     x = x-(np.vstack(np.min(x,1))-cste)
-
-    #     self.models[m.split("_")[0]].reaction = np.reshape(x, (n_subject*n_blocs, n_trials))        
-    #     self.human.reaction['fmri'] = np.reshape(y, (14*4, 39))
-
-    #     # self.w = w
-    #     # self.s_order = s_order
-    #     self.x = x
-    #     self.y = y
-    #     # sys.exit()
