@@ -87,7 +87,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 5
+nb_repeat = 10
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -105,7 +105,7 @@ hrt = []
 hrtm = []
 mi = []
 pmi = []
-pcrm = dict({'s':[], 'a':[], 'r':[]})
+pcrm = dict({'s':[], 'a':[], 'r':[], 't':[]})
 
 for s in p_test.iterkeys():
     m = p_test[s].keys()[0]
@@ -130,10 +130,12 @@ for s in p_test.iterkeys():
     pcrm['s'].append(state)
     pcrm['a'].append(action)
     pcrm['r'].append(responses)
+    pcrm['t'].append(rtm)
 
     rt = np.array([human.subject['fmri'][s][i]['rt'][0:nb_trials,0] for i in range(1,nb_blocs+1)])
     rt = np.tile(rt, (nb_repeat, 1))
     rt = center(rt)
+
     action = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,1] for i in range(1,nb_blocs+1)])
     responses = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,2] for i in range(1,nb_blocs+1)])
     action = np.tile(action, (nb_repeat, 1))
@@ -155,7 +157,15 @@ for i in pcrm.iterkeys():
     pcrm[i] = np.reshape(pcrm[i], (pcrm[i].shape[0]*pcrm[i].shape[1], pcrm[i].shape[2]))
 pcr = extractStimulusPresentation(pcrm['r'], pcrm['s'], pcrm['a'], pcrm['r'])
 
-#hrtm = leastSquares(hrtm, hrt)
+ht = np.reshape(human.reaction['fmri'], (14, 4*39))
+ht = np.array(map(center, ht)).reshape(14*4, 39)
+step, indice = getRepresentativeSteps(ht, human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+rt_fmri = computeMeanRepresentativeSteps(step) 
+
+step, indice = getRepresentativeSteps(pcrm['t'], pcrm['s'], pcrm['a'], pcrm['r'])
+rt = computeMeanRepresentativeSteps(step)
+
+
 
 fig = figure(figsize = (15, 12))
 colors = ['blue', 'red', 'green']
@@ -167,14 +177,15 @@ for i in xrange(3):
     #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
 
 ax1 = fig.add_subplot(4,4,2)
-plot(np.mean(hrt, 0), 'o-')
-plot(np.mean(hrtm, 0), 'o--')
+ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, color = 'grey', alpha = 0.5)
+ax1.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2, color = 'black', alpha = 0.9)
+
 for i, s in zip(xrange(14), p_test.keys()):
   ax1 = fig.add_subplot(4,4,i+3)
   ax1.plot(hrt[i], 'o-')
   #ax2 = ax1.twinx()
   ax1.plot(hrtm[i], 'o--', color = 'green')
-  ax1.set_title(s)
+  ax1.set_title(s+" "+p_test[s].keys()[0])
 
 
 # fig3 = figure(figsize = (15, 12))

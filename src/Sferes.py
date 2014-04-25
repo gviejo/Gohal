@@ -54,13 +54,13 @@ class EA():
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
         self.fitfunc = lambda p, x: p[0] + p[1] * x
         self.errfunc = lambda p, x, y : (y - self.fitfunc(p, x))
-        #self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))        
-        #self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))        
-        #self.mass = self.mass/float(self.mass.sum())
-        #self.position = np.digitize(self.rt, self.edges)-1
-        #self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
-        #self.p = None
-        #self.p_rtm = None
+        self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))        
+        self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))        
+        self.mass = self.mass/float(self.mass.sum())
+        self.position = np.digitize(self.rt, self.edges)-1
+        self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
+        self.p = None
+        self.p_rtm = None
 
     def getFitness(self):
         np.seterr(all = 'ignore')
@@ -76,7 +76,8 @@ class EA():
         self.rtm = np.array(self.model.reaction).flatten()
 
         self.fit[0] = float(np.sum(np.log(self.model.value)))
-        #tmp = self.computeMutualInformation()
+        tmp = self.computeMutualInformation()
+        print tmp
         self.alignToMedian()
         self.fit[1] = float(-self.leastSquares())        
         self.fit = np.round(self.fit, 4)
@@ -267,7 +268,7 @@ class pareto():
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "selection":KSelection(self.states, self.actions)})
         self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma'],
-                            'qlearning':['alpha','beta','gamma', 'sigma'],
+                            'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_rt']})
         self.m_order = ['qlearning', 'bayesian', 'selection', 'fusion']
@@ -307,7 +308,7 @@ class pareto():
             order = self.p_order[m.split("_")[0]]
             scale = self.models[m.split("_")[0]].bounds
             for r in lrun:
-                s = r.split("_")[3]
+                s = r.split("_")[3]                
                 n = int(r.split("_")[4].split(".")[0])
                 if s in self.data[m].keys():
                     self.data[m][s][n] = np.genfromtxt(self.directory+"/"+m+"/"+r)
@@ -364,13 +365,13 @@ class pareto():
                     if pair[4] >= pareto_frontier[-1][4]:
                         pareto_frontier.append(pair)
                 self.pareto[m][s] = np.array(pareto_frontier)
-                for t in xrange(len(self.threshold)):
-                    self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+t] >= self.threshold[t]]
-
-                self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
-                #self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
                 
-                #self.removeDoublon()
+                self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - 2000.0
+                self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0
+                #self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
+                #self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
+                for t in xrange(len(self.threshold)):
+                    self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+t] >= self.threshold[t]]                            
 
     def constructMixedParetoFrontier(self):
         subjects = set.intersection(*map(set, [self.pareto[m].keys() for m in self.pareto.keys()]))
@@ -394,7 +395,7 @@ class pareto():
             self.rank[s] = self.Tchebychev(self.mixed[s][:,4:], w, 0.01)
             #i = np.argmax(self.rank[s])
             i = np.argmin(self.rank[s])
-            m = self.m_order[int(self.mixed[s][i,0])]            
+            m = self.m_order[int(self.mixed[s][i,0])]
             ind = self.pareto[m][s][(self.pareto[m][s][:,0] == self.mixed[s][i][1])*(self.pareto[m][s][:,1] == self.mixed[s][i][2])*(self.pareto[m][s][:,2] == self.mixed[s][i][3])][0]
             self.indd[s] = ind            
             self.p_test[s] = {m:{}}
@@ -421,46 +422,42 @@ class pareto():
 
     def preview(self):
         fig_pareto = figure(figsize = (12, 9))
-        fig_par = figure(figsize = (12, 9))
-        fig_p = figure(figsize = (12,9))
+        #fig_par = figure(figsize = (12, 9))
+        #fig_p = figure(figsize = (12,9))
         rcParams['ytick.labelsize'] = 8
         rcParams['xtick.labelsize'] = 8
-        for m in self.pareto.iterkeys():
-            for i in xrange(len(self.data[m].keys())):
-                s = self.data[m].keys()[i]
-                ax1 = fig_pareto.add_subplot(4,4,i+1)
-                ax1.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m])
-                ax1.set_title(s)
-                if s in self.indd.keys():
-                    ind = self.indd[s]
-                    ax1.plot(ind[3], ind[4], 'o', markersize = 5)
-
-        n_params_max = np.max([len(t) for t in [self.p_order[m.split("_")[0]] for m in self.pareto.keys()]])
-        n_model = len(self.pareto.keys())
-        for i in xrange(n_model):
-            m = self.pareto.keys()[i]
-            for j in xrange(len(self.p_order[m.split("_")[0]])):
-                p = self.p_order[m.split("_")[0]][j]
-                ax2 = fig_par.add_subplot(n_params_max, n_model, i+1+n_model*j)                
-                ax3 = fig_p.add_subplot(n_params_max, n_model, i+1+n_model*j)
-                for s in self.pareto[m].iterkeys():
-                    y, x = np.histogram(self.pareto[m][s][:,5+j])
-                    y = y/np.sum(y.astype("float"))
-                    x = (x-(x[1]-x[0])/2)[1:]
-                    ax2.plot(x, y, 'o-', linewidth = 2)
-                    ax2.set_ylim(0, 1)
-                    ax2.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
-                    ax2.set_xlabel(p)
-                    ax3.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,5+j], 'o-')
-                    ax3.set_ylim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
-                    ax3.set_ylabel(p)
-                if j == 0:
-                    ax2.set_title(m)
+        # n_params_max = np.max([len(t) for t in [self.p_order[m.split("_")[0]] for m in self.pareto.keys()]])
+        # n_model = len(self.pareto.keys())
+        # for i in xrange(n_model):
+        #     m = self.pareto.keys()[i]
+        #     for j in xrange(len(self.p_order[m.split("_")[0]])):
+        #         p = self.p_order[m.split("_")[0]][j]
+        #         ax2 = fig_par.add_subplot(n_params_max, n_model, i+1+n_model*j)                
+        #         ax3 = fig_p.add_subplot(n_params_max, n_model, i+1+n_model*j)
+        #         for s in self.pareto[m].iterkeys():
+        #             y, x = np.histogram(self.pareto[m][s][:,5+j])
+        #             y = y/np.sum(y.astype("float"))
+        #             x = (x-(x[1]-x[0])/2)[1:]
+        #             ax2.plot(x, y, 'o-', linewidth = 2)
+        #             ax2.set_ylim(0, 1)
+        #             ax2.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
+        #             ax2.set_xlabel(p)
+        #             ax3.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,5+j], 'o-')
+        #             ax3.set_ylim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
+        #             ax3.set_ylabel(p)
+        #         if j == 0:
+        #             ax2.set_title(m)
                 
+        for s, i in zip(self.mixed.keys(), xrange(len(self.mixed.keys()))):
+            ax1 = fig_pareto.add_subplot(4,4,i+1)
+            ax1.scatter(self.indd[s][3], self.indd[s][4], s = 100, color = 'black')
+            for m in self.pareto.iterkeys():                
+                ax1.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m], alpha = 0.6)
+                ax1.set_title(s)                            
 
-        fig_par.subplots_adjust(hspace = 0.8, top = 0.98, bottom = 0.1)
+        #fig_par.subplots_adjust(hspace = 0.8, top = 0.98, bottom = 0.1)
         fig_pareto.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
-        fig_p.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
+        #fig_p.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
         show()        
     
     def _convertStimulus(self, s):
