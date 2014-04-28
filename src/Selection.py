@@ -34,7 +34,7 @@ class FSelection():
                             "beta":[1.0, 10.0],
                             "alpha":[0.01, 1.0],
                             "length":[6, 10],
-                            "threshold":[0.5, 20.0], 
+                            "threshold":[0.5, 20.0],
                             "noise":[0.0001, 1.0],
                             "gain":[0.01, 10.0],
                             "sigma":[0.01, 1.0]})                            

@@ -280,8 +280,8 @@ class pareto():
         self.mixed = dict()
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
         self.indd = dict()
-        #self.loadData()
-        self.simpleLoadData()
+        self.loadData()
+        #self.simpleLoadData()
         self.constructParetoFrontier()        
         self.constructMixedParetoFrontier()
 
@@ -290,11 +290,10 @@ class pareto():
         model_in_folders = os.listdir(self.directory)
         if len(model_in_folders) == 0:
             sys.exit("No model found in directory "+self.directory)
-        #self.simpleLoadData()
 
         pool = Pool(len(model_in_folders))
         tmp = pool.map(unwrap_self_load_data, zip([self]*len(model_in_folders), model_in_folders))
-        #tmp = [self.loadPooled(m) for m in model_in_folders]
+        
         for d in tmp:
             self.data[d.keys()[0]] = d[d.keys()[0]]
 

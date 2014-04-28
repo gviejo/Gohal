@@ -52,11 +52,12 @@ def leastSquares(x, y):
     return x    
 
 def mutualInformation(x, y):
+    np.seterr('ignore')
     bin_size = 2*(np.percentile(y, 75)-np.percentile(y, 25))*np.power(len(y), -(1/3.))
     py, edges = np.histogram(y, bins=np.arange(y.min(), y.max()+bin_size, bin_size))
     py = py/float(py.sum())
     yp = np.digitize(y, edges)-1
-    px, edges = np.histogram(x, bins = np.linspace(x.min(), x.max()+0.00001, 25))
+    px, edges = np.histogram(x, bins = np.linspace(x.min(), x.max()+0.00001, 15))
     px = px/float(px.sum())
     xp = np.digitize(x, edges)-1
     p = np.zeros((len(py), len(px)))
@@ -87,7 +88,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 10
+nb_repeat = 5
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -106,9 +107,12 @@ hrtm = []
 mi = []
 pmi = []
 pcrm = dict({'s':[], 'a':[], 'r':[], 't':[]})
+rt_all = []
+rtm_all = []
 
-for s in p_test.iterkeys():
+for s in p_test.iterkeys():    
     m = p_test[s].keys()[0]
+    print "Testing "+s+" with "+m
     models[m].setAllParameters(p_test[s][m])
     models[m].startExp()
     for k in xrange(nb_repeat):
@@ -120,8 +124,19 @@ for s in p_test.iterkeys():
                 state = cats.getStimulus(j)
                 action = models[m].chooseAction(state)
                 reward = cats.getOutcome(state, action)
-                models[m].updateValue(reward)
-    rtm = center(np.array(models[m].reaction))    
+                models[m].updateValue(reward)    
+    #MUTUAL Information
+    rtm = np.array(models[m].reaction)
+    rt = np.array([human.subject['fmri'][s][i]['rt'][0:nb_trials,0] for i in range(1,nb_blocs+1)])
+    rt_all.append(rt.flatten())    
+    rtm_all.append(rtm[0:nb_blocs].flatten())
+    rt = np.tile(rt, (nb_repeat, 1))
+    v, p = mutualInformation(rtm.flatten(), rt.flatten())
+    mi.append(v)
+    pmi.append(p)
+    
+    # CENTER
+    rtm = center(rtm)    
     state = convertStimulus(np.array(models[m].state))
     action = np.array(models[m].action)
     responses = np.array(models[m].responses)
@@ -131,11 +146,8 @@ for s in p_test.iterkeys():
     pcrm['a'].append(action)
     pcrm['r'].append(responses)
     pcrm['t'].append(rtm)
-
-    rt = np.array([human.subject['fmri'][s][i]['rt'][0:nb_trials,0] for i in range(1,nb_blocs+1)])
-    rt = np.tile(rt, (nb_repeat, 1))
+  
     rt = center(rt)
-
     action = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,1] for i in range(1,nb_blocs+1)])
     responses = np.array([human.subject['fmri'][s][i]['sar'][0:nb_trials,2] for i in range(1,nb_blocs+1)])
     action = np.tile(action, (nb_repeat, 1))
@@ -143,14 +155,10 @@ for s in p_test.iterkeys():
     step, indice2 = getRepresentativeSteps(rt, state, action, responses)
     hrt.append(computeMeanRepresentativeSteps(step)[0])
     
-    # MUTUAL INFORMATION
-    #v, p = mutualInformation(rtm.flatten() , rt.flatten())
-    #mi.append(v)
-    #pmi.append(p)
-
-
-#mi = np.array(mi)
-#pmi = np.array(pmi)
+rt_all = np.array(rt_all)
+rtm_all = np.array(rtm_all)
+mi = np.array(mi)
+pmi = np.array(pmi)
 pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
 for i in pcrm.iterkeys():
     pcrm[i] = np.array(pcrm[i])
@@ -187,12 +195,23 @@ for i, s in zip(xrange(14), p_test.keys()):
   ax1.plot(hrtm[i], 'o--', color = 'green')
   ax1.set_title(s+" "+p_test[s].keys()[0])
 
+show()
+# fig2 = figure(figsize = (15, 12))
+# for i, s in zip(xrange(14), p_test.keys()):
+#      subplot(4,4,i+1)
+#      imshow(pmi[i], origin = 'lower', interpolation = 'nearest')
+#      title(s + " " + str(mi[i]))
 
+# ind = np.argsort(rt_all, 1)
 # fig3 = figure(figsize = (15, 12))
 # for i, s in zip(xrange(14), p_test.keys()):
 #     subplot(4,4,i+1)
-#     imshow(pmi[i], origin = 'lower', interpolation = 'nearest')
-#     title(s + " " + str(mi[i]))
+#     plot(rt_all[i][ind[i]])
+#     plot(rtm_all[i][ind[i]])
 
-show()
+# show()
+
+# fig.savefig('fig_mean_rt_all_sub_representative_steps.pdf', bbox_inches='tight')
+
+# os.system("evince fig_mean_rt_all_sub_representative_steps.pdf")
 
