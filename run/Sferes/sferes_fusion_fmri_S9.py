@@ -51,6 +51,7 @@ opt = EA(human.subject['fmri']['S9'], 'S9', model)
 llh, lrs = opt.getFitness()
 print llh, lrs
 
+sys.exit()
 figure(2)
 plot(opt.mean[0], 'o-')
 plot(opt.mean[1], 'o--')

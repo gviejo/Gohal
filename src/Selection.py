@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#!/usr/bin/python
-# encoding: utf-8
 """
 Selection.py
 
 Class of for strategy selection when training
 
-Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
+Copyright (c) 2014 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
@@ -32,10 +30,10 @@ class FSelection():
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.1, 1.0],
                             "beta":[1.0, 10.0],
-                            "alpha":[0.01, 1.0],
+                            "alpha":[0.1, 1.0],
                             "length":[6, 10],
-                            "threshold":[0.5, 20.0],
-                            "noise":[0.0001, 1.0],
+                            "threshold":[0.1, 20.0],
+                            "noise":[0.01, 1.0],
                             "gain":[0.01, 10.0],
                             "sigma":[0.01, 1.0]})                            
 
@@ -279,7 +277,7 @@ class KSelection():
                             "eta":[0.00001, 0.001],
                             "length":[6, 10],
                             "threshold":[0.01, -np.log2(1./self.n_action)], 
-                            "noise":[0.001,1.0],
+                            "noise":[0.01,1.0],
                             "sigma":[0.0,1.0],
                             "sigma_rt":[0.001, 1.0]})
                             #"sigma_ql":[0.00001, 1.0]})        

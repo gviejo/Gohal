@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#!/usr/bin/python
-# encoding: utf-8
 """
 Sferes.py
 
@@ -13,7 +11,7 @@ Sferes.py
     and either Linear Regression
     or possible Reaction Time Likelihood
 
-Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
+Copyright (c) 2014 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
@@ -76,8 +74,7 @@ class EA():
         self.rtm = np.array(self.model.reaction).flatten()
 
         self.fit[0] = float(np.sum(np.log(self.model.value)))
-        tmp = self.computeMutualInformation()
-        print tmp
+        #tmp = self.computeMutualInformation()        
         self.alignToMedian()
         self.fit[1] = float(-self.leastSquares())        
         self.fit = np.round(self.fit, 4)

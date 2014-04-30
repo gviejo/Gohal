@@ -29,7 +29,7 @@ class QLearning():
         self.n_state=len(states)
         self.bounds = dict({"gamma":[0.1, 1.0],
                             "beta":[1.0, 5.0],
-                            "alpha":[0.01, 1.0]})
+                            "alpha":[0.1, 1.0]})
                             #"sigma":[0.000001, 1.0]})
         
         #Values Initialization
@@ -244,7 +244,7 @@ class BayesianWorkingMemory():
         self.n_action=int(len(actions))
         self.n_state=int(len(states))
         self.initial_entropy = -np.log2(1./self.n_action)
-        self.bounds = dict({"length":[6, 11], 
+        self.bounds = dict({"length":[6, 10], 
                             "threshold":[0.01, self.initial_entropy], 
                             "noise":[0.01, 1.0],
                             "sigma":[0.001, 1.0]})
