@@ -52,14 +52,14 @@ front.preview()
 
 #front.run(plot=True)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
-    pickle.dump(front.pareto, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
+#     pickle.dump(front.pareto, handle)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
-    pickle.dump(front.mixed, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
+#     pickle.dump(front.mixed, handle)
 
-with open("parameters.pickle", 'wb') as f:
-    pickle.dump(front.p_test, f)
+# with open("parameters.pickle", 'wb') as f:
+#     pickle.dump(front.p_test, f)
 
 # data = front.data['fusion']['S5'][0]
 # gen = data[:,0]

@@ -1,6 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-#!/usr/bin/python
-# encoding: utf-8
+
 """
 
 to test collins model
@@ -9,50 +10,44 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
-from optparse import OptionParser
 import numpy as np
-sys.path.append("../src")
+sys.path.append("../../src")
 from fonctions import *
 from ColorAssociationTasks import CATS
-from HumanLearning import HLearning
-from Models import *
+from Selection import CSelection
 from matplotlib import *
 from pylab import *
-from Sweep import Optimization
-from Selection import CSelection
-# -----------------------------------
-# ARGUMENT MANAGER
-# -----------------------------------
-#if not sys.argv[1:]:
-#    sys.stdout.write("Sorry: you must specify at least 1 argument")
-#    sys.stdout.write("More help avalaible with -h or --help option")
-#    sys.exit(0)
-parser = OptionParser()
-parser.add_option("-i", "--input", action="store", help="The name of the directory to load", default=False)
-(options, args) = parser.parse_args() 
-# -----------------------------------
+from HumanLearning import HLearning
+from time import time
+from scipy.optimize import leastsq
 
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
+def center(x):
+    #x = x-np.mean(x)
+    #x = x/np.std(x)
+    x = x-np.median(x)
+    x = x/(np.percentile(x, 75)-np.percentile(x, 25))
+    return x
 
 def testModel():
-    selection.initializeList()
+    model.startExp()
     for i in xrange(nb_blocs):
-        sys.stdout.write("\r Testing model | Blocs : %i" % i); sys.stdout.flush()                        
         cats.reinitialize()
-        selection.initialize()
+        model.startBloc()
         for j in xrange(nb_trials):
+            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
             state = cats.getStimulus(j)
-            action = selection.chooseAction(state)
+            action = model.chooseAction(state)
             reward = cats.getOutcome(state, action)
-            selection.updateValue(reward)
-    selection.state = convertStimulus(np.array(selection.state))
-    selection.action = convertAction(np.array(selection.action))
-    selection.responses = np.array(selection.responses)
-    selection.weight = np.array(selection.weight)
-    selection.p_r_based = np.array(selection.p_r_based)
-    selection.p_r_free = np.array(selection.p_r_free)
+            model.updateValue(reward)
+
+    model.state = convertStimulus(np.array(model.state))
+    model.action = np.array(model.action)
+    model.responses = np.array(model.responses)
+    model.reaction = np.array(model.reaction)
+    model.reaction = center(model.reaction)
 
 
 # -----------------------------------
@@ -60,55 +55,67 @@ def testModel():
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
-human = HLearning(dict({'meg':('../PEPS_GoHaL/Beh_Model/',42), 'fmri':('../fMRI',39)}))
+human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
+
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-eta = 0.0001        # variance of evolution noise v
-var_obs = 0.05      # variance of observation noise n
-init_cov = 10       # initialisation of covariance matrice
-kappa = 0.1         # unscentered transform parameters
-gamma = 0.9         # discount factor
-beta = 1.0          # temperature
-noise_width = 0.2   # noise of bwm
-length_memory = 5   # length of memory
-w_0 = 0.87           # initial weight
+very_good_parameters = dict({'noise':0.0001,
+                    'length':10,
+                    'alpha':0.8,
+                    'beta':3.0,
+                    'gamma':0.4,
+                    'threshold':4.0,
+                    'gain':2.0})
 
-nb_trials = human.responses['meg'].shape[1]
-nb_blocs = human.responses['meg'].shape[0]
+parameters = dict({ 'length':7,
+                    'alpha':0.9,
+                    'threshold':1.0,
+                    'noise':0.01,
+                    'beta':3.5,
+                    'gamma':0.1,                    
+                    'sigma':0.01,
+                    'w0':0.5})
+                    
+                            
 
-
+nb_trials = 39
+nb_blocs = 50
 cats = CATS(nb_trials)
 
-selection = CSelection(KalmanQLearning('kalman', cats.states, cats.actions, gamma, beta, eta, var_obs, init_cov, kappa),
-                       BayesianWorkingMemory('bmw', cats.states, cats.actions, length_memory, noise_width, 1.0), w_0)
-
-                       
-
-opt = Optimization(human, cats, nb_trials, nb_blocs)
-
-data = dict()
+model = CSelection(cats.states, cats.actions, parameters)
 
 # -----------------------------------
 
 # -----------------------------------
 # SESSION MODELS
 # -----------------------------------
+t1 = time()
 testModel()
+t2 = time()
+
+print "\n"
+print t2-t1
 # -----------------------------------
 
 
-    
 # -----------------------------------
 #order data
 # -----------------------------------
-data['collins'] = extractStimulusPresentation(selection.responses, selection.state, selection.action, selection.responses) 
-data['w'] = extractStimulusPresentation(selection.weight, selection.state, selection.action, selection.responses)
-data['prbased'] = extractStimulusPresentation(selection.p_r_based, selection.state, selection.action, selection.responses)
-data['prfree'] = extractStimulusPresentation(selection.p_r_free, selection.state, selection.action, selection.responses)
-data['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus['meg'], human.action['meg'], human.responses['meg'])
+pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
+pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+
+human.reaction['fmri'] = center(human.reaction['fmri'])
+
+step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+rt_fmri = computeMeanRepresentativeSteps(step) 
+
+step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
+rt = computeMeanRepresentativeSteps(step)
+
+rt = np.array(rt)
 
 # -----------------------------------
 
@@ -116,55 +123,47 @@ data['meg'] = extractStimulusPresentation(human.responses['meg'], human.stimulus
 # -----------------------------------
 # Plot
 # -----------------------------------
-ion()
-fig = figure(figsize=(15, 9))
+figure(figsize = (9,7))
 params = {'backend':'pdf',
           'axes.labelsize':10,
           'text.fontsize':10,
           'legend.fontsize':10,
           'xtick.labelsize':8,
           'ytick.labelsize':8,
-          'text.usetex':False}
-#rcParams.update(params)
-dashes = ['-', '--', ':']
-
+          'text.usetex':False}          
+#rcParams.update(params)                  
+colors = ['blue', 'red', 'green']
+subplot(2,2,1)
 for i in xrange(3):
-    subplot(3,3,i+1)
-    plot(range(1, len(data['collins']['mean'][i])+1), data['collins']['mean'][i], linewidth = 2, color = 'black')
-    errorbar(range(1, len(data['collins']['mean'][i])+1), data['collins']['mean'][i], data['collins']['sem'][i], linewidth = 2, color = 'black')
-    plot(range(1, len(data['meg']['mean'][i])+1), data['meg']['mean'][i], linewidth = 2, color = 'black', linestyle = '--')
-    errorbar(range(1, len(data['meg']['mean'][i])+1), data['meg']['mean'][i], data['meg']['sem'][i], linewidth = 2, color = 'black', linestyle = '--')
-    legend()
+    plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+    errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+    plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
+    #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
+    ylabel("Probability correct responses")
+    legend(loc = 'lower right')
+    xticks(range(2,11,2))
+    xlabel("Trial")
+    xlim(0.8, 10.2)
+    ylim(-0.05, 1.05)
+    yticks(np.arange(0, 1.2, 0.2))
+    title('A')
     grid()
-    title("Stimulus "+str(i+1))
-    xlabel('Trial', fontsize = 15)
-    ylim(0,1)
-    ylabel('Probability correct response',fontsize = 15)
-
-for i,j in zip([4,5,6], xrange(3)):
-    subplot(3,3,i)
-    plot(range(1, len(data['w']['mean'][j])+1), data['w']['mean'][j], linewidth = 2, color = 'black')
-    errorbar(range(1, len(data['w']['mean'][j])+1), data['w']['mean'][j], data['w']['sem'][j], linewidth = 2, color = 'black')
-    grid()
-    legend()
-    ylabel('w', fontsize = 15)
-    ylim(0,1)
-    xlabel('Trial', fontsize = 15)
-
-for i,j in zip([7,8,9], xrange(3)):
-    subplot(3,3,i)
-    plot(range(1, len(data['prbased']['mean'][j])+1), data['prbased']['mean'][j], linewidth = 2, color = 'grey', label='B-WM')
-    errorbar(range(1, len(data['prbased']['mean'][j])+1), data['prbased']['mean'][j], data['prbased']['sem'][j], linewidth = 2, color='grey')
-    plot(range(1, len(data['prfree']['mean'][j])+1), data['prfree']['mean'][j], linewidth = 2, color = 'black', label='K-QL')
-    errorbar(range(1, len(data['prfree']['mean'][j])+1), data['prfree']['mean'][j], data['prfree']['sem'][j], linewidth = 2, color = 'black')
-    grid()
-    legend()
-    ylabel('$p(r_t|s_t,a_t)$', fontsize = 15)
-    ylim(0,1)
-    xlabel('Trial', fontsize = 15)
 
 
-subplots_adjust(left = 0.08, wspace = 0.3, right = 0.86, hspace = 0.35)
+ax1 = plt.subplot(2,2,2)
+ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
 
-#fig1.savefig('../../../Dropbox/ISIR/Rapport/Rapport_AIAD/Images/fig2.pdf', bbox_inches='tight')
+#ax2 = ax1.twinx()
+ax1.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
+#ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
+#ax2.set_ylabel("Inference Level")
+#x2.set_ylim(-5, 15)
+ax1.grid()
+############
+
+subplots_adjust(left = 0.08, wspace = 0.3, hspace = 0.35, right = 0.86)
+
+#savefig('../../../Dropbox/ISIR/JournalClub/images/fig_testSelection.pdf', bbox_inches='tight')
+#savefig('/home/viejo/Desktop/figure_guillaume_a_tord.pdf', bbox_inches='tight')
 show()

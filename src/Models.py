@@ -331,15 +331,6 @@ class BayesianWorkingMemory():
         self.values = self.values/np.sum(self.values)
         self.entropy = -np.sum(self.values*np.log2(self.values))
 
-    def sigmoideModule(self):
-        x = self.initial_entropy-self.entropy
-        self.pA = 1/(1+((self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['threshold'])))
-        #self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['gain'])*np.exp(-x))
-        #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
-        #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
-        #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))        
-        return np.random.uniform(0,1) > self.pA
-
     def computeValue(self, s, a):
         self.current_state = s
         self.current_action = a
@@ -347,34 +338,14 @@ class BayesianWorkingMemory():
         self.entropy = self.initial_entropy
         self.nb_inferences = 0     
 
-        # value = np.zeros(int(self.parameters['length']+1))
-        # pdf = np.zeros(int(self.parameters['length'])+1)
-        # #sigma = np.zeros(int(self.parameters['length'])+1)
-
-        # d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
-        # value[self.nb_inferences] = 1./float(self.n_action)
-        # pdf[self.nb_inferences] = 1.0-float(d)
-        #sigma[self.nb_inferences] = float(self.parameters['sigma'])        
-        #while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:                    
-        while self.sigmoideModule():
+        while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:                    
             self.inferenceModule()
             self.evaluationModule()                    
-            #d = (self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
-            #pdf[self.nb_inferences] = 1.0-float(d)
-            #value[self.nb_inferences] = float(self.values[self.current_action])
-            #sigma[self.nb_inferences] = float(self.parameters['sigma'])
 
-        #pdf = np.array(pdf)
-        #pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
-        #pdf = pdf/pdf.sum()
-
-        #self.pdf.append(pdf)
         self.value.append(self.values[self.current_action])
         H = -(self.values*np.log2(self.values)).sum()
         N = float(self.nb_inferences+1)
         self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
-
-        #self.sigma.append(sigma)        
 
     def chooseAction(self, state):
         self.state[-1].append(state)

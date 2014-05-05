@@ -277,8 +277,8 @@ class pareto():
         self.mixed = dict()
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
         self.indd = dict()
-        self.loadData()
-        #self.simpleLoadData()
+        #self.loadData()
+        self.simpleLoadData()
         self.constructParetoFrontier()        
         self.constructMixedParetoFrontier()
 

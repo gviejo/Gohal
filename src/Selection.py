@@ -520,100 +520,198 @@ class CSelection():
     Model-based must be provided
     Specially tuned for Brovelli experiment so beware
     """
-    def __init__(self, free, based, w_0):
-        self.w0 = w_0
-        self.C = float(based.lenght_memory)
-        self.n_s = float(len(free.states))
-        self.n_a = float(len(free.actions))
-        self.free = free
-        self.based = based
-        self.actions = free.actions; 
-        self.states = free.states        
-        self.values = createQValuesDict(self.states, self.actions)
-        self.w = {i:self.w0*np.min([1,(self.based.lenght_memory/float(len(self.states)))]) for i in self.states}
-        self.state = list()
-        self.action = list()
-        self.responses = list()
-        self.reaction = list()
-        self.weight = list()
-        self.model_based_values = None
-        self.model_free_values = None
-        self.p_r_based = list()
-        self.p_r_free = list()
+    def __init__(self, states, actions, parameters={'length':1}):
+        # State Action Space        
+        self.states=states
+        self.actions=actions        
+        #Parameters
+        self.parameters = parameters
+        self.n_action=int(len(actions))
+        self.n_state=int(len(states))
+        self.initial_entropy = -np.log2(1./self.n_action)
+        self.bounds = dict({"length":[6, 10], 
+                            "threshold":[0.01, self.initial_entropy], 
+                            "noise":[0.01, 1.0],
+                            "alpha":[0.01, 1.0],
+                            "beta":[0.01, 7.0],
+                            "gamma":[0.01, 1.0],                            
+                            "sigma":[0.001, 1.0], 
+                            "w0":[0.001, 1.0]})
 
-    def initialize(self):
-        self.free.initialize()
-        self.based.initialize()
-        self.responses.append([])
-        self.action.append([])
+        # Probability Initialization        
+        self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
+        self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)    
+        self.p = None        
+        self.p_a = None
+        # Specific to collins
+        self.min_1_C_ns = np.min([1.0, self.parameters['length']/float(self.n_state)])
+        self.inv_n_a = 1.0/float(self.n_action)
+        self.w = np.ones(self.n_state)*self.parameters['w0']*self.min_1_C_ns
+        # Q-values model free
+        self.values_mf = np.zeros((self.n_state, self.n_action))
+        self.p_a_mf = None
+        # Various Init
+        self.nb_inferences = 0
+        self.current_state = None
+        self.current_action = None        
+        self.entropy = self.initial_entropy        
+        self.n_element = 0
+        # Optimization init
+        self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
+        self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
+        self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
+        self.p_r_s = np.ones(2)*0.5
+        #List Init
+        self.state=list()        
+        self.action=list()
+        self.responses=list()        
+        self.reaction=list()
+        self.value=list()
+        self.pdf = list()
+        #self.sigma = list()
+
+    def setParameters(self, name, value):            
+        if value < self.bounds[name][0]:
+            self.parameters[name] = self.bounds[name][0]
+        elif value > self.bounds[name][1]:
+            self.parameters[name] = self.bounds[name][1]
+        else:
+            self.parameters[name] = value                
+
+    def setAllParameters(self, parameters):
+        for i in parameters.iterkeys():
+            if i in self.bounds.keys():
+                self.setParameters(i, parameters[i])
+
+    def startBloc(self):
         self.state.append([])
+        self.action.append([])
+        self.responses.append([])
         self.reaction.append([])
-        self.weight.append([])
-        self.values = createQValuesDict(self.states, self.actions)
-        self.w = {i:self.w0*np.min([1,self.C/self.n_s]) for i in self.states}
-        self.p_r_based.append([])
-        self.p_r_free.append([])
-
-    def initializeList(self):
-        self.values = createQValuesDict(self.states, self.actions)
-        self.w = {i:self.w0*np.min([1,self.C/self.n_s]) for i in self.states}
+        self.n_element = 0
+        self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
+        self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
+        self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
+        self.p_a = np.ones(self.n_action)*(1./self.n_action)        
+        self.w = np.ones(self.n_state)*self.parameters['w0']*self.min_1_C_ns
+        self.nb_inferences = 0
+        self.current_state = None
+        self.current_action = None
+                
+    def startExp(self):
+        self.n_element = 0
+        self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
+        self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
+        self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
         self.state=list()
-        self.answer=list()
-        self.responses=list()
         self.action=list()
         self.reaction=list()
-        self.weight=list()
-        self.p_r_based = list()
-        self.p_r_free = list()
+        self.responses=list()
+        self.value=list()
+        self.p_a = np.ones(self.n_action)*(1./self.n_action)        
+        self.pdf = list()
 
-    def computeRewardLikelihood(self, s, reward):
-        tmp = np.min([1.0, self.C/self.n_s])
-        if reward == 1:
-            p_r_bwm = tmp*self.model_based_values + (1-tmp)/float(len(self.actions))
-            p_r_rl = self.free.values[0][self.free.values[self.states[s]]]
-        elif reward == 0:
-            p_r_bwm = tmp*(1-self.model_based_values) + (1-tmp)/float(len(self.actions))
-            p_r_rl = 1.0 - self.free.values[0][self.free.values[self.states[s]]]
-        p_r_bwm = p_r_bwm/np.sum(p_r_bwm)
-        p_r_rl = np.exp(p_r_rl)/np.sum(np.exp(p_r_rl))
-        return p_r_bwm, p_r_rl
+    def sample(self, values):
+        tmp = [np.sum(values[0:i]) for i in range(len(values))]
+        return np.sum(np.array(tmp) < np.random.rand())-1
 
-    def updateWeight(self, s, a, reward):
-        assert reward == 0 or reward == 1
-        #print reward, self.free.values[0][self.free.values[(self.states[s],self.actions[a])]]
-        (p_r_bwm,p_r_rl) = self.computeRewardLikelihood(s, reward)
-        #print p_r_rl[a]
-        self.w[self.states[s]] = (p_r_bwm[a]*self.w[self.states[s]])/(p_r_bwm[a]*self.w[self.states[s]]+p_r_rl[a]*(1-self.w[self.states[s]]))
-        self.p_r_based[-1].append(p_r_bwm[a])
-        self.p_r_free[-1].append(p_r_rl[a])
-    
+    def inferenceModule(self):        
+        tmp = self.p_a_s[self.nb_inferences] * np.vstack(self.p_s[self.nb_inferences])
+        self.p = self.p + self.p_r_as[self.nb_inferences] * np.reshape(np.repeat(tmp, 2, axis = 1), self.p_r_as[self.nb_inferences].shape)
+        self.nb_inferences+=1
+
+    def evaluationModule(self):
+        tmp = self.p/np.sum(self.p)
+        p_ra_s = tmp[self.current_state]/np.sum(tmp[self.current_state])
+        p_r_s = np.sum(p_ra_s, axis = 0)
+        p_a_rs = p_ra_s/p_r_s
+        self.p_a_mb = p_a_rs[:,1]/p_a_rs[:,0]
+        self.p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
+        self.entropy = -np.sum(self.p_a_mb*np.log2(self.p_a_mb))
+
+    def fusionModule(self):
+        np.seterr(invalid='ignore')
+        self.p_a_mf = np.exp(self.values_mf[self.current_state]*float(self.parameters['beta']))
+        self.p_a_mf = self.p_a_mf/np.sum(self.p_a_mf)
+        self.p_a = (1.0-self.w[self.current_state])*self.p_a_mf + self.w[self.current_state]*self.p_a_mb
+
+    def updateWeight(self, r):
+        if r:
+            p_wmc = self.min_1_C_ns * self.p_a_mb[self.current_action] + (1.0 - self.min_1_C_ns)*self.inv_n_a
+            p_rl = self.p_a_mf[self.current_action]
+        else:
+            p_wmc = self.min_1_C_ns * (1.0 - self.p_a_mb[self.current_action]) + (1.0 - self.min_1_C_ns)*self.inv_n_a
+            p_rl = 1.0 - self.p_a_mf[self.current_action]
+        self.w[self.current_state] = (p_wmc*self.w[self.current_state])/(p_wmc*self.w[self.current_state] + p_rl * (1.0 - self.w[self.current_state]))            
+
+    def computeValue(self, s, a):
+        self.current_state = s
+        self.current_action = a
+        self.p = self.uniform[:,:,:]
+        self.entropy = self.initial_entropy
+        self.nb_inferences = 0     
+
+        while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:                    
+            self.inferenceModule()
+            self.evaluationModule()                    
+
+        self.fusionModule()
+
+        self.value.append(self.p_a[self.current_action])
+        H = -(self.p_a*np.log2(self.p_a)).sum()
+        N = float(self.nb_inferences+1)
+        self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
+
     def chooseAction(self, state):
         self.state[-1].append(state)
-        self.weight[-1].append(self.w[state])
-        self.free.predictionStep()
-        
-        self.model_based_values = self.based.computeValue(state) 
-        self.model_based_values = self.model_based_values/float(np.sum(self.model_based_values))
-        self.model_free_values = np.exp(self.free.values[0][self.free.values[state]]*float(self.free.beta))
-        self.model_free_values =  self.model_free_values/float(np.sum(self.model_free_values))
+        self.current_state = convertStimulus(state)-1
+        self.p = self.uniform[:,:,:]
+        self.entropy = self.initial_entropy
+        self.nb_inferences = 0             
 
-        self.values[0][self.values[state]] = (1-self.w[state])*self.model_free_values + self.w[state]*self.model_based_values
+        while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:
+            self.inferenceModule()
+            self.evaluationModule()
 
-        action = getBestAction(state, self.values)
-        self.action[-1].append(action)
-        return action
+        self.fusionModule()
+
+        self.current_action = self.sample(self.p_a)
+        self.value.append(float(self.p_a[self.current_action]))
+        self.action[-1].append(self.current_action)
+
+        H = -(self.p_a*np.log2(self.p_a)).sum()
+        N = float(self.nb_inferences+1)
+        self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
+
+        return self.actions[self.current_action]
 
     def updateValue(self, reward):
-        self.responses[-1].append((reward==1)*1)
-        self.updateWeight(self.states.index(self.state[-1][-1]), self.actions.index(self.action[-1][-1]), (reward==1)*1)        
-        self.free.updatePartialValue(self.state[-1][-1], self.action[-1][-1], self.state[-1][-1], reward)
-        self.based.updatePartialValue(self.state[-1][-1], self.action[-1][-1], reward)
-
-    def getAllParameters(self):
-        tmp = dict({'w0':[0.0, self.w0, 1.0]})
-        tmp.update(self.free.getAllParameters())
-        tmp.update(self.based.getAllParameters())
-        return tmp
+        r = int((reward==1)*1)
+        self.responses[-1].append(r)        
+        if self.parameters['noise']:
+            self.p_s = self.p_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_state*np.ones(self.p_s.shape))
+            self.p_a_s = self.p_a_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_action*np.ones(self.p_a_s.shape))
+            self.p_r_as = self.p_r_as*(1-self.parameters['noise'])+self.parameters['noise']*(0.5*np.ones(self.p_r_as.shape))
+        #Shifting memory            
+        if self.n_element < int(self.parameters['length']):
+            self.n_element+=1
+        self.p_s[1:self.n_element] = self.p_s[0:self.n_element-1]
+        self.p_a_s[1:self.n_element] = self.p_a_s[0:self.n_element-1]
+        self.p_r_as[1:self.n_element] = self.p_r_as[0:self.n_element-1]
+        self.p_s[0] = 0.0
+        self.p_a_s[0] = np.ones((self.n_state, self.n_action))*(1/float(self.n_action))
+        self.p_r_as[0] = np.ones((self.n_state, self.n_action, 2))*0.5
+        #Adding last choice                 
+        self.p_s[0, self.current_state] = 1.0        
+        self.p_a_s[0, self.current_state] = 0.0
+        self.p_a_s[0, self.current_state, self.current_action] = 1.0
+        self.p_r_as[0, self.current_state, self.current_action] = 0.0
+        self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0   
+        r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
+        delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]                
+        self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
+        # Specific to Collins model
+        self.updateWeight(r)
 
 
 class Keramati():

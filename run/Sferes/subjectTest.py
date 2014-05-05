@@ -195,19 +195,19 @@ for i, s in zip(xrange(14), p_test.keys()):
   ax1.plot(hrtm[i], 'o--', color = 'green')
   ax1.set_title(s+" "+p_test[s].keys()[0])
 
-#show()
-fig2 = figure(figsize = (15, 12))
-for i, s in zip(xrange(14), p_test.keys()):
-     subplot(4,4,i+1)
-     imshow(pmi[i], origin = 'lower', interpolation = 'nearest')
-     title(s + " " + str(mi[i]))
+# #show()
+# fig2 = figure(figsize = (15, 12))
+# for i, s in zip(xrange(14), p_test.keys()):
+#      subplot(4,4,i+1)
+#      imshow(pmi[i], origin = 'lower', interpolation = 'nearest')
+#      title(s + " " + str(mi[i]))
 
-ind = np.argsort(rt_all, 1)
-fig3 = figure(figsize = (15, 12))
-for i, s in zip(xrange(14), p_test.keys()):
-    subplot(4,4,i+1)
-    plot(rt_all[i][ind[i]])
-    plot(rtm_all[i][ind[i]])
+# ind = np.argsort(rt_all, 1)
+# fig3 = figure(figsize = (15, 12))
+# for i, s in zip(xrange(14), p_test.keys()):
+#     subplot(4,4,i+1)
+#     plot(rt_all[i][ind[i]])
+#     plot(rtm_all[i][ind[i]])
 
 show()
 

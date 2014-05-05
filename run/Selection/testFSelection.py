@@ -38,7 +38,7 @@ def testModel():
             model.updateValue(reward)
 
     model.state = convertStimulus(np.array(model.state))
-    model.action = convertAction(np.array(model.action))
+    model.action = np.array(model.action)
     model.responses = np.array(model.responses)
     model.reaction = np.array(model.reaction)
     
