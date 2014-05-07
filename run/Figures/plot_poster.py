@@ -66,8 +66,8 @@ fig = plt.figure(figsize = (16, 8))
 
 dashes = ['-', '--', ':']
 colors = ['blue','red','green']
-line1 = tuple([plt.Line2D(range(1),range(1),marker='o',alpha=1.0,color=colors[i]) for i in xrange(3)])
-plt.figlegend(line1,tuple(["Stim 1", "Stim 2", "Stim 3"]), loc = 'lower right', bbox_to_anchor = (0.8, 0.73))
+#line1 = tuple([plt.Line2D(range(1),range(1),marker='o',alpha=1.0,color=colors[i]) for i in xrange(3)])
+#plt.figlegend(line1,tuple(["Stim 1", "Stim 2", "Stim 3"]), loc = 'lower right', bbox_to_anchor = (0.8, 0.73))
 
 ax1 = fig.add_subplot(221)
 ax1.spines['right'].set_visible(False)
@@ -83,7 +83,6 @@ for i in xrange(3):
 
 ax1.set_ylabel("Probability correct responses")
 ax1.set_xlabel("Trial")
-fig.text(0.1, 0.95, "A.", fontsize = 22)
 # legend(loc = 'lower right')
 # xticks(range(2,11,2))
 # xlabel("Trial")
@@ -107,28 +106,37 @@ ax2.set_xlabel("Representative step")
 ax2.set_ylabel("Reaction time (s)")
 
 # ###
+fig.text(0.1, 0.95, "A.", fontsize = 22)
 fig.text(0.52, 0.95, "B.", fontsize = 22)
+fig.text(0.1, 0.45, "C.", fontsize = 22)
+fig.text(0.52, 0.45, "D.", fontsize = 22)
 
+
+s = 'S9'
 ax3 = fig.add_subplot(223)
 ax3.spines['right'].set_visible(False)
 ax3.spines['top'].set_visible(False)
 ax3.get_xaxis().tick_bottom()
 ax3.get_yaxis().tick_left()
+ax3.set_xlabel("Representative step")
+ax3.set_ylabel("Reaction time (s)")
+ax3.plot(range(1, len(data['s'][s]['h'])+1), data['s'][s]['h'], 'o-', linewidth = 2, color = 'grey', alpha = 0.7)
+ax3.plot(range(1, len(data['s'][s]['m'])+1), data['s'][s]['m'], 'o-', linewidth = 2, color = 'black', alpha = 0.7)
+ax3.set_title("Subject "+str(list(s)[1]))
 
-ax3.plot(range(1, len(data['s']['h']['S9'])), data['s']['h']['S9'], linewidth = 2, color = 'grey', alpha = 0.7)
-ax3.plot(range(1, len(data['s']['m']['S9'])), data['s']['m']['S9'], linewidth = 2, color = 'black', alpha = 0.7)
-
+s = 'S5'
 ax4 = fig.add_subplot(224)
 ax4.spines['right'].set_visible(False)
 ax4.spines['top'].set_visible(False)
 ax4.get_xaxis().tick_bottom()
 ax4.get_yaxis().tick_left()
+ax4.set_xlabel("Representative step")
+ax4.set_ylabel("Reaction time (s)")
+ax4.plot(range(1, len(data['s'][s]['h'])+1), data['s'][s]['h'], 'o-', linewidth = 2, color = 'grey', alpha = 1.0)
+ax4.plot(range(1, len(data['s'][s]['m'])+1), data['s'][s]['m'], 'o-', linewidth = 2, color = 'black', alpha = 1.0)
+ax4.set_title("Subject "+str(list(s)[1]))
 
-ax4.plot(range(1, len(data['s']['h']['S5'])), data['s']['h']['S5'], linewidth = 2, color = 'grey', alpha = 1.0)
-ax4.plot(range(1, len(data['s']['m']['S5'])), data['s']['m']['S5'], linewidth = 2, color = 'black', alpha = 1.0)
-
-
-# subplots_adjust(hspace = 0.2, left = 0.2)
+subplots_adjust(hspace = 0.5, wspace = 0.3)
 fig.savefig(os.path.expanduser("~/Dropbox/ISIR/SBDM/poster_2014/pics/beh_model.eps"), bbox_inches='tight')
 os.system("evince "+os.path.expanduser("~/Dropbox/ISIR/SBDM/poster_2014/pics/beh_model.eps"))
 

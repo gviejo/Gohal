@@ -520,7 +520,7 @@ class CSelection():
     Model-based must be provided
     Specially tuned for Brovelli experiment so beware
     """
-    def __init__(self, states, actions, parameters={'length':1}):
+    def __init__(self, states, actions, parameters={'length':1, 'w0':0.5}):
         # State Action Space        
         self.states=states
         self.actions=actions        
