@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 #!/usr/bin/python
 # encoding: utf-8
 """
@@ -67,14 +70,14 @@ for i in human.directory.keys():
 # Plot
 # -----------------------------------
 
-fig = plt.figure()
+fig = plt.figure(figsize = (16, 5))
 
 dashes = ['-', '--', ':']
 colors = ['blue','red','green']
 line1 = tuple([plt.Line2D(range(1),range(1),marker='o',alpha=1.0,color=colors[i]) for i in xrange(3)])
-plt.figlegend(line1,tuple(["Stim 1", "Stim 2", "Stim 3"]), loc = 'lower right', bbox_to_anchor = (0.85, 0.65))
+plt.figlegend(line1,tuple(["Stim 1", "Stim 2", "Stim 3"]), loc = 'lower right', bbox_to_anchor = (0.8, 0.73))
 
-ax1 = fig.add_subplot(211)
+ax1 = fig.add_subplot(121)
 ax1.spines['right'].set_visible(False)
 ax1.spines['top'].set_visible(False)
 ax1.get_xaxis().tick_bottom()
@@ -88,7 +91,7 @@ for i in xrange(3):
 
 ax1.set_ylabel("Probability correct responses")
 ax1.set_xlabel("Trial")
-fig.text(0.04, 0.92, "A.", fontsize = 22)
+fig.text(0.1, 0.95, "A.", fontsize = 22)
 # legend(loc = 'lower right')
 # xticks(range(2,11,2))
 # xlabel("Trial")
@@ -98,7 +101,7 @@ fig.text(0.04, 0.92, "A.", fontsize = 22)
 # ylabel('Probability Correct Responses')
 # title('A')
 
-ax2 = fig.add_subplot(212)
+ax2 = fig.add_subplot(122)
 ax2.spines['right'].set_visible(False)
 ax2.spines['top'].set_visible(False)
 ax2.get_xaxis().tick_bottom()
@@ -129,10 +132,10 @@ for i in xrange(6,16,1):
     ax2.plot(i, 0.628, 'o', color = 'green', markersize=msize)
 ax2.set_ylim(0.62, 0.82)
 # ###
-fig.text(0.04, 0.46, "B.", fontsize = 22)
+fig.text(0.52, 0.95, "B.", fontsize = 22)
 
 
-subplots_adjust(hspace = 0.2)
-fig.savefig(os.path.expanduser("~/Dropbox/ED3C/Journee_doctorant/poster/pics/beh.eps"), bbox_inches='tight')
-os.system("evince "+os.path.expanduser("~/Dropbox/ED3C/Journee_doctorant/poster/pics/beh.eps"))
-plt.show()
+# subplots_adjust(hspace = 0.2, left = 0.2)
+fig.savefig(os.path.expanduser("/home/viejo/Dropbox/ISIR/SBDM/poster_2014/pics/beh.eps"), bbox_inches='tight')
+os.system("evince "+os.path.expanduser("/home/viejo/Dropbox/ISIR/SBDM/poster_2014/pics/beh.eps"))
+

@@ -1,7 +1,7 @@
 ### Plot configurations file for various figures
 
 backend	: ps
-figure.figsize : 8,11
+#figure.figsize : 8,11
 axes.grid : False
 
 lines.antialiased : True
@@ -14,7 +14,7 @@ font.size : 18.0
 font.serif : Bitstream Vera serif
 font.monospace : Andale Mono
 
-#text.usetex : True
+text.usetex : False
 
 #axes.facecolor : eeeeee
 #axes.edgecolor : bcbcbc

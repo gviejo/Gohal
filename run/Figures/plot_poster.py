@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import sys
 from optparse import OptionParser
 import numpy as np
@@ -192,6 +195,7 @@ ax2.set_ylim(0,10)
 
 
 subplots_adjust(hspace = 0.2)
-fig.savefig(os.path.expanduser("~/Dropbox/ED3C/Journee_doctorant/poster/pics/beh_models.eps"), bbox_inches='tight')
-os.system("evince "+os.path.expanduser("~/Dropbox/ED3C/Journee_doctorant/poster/pics/beh_models.eps"))
+# fig.savefig(os.path.expanduser("~/Dropbox/ED3C/Journee_doctorant/poster/pics/beh_models.eps"), bbox_inches='tight')
+# os.system("evince "+os.path.expanduser("~/Dropbox/ED3C/Journee_doctorant/poster/pics/beh_models.eps"))
 
+show()
