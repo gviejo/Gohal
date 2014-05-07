@@ -136,6 +136,6 @@ fig.text(0.52, 0.95, "B.", fontsize = 22)
 
 
 # subplots_adjust(hspace = 0.2, left = 0.2)
-fig.savefig(os.path.expanduser("/home/viejo/Dropbox/ISIR/SBDM/poster_2014/pics/beh.eps"), bbox_inches='tight')
-os.system("evince "+os.path.expanduser("/home/viejo/Dropbox/ISIR/SBDM/poster_2014/pics/beh.eps"))
+fig.savefig(os.path.expanduser("~/Dropbox/ISIR/SBDM/poster_2014/pics/beh.eps"), bbox_inches='tight')
+os.system("evince "+os.path.expanduser("~/Dropbox/ISIR/SBDM/poster_2014/pics/beh.eps"))
 

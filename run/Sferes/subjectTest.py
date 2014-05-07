@@ -88,7 +88,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 5
+nb_repeat = 3
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -173,6 +173,17 @@ rt_fmri = computeMeanRepresentativeSteps(step)
 step, indice = getRepresentativeSteps(pcrm['t'], pcrm['s'], pcrm['a'], pcrm['r'])
 rt = computeMeanRepresentativeSteps(step)
 
+#SAVING DATA
+data = dict()
+data['pcr'] = pcr
+data['rt'] = rt
+data['s'] = dict()
+for i, s in zip(xrange(14), p_test.keys()):
+    data['s'][s] = dict()
+    data['s'][s]['m'] = hrtm[i]
+    data['s'][s]['h'] = hrt[i]
+with open(os.path.expanduser("../Figures/beh_model.pickle") , 'wb') as handle:    
+    pickle.dump(data, handle)
 
 
 fig = figure(figsize = (15, 12))
@@ -195,23 +206,7 @@ for i, s in zip(xrange(14), p_test.keys()):
   ax1.plot(hrtm[i], 'o--', color = 'green')
   ax1.set_title(s+" "+p_test[s].keys()[0])
 
-# #show()
-# fig2 = figure(figsize = (15, 12))
-# for i, s in zip(xrange(14), p_test.keys()):
-#      subplot(4,4,i+1)
-#      imshow(pmi[i], origin = 'lower', interpolation = 'nearest')
-#      title(s + " " + str(mi[i]))
-
-# ind = np.argsort(rt_all, 1)
-# fig3 = figure(figsize = (15, 12))
-# for i, s in zip(xrange(14), p_test.keys()):
-#     subplot(4,4,i+1)
-#     plot(rt_all[i][ind[i]])
-#     plot(rtm_all[i][ind[i]])
 
 show()
 
-# fig.savefig('fig_mean_rt_all_sub_representative_steps.pdf', bbox_inches='tight')
-
-# os.system("evince fig_mean_rt_all_sub_representative_steps.pdf")
 
