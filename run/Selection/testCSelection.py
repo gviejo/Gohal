@@ -37,7 +37,7 @@ def testModel():
         cats.reinitialize()
         model.startBloc()
         for j in xrange(nb_trials):
-            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
+            # sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
             state = cats.getStimulus(j)
             action = model.chooseAction(state)
             reward = cats.getOutcome(state, action)
@@ -75,17 +75,18 @@ very_good_parameters = dict({'noise':0.0001,
 
 parameters = dict({ 'length':8,
                     'alpha':0.9,
-                    'threshold':0.8,
-                    'noise':0.01,
-                    'beta':1.5,
-                    'gamma':0.2,                    
-                    'sigma':0.1,
-                    'w0':0.1})
+                    'threshold':1.5,
+                    'noise':0.15,
+                    'beta':4.0,
+                    'gain':5.0,
+                    'gamma':0.5,                    
+                    'sigma':0.24,
+                    'weight':0.5})
                     
                             
 
 nb_trials = 39
-nb_blocs = 30
+nb_blocs = 29
 cats = CATS(nb_trials)
 
 model = CSelection(cats.states, cats.actions, parameters)

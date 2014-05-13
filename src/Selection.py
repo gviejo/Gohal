@@ -520,7 +520,7 @@ class CSelection():
     Model-based must be provided
     Specially tuned for Brovelli experiment so beware
     """
-    def __init__(self, states, actions, parameters={'length':1, 'w0':0.5}):
+    def __init__(self, states, actions, parameters={'length':1, 'weight':0.5}):
         # State Action Space        
         self.states=states
         self.actions=actions        
@@ -533,20 +533,19 @@ class CSelection():
                             "threshold":[0.01, self.initial_entropy], 
                             "noise":[0.01, 1.0],
                             "alpha":[0.01, 1.0],
-                            "beta":[0.01, 7.0],
+                            "beta":[0.01, 10.0], # QLEARNING
+                            "gain":[0.01, 10.0], # WORKING MEMORY
                             "gamma":[0.01, 1.0],                            
-                            "sigma":[0.001, 1.0], 
-                            "weight":[0.001, 1.0]})
+                            "sigma":[0.01, 1.0], 
+                            "weight":[0.1, 0.9]})
 
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)    
         self.p = None        
         self.p_a = None
-        # Specific to collins
-        self.min_1_C_ns = np.min([1.0, self.parameters['length']/float(self.n_state)])
-        self.inv_n_a = 1.0/float(self.n_action)
-        self.w = np.ones(self.n_state)*self.parameters['w0']*self.min_1_C_ns
+        # Specific to collins        
+        self.w = np.ones(self.n_state)*self.parameters['weight']
         self.q_mb = np.zeros((self.n_action))
         # Q-values model free
         self.q_mf = np.zeros((self.n_state, self.n_action))
@@ -594,8 +593,9 @@ class CSelection():
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
         self.p_a = np.ones(self.n_action)*(1./self.n_action)        
-        self.w = np.ones(self.n_state)*self.parameters['w0']*self.min_1_C_ns
+        self.w = np.ones(self.n_state)*self.parameters['weight']
         self.q_mb = np.zeros((self.n_action))
+        self.q_mf = np.zeros((self.n_state, self.n_action))
         self.nb_inferences = 0
         self.current_state = None
         self.current_action = None
@@ -633,31 +633,29 @@ class CSelection():
         p_r_s = np.sum(p_ra_s, axis = 0)
         p_a_rs = p_ra_s/p_r_s
         self.q_mb = p_a_rs[:,1]/p_a_rs[:,0]        
-        self.p_a_mb = self.q_mb/np.sum(self.q_mb)
+        self.p_a_mb = np.exp(self.q_mb*float(self.parameters['gain']))
+        self.p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
         self.entropy = -np.sum(self.p_a_mb*np.log2(self.p_a_mb))
 
     def fusionModule(self):
         np.seterr(invalid='ignore')
         self.p_a_mf = np.exp(self.q_mf[self.current_state]*float(self.parameters['beta']))
         self.p_a_mf = self.p_a_mf/np.sum(self.p_a_mf)
-        self.p_a = (1.0-self.w[self.current_state])*self.q_mf[self.current_state] + self.w[self.current_state]*self.q_mb        
-        self.p_a = np.exp(self.p_a*float(self.parameters['beta']))
+        self.p_a = (1.0-self.w[self.current_state])*self.p_a_mf[self.current_state] + self.w[self.current_state]*self.p_a_mb                
         self.p_a = self.p_a/np.sum(self.p_a)
+
 
     def updateWeight(self, r):
         if r:
-            p_wmc = self.q_mb[self.current_action]
-            p_rl = self.q_mf[self.current_state, self.current_action]
+            p_wmc = self.p_a_mb[self.current_action]
+            p_rl = self.p_a_mf[self.current_action]
         else:
-            # p_wmc = 1.0 - self.q_mb[self.current_action]
-            # p_rl = 1.0 - self.q_mf[self.current_state, self.current_action]
-            p_wmc = 0.0
-            p_rl = 0.0
-        self.p_wm[-1].append(p_wmc)
-        self.p_rl[-1].append(p_rl)
-        x = (p_wmc*self.w[self.current_state])/(p_wmc*self.w[self.current_state] + p_rl * (1.0 - self.w[self.current_state]))
-        self.w[self.current_state] = 1.0/(1.0+np.exp(-x))
-
+            p_wmc = 1.0 - self.p_a_mb[self.current_action]
+            p_rl = 1.0 - self.p_a_mf[self.current_action]
+        self.w[self.current_state] = (p_wmc*self.w[self.current_state])/(p_wmc*self.w[self.current_state] + p_rl * (1.0 - self.w[self.current_state]))
+        self.p_wm[-1].append(self.p_a_mb[self.current_action])
+        self.p_rl[-1].append(self.p_a_mf[self.current_action])
+        
     def computeValue(self, s, a):
         self.current_state = s
         self.current_action = a
@@ -702,6 +700,8 @@ class CSelection():
     def updateValue(self, reward):
         r = int((reward==1)*1)
         self.responses[-1].append(r)        
+        # Specific to Collins model
+        self.updateWeight(float(r))
         if self.parameters['noise']:
             self.p_s = self.p_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_state*np.ones(self.p_s.shape))
             self.p_a_s = self.p_a_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_action*np.ones(self.p_a_s.shape))
@@ -724,8 +724,6 @@ class CSelection():
         r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
         delta = float(r)+self.parameters['gamma']*np.max(self.q_mf[self.current_state])-self.q_mf[self.current_state, self.current_action]                
         self.q_mf[self.current_state, self.current_action] = self.q_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
-        # Specific to Collins model
-        self.updateWeight(r)
 
 
 class Keramati():
