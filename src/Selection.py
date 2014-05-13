@@ -547,8 +547,9 @@ class CSelection():
         self.min_1_C_ns = np.min([1.0, self.parameters['length']/float(self.n_state)])
         self.inv_n_a = 1.0/float(self.n_action)
         self.w = np.ones(self.n_state)*self.parameters['w0']*self.min_1_C_ns
+        self.q_mb = np.zeros((self.n_action))
         # Q-values model free
-        self.values_mf = np.zeros((self.n_state, self.n_action))
+        self.q_mf = np.zeros((self.n_state, self.n_action))
         self.p_a_mf = None
         # Various Init
         self.nb_inferences = 0
@@ -637,19 +638,19 @@ class CSelection():
 
     def fusionModule(self):
         np.seterr(invalid='ignore')
-        self.p_a_mf = np.exp(self.values_mf[self.current_state]*float(self.parameters['beta']))
+        self.p_a_mf = np.exp(self.q_mf[self.current_state]*float(self.parameters['beta']))
         self.p_a_mf = self.p_a_mf/np.sum(self.p_a_mf)
-        self.p_a = (1.0-self.w[self.current_state])*self.values_mf[self.current_state] + self.w[self.current_state]*self.q_mb        
+        self.p_a = (1.0-self.w[self.current_state])*self.q_mf[self.current_state] + self.w[self.current_state]*self.q_mb        
         self.p_a = np.exp(self.p_a*float(self.parameters['beta']))
         self.p_a = self.p_a/np.sum(self.p_a)
 
     def updateWeight(self, r):
         if r:
             p_wmc = self.q_mb[self.current_action]
-            p_rl = self.values_mf[self.current_state, self.current_action]
+            p_rl = self.q_mf[self.current_state, self.current_action]
         else:
             # p_wmc = 1.0 - self.q_mb[self.current_action]
-            # p_rl = 1.0 - self.values_mf[self.current_state, self.current_action]
+            # p_rl = 1.0 - self.q_mf[self.current_state, self.current_action]
             p_wmc = 0.0
             p_rl = 0.0
         self.p_wm[-1].append(p_wmc)
@@ -721,8 +722,8 @@ class CSelection():
         self.p_r_as[0, self.current_state, self.current_action] = 0.0
         self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0   
         r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
-        delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]                
-        self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
+        delta = float(r)+self.parameters['gamma']*np.max(self.q_mf[self.current_state])-self.q_mf[self.current_state, self.current_action]                
+        self.q_mf[self.current_state, self.current_action] = self.q_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
         # Specific to Collins model
         self.updateWeight(r)
 
