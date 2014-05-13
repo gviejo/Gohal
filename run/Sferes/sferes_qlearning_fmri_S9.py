@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-#!/usr/bin/python                                                       
-# encoding: utf-8                                                                   
+                                                                 
 import sys                                                                          
 
 sys.path.append("../../src")                                            
@@ -14,10 +12,10 @@ from matplotlib import *
 from pylab import *
 from scipy.stats import norm
 
-#p_order = ['alpha', 'beta', 'gamma', 'sigma']
-p_order = ['alpha', 'beta', 'gamma']
+p_order = ['alpha', 'beta', 'gamma', 'sigma']
 
-p = map(float, "0.66469 1 0.0360993 0.3".split(" "))
+
+p = map(float, "0.66469 1 0.0360993 0.3 0.5".split(" "))
 tmp = dict()
 for i in p_order:
 	tmp[i] = p[p_order.index(i)]

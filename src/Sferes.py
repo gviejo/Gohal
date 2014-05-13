@@ -50,15 +50,15 @@ class EA():
         self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
         self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
         self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
-        self.fitfunc = lambda p, x: p[0] + p[1] * x
-        self.errfunc = lambda p, x, y : (y - self.fitfunc(p, x))
-        self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))        
-        self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))        
-        self.mass = self.mass/float(self.mass.sum())
-        self.position = np.digitize(self.rt, self.edges)-1
-        self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
-        self.p = None
-        self.p_rtm = None
+        # self.fitfunc = lambda p, x: p[0] + p[1] * x
+        # self.errfunc = lambda p, x, y : (y - self.fitfunc(p, x))
+        # self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))        
+        # self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))        
+        # self.mass = self.mass/float(self.mass.sum())
+        # self.position = np.digitize(self.rt, self.edges)-1
+        # self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
+        # self.p = None
+        # self.p_rtm = None
 
     def getFitness(self):
         np.seterr(all = 'ignore')

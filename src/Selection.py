@@ -594,10 +594,14 @@ class CSelection():
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
         self.p_a = np.ones(self.n_action)*(1./self.n_action)        
         self.w = np.ones(self.n_state)*self.parameters['w0']*self.min_1_C_ns
+        self.q_mb = np.zeros((self.n_action))
         self.nb_inferences = 0
         self.current_state = None
         self.current_action = None
-                
+        self.weights.append([])
+        self.p_wm.append([])
+        self.p_rl.append([])
+
     def startExp(self):
         self.n_element = 0
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
@@ -609,7 +613,9 @@ class CSelection():
         self.responses=list()
         self.value=list()
         self.p_a = np.ones(self.n_action)*(1./self.n_action)        
-        self.pdf = list()
+        self.weights=list()
+        self.p_wm=list()
+        self.p_rl=list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -625,24 +631,31 @@ class CSelection():
         p_ra_s = tmp[self.current_state]/np.sum(tmp[self.current_state])
         p_r_s = np.sum(p_ra_s, axis = 0)
         p_a_rs = p_ra_s/p_r_s
-        self.p_a_mb = p_a_rs[:,1]/p_a_rs[:,0]
-        self.p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
+        self.q_mb = p_a_rs[:,1]/p_a_rs[:,0]        
+        self.p_a_mb = self.q_mb/np.sum(self.q_mb)
         self.entropy = -np.sum(self.p_a_mb*np.log2(self.p_a_mb))
 
     def fusionModule(self):
         np.seterr(invalid='ignore')
         self.p_a_mf = np.exp(self.values_mf[self.current_state]*float(self.parameters['beta']))
         self.p_a_mf = self.p_a_mf/np.sum(self.p_a_mf)
-        self.p_a = (1.0-self.w[self.current_state])*self.p_a_mf + self.w[self.current_state]*self.p_a_mb
+        self.p_a = (1.0-self.w[self.current_state])*self.values_mf[self.current_state] + self.w[self.current_state]*self.q_mb        
+        self.p_a = np.exp(self.p_a*float(self.parameters['beta']))
+        self.p_a = self.p_a/np.sum(self.p_a)
 
     def updateWeight(self, r):
         if r:
-            p_wmc = self.min_1_C_ns * self.p_a_mb[self.current_action] + (1.0 - self.min_1_C_ns)*self.inv_n_a
-            p_rl = self.p_a_mf[self.current_action]
+            p_wmc = self.q_mb[self.current_action]
+            p_rl = self.values_mf[self.current_state, self.current_action]
         else:
-            p_wmc = self.min_1_C_ns * (1.0 - self.p_a_mb[self.current_action]) + (1.0 - self.min_1_C_ns)*self.inv_n_a
-            p_rl = 1.0 - self.p_a_mf[self.current_action]
-        self.w[self.current_state] = (p_wmc*self.w[self.current_state])/(p_wmc*self.w[self.current_state] + p_rl * (1.0 - self.w[self.current_state]))            
+            # p_wmc = 1.0 - self.q_mb[self.current_action]
+            # p_rl = 1.0 - self.values_mf[self.current_state, self.current_action]
+            p_wmc = 0.0
+            p_rl = 0.0
+        self.p_wm[-1].append(p_wmc)
+        self.p_rl[-1].append(p_rl)
+        x = (p_wmc*self.w[self.current_state])/(p_wmc*self.w[self.current_state] + p_rl * (1.0 - self.w[self.current_state]))
+        self.w[self.current_state] = 1.0/(1.0+np.exp(-x))
 
     def computeValue(self, s, a):
         self.current_state = s
@@ -650,8 +663,8 @@ class CSelection():
         self.p = self.uniform[:,:,:]
         self.entropy = self.initial_entropy
         self.nb_inferences = 0     
-
-        while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:                    
+        
+        while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:            
             self.inferenceModule()
             self.evaluationModule()                    
 
@@ -678,7 +691,7 @@ class CSelection():
         self.current_action = self.sample(self.p_a)
         self.value.append(float(self.p_a[self.current_action]))
         self.action[-1].append(self.current_action)
-
+        self.weights[-1].append(self.w[self.current_state])
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
         self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))

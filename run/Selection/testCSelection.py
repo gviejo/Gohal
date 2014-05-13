@@ -49,6 +49,9 @@ def testModel():
     model.reaction = np.array(model.reaction)
     model.reaction = center(model.reaction)
 
+    model.weights = np.array(model.weights)
+    model.p_wm =np.array(model.p_wm)
+    model.p_rl =np.array(model.p_rl)
 
 # -----------------------------------
 
@@ -70,19 +73,19 @@ very_good_parameters = dict({'noise':0.0001,
                     'threshold':4.0,
                     'gain':2.0})
 
-parameters = dict({ 'length':7,
+parameters = dict({ 'length':8,
                     'alpha':0.9,
-                    'threshold':1.0,
+                    'threshold':0.8,
                     'noise':0.01,
-                    'beta':3.5,
-                    'gamma':0.1,                    
-                    'sigma':0.01,
-                    'w0':0.5})
+                    'beta':1.5,
+                    'gamma':0.2,                    
+                    'sigma':0.1,
+                    'w0':0.1})
                     
                             
 
 nb_trials = 39
-nb_blocs = 50
+nb_blocs = 30
 cats = CATS(nb_trials)
 
 model = CSelection(cats.states, cats.actions, parameters)
@@ -106,6 +109,10 @@ print t2-t1
 # -----------------------------------
 pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
 pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+
+w = extractStimulusPresentation(model.weights, model.state, model.action, model.responses)
+wm = extractStimulusPresentation(model.p_wm, model.state, model.action, model.responses)
+rl = extractStimulusPresentation(model.p_rl, model.state, model.action, model.responses)
 
 human.reaction['fmri'] = center(human.reaction['fmri'])
 
@@ -149,6 +156,16 @@ for i in xrange(3):
     title('A')
     grid()
 
+subplot(2,2,3)
+for i in xrange(3):
+    plot(range(1, len(w['mean'][i])+1), w['mean'][i], linewidth = 2, linestyle = '-', color = colors[i])
+    xlim(0.8, 10.2)
+
+subplot(2,2,4)
+for i in xrange(3):
+    plot(range(1, len(wm['mean'][i])+1), wm['mean'][i], linewidth = 2, linestyle = '-', color = colors[i])
+    plot(range(1, len(rl['mean'][i])+1), rl['mean'][i], linewidth = 2, linestyle = '--', color = colors[i])
+    xlim(0.8, 10.2)
 
 ax1 = plt.subplot(2,2,2)
 ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)

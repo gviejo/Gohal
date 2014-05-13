@@ -29,8 +29,8 @@ class QLearning():
         self.n_state=len(states)
         self.bounds = dict({"gamma":[0.1, 1.0],
                             "beta":[1.0, 5.0],
-                            "alpha":[0.1, 1.0]})
-                            #"sigma":[0.000001, 1.0]})
+                            "alpha":[0.1, 1.0],
+                            "sigma":[0.001, 1.0]})
         
         #Values Initialization
         self.values = np.zeros((self.n_state, self.n_action))        
@@ -90,7 +90,7 @@ class QLearning():
         self.value.append([float(value[self.current_action])])
         
         H = -(value*np.log2(value)).sum()        
-        self.reaction[-1].append(H)
+        self.reaction[-1].append(self.parameters['sigma']*H)
         #self.pdf.append(np.ones(1))
         #self.sigma.append([self.parameters['sigma']])
 

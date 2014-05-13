@@ -64,6 +64,7 @@ subjects = ['S9', 'S5']
 
 fig = plt.figure(figsize = (16, 8))
 
+
 dashes = ['-', '--', ':']
 colors = ['blue','red','green']
 #line1 = tuple([plt.Line2D(range(1),range(1),marker='o',alpha=1.0,color=colors[i]) for i in xrange(3)])
