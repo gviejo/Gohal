@@ -536,7 +536,7 @@ class CSelection():
                             "beta":[0.01, 7.0],
                             "gamma":[0.01, 1.0],                            
                             "sigma":[0.001, 1.0], 
-                            "w0":[0.001, 1.0]})
+                            "weight":[0.001, 1.0]})
 
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
