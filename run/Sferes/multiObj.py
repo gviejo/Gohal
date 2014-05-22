@@ -44,9 +44,20 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-front = pareto(options.input, threshold = [-1000, -15], N = 156)
-front.rankMixedFront([0.5,0.5])
-#front.preview()
+front = pareto(options.input, threshold = [-800, -20], N = 156)
+
+w = dict({'S2':[0.2,0.8],
+			'S17':[0.1,0.9],
+			'S5':[0.1,0.9],
+			'S15':[0.1,0.9],
+			'S12':[0.2,0.8],
+			'S16':[0.1,0.9],
+			'S9':[0.1,0.9],
+			'S13':[0.9,0.1],
+			'S6':[0.9,0.1]})
+
+front.rankMixedFront(w)
+front.preview()
 
 
 
@@ -58,7 +69,7 @@ front.rankMixedFront([0.5,0.5])
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
 #     pickle.dump(front.mixed, handle)
 
-with open("parameters_collins.pickle", 'wb') as f:
+with open("parameters.pickle", 'wb') as f:
     pickle.dump(front.p_test, f)
 
 # data = front.data['fusion']['S5'][0]

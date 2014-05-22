@@ -265,12 +265,12 @@ class pareto():
                             "bayesian":BayesianWorkingMemory(self.states, self.actions),
                             "selection":KSelection(self.states, self.actions),
                             "mixture":CSelection(self.states, self.actions)})
-        
+
         self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma'],
                             'qlearning':['alpha','beta','gamma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
-                            'mixture':['alpha', 'beta', 'gamma', 'noise', 'length', 'weight', 'threshold', 'sigma']})
+                            'mixture':['alpha', 'beta', 'gamma', 'noise', 'length', 'weight', 'threshold', 'sigma', 'gain']})
 
         self.m_order = ['qlearning', 'bayesian', 'selection', 'fusion', 'mixture']
         self.colors_m = dict({'fusion':'r', 'bayesian':'g', 'qlearning':'grey', 'selection':'b', 'mixture':'y'})
@@ -281,8 +281,8 @@ class pareto():
         self.mixed = dict()
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
         self.indd = dict()
-        #self.loadData()
-        self.simpleLoadData()
+        self.loadData()
+        #self.simpleLoadData()
         self.constructParetoFrontier()        
         self.constructMixedParetoFrontier()
 
@@ -391,9 +391,12 @@ class pareto():
 
     def rankMixedFront(self, w):    
         for s in self.mixed.iterkeys():
-            #self.rank[s] = self.OWA((self.mixed[s][:,4:]), w)            
-            self.rank[s] = self.Tchebychev(self.mixed[s][:,4:], w, 0.01)
-            #i = np.argmax(self.rank[s])
+            # self.rank[s] = self.OWA((self.mixed[s][:,4:]), w)            
+            if s in w.keys():
+                self.rank[s] = self.Tchebychev(self.mixed[s][:,4:], w[s], 0.01)
+            else:
+                self.rank[s] = self.Tchebychev(self.mixed[s][:,4:], [0.5,0.5], 0.01)
+            # i = np.argmax(self.rank[s])
             i = np.argmin(self.rank[s])
             m = self.m_order[int(self.mixed[s][i,0])]
             ind = self.pareto[m][s][(self.pareto[m][s][:,0] == self.mixed[s][i][1])*(self.pareto[m][s][:,1] == self.mixed[s][i][2])*(self.pareto[m][s][:,2] == self.mixed[s][i][3])][0]

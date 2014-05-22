@@ -88,7 +88,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 3
+nb_repeat = 10
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -99,7 +99,7 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 # ------------------------------------
 # Parameter testing
 # ------------------------------------
-with open("parameters_collins.pickle", 'r') as f:
+with open("parameters.pickle", 'r') as f:
   p_test = pickle.load(f)
 
 
@@ -183,8 +183,8 @@ for i, s in zip(xrange(14), p_test.keys()):
     data['s'][s] = dict()
     data['s'][s]['m'] = hrtm[i]
     data['s'][s]['h'] = hrt[i]
-# with open(os.path.expanduser("../Figures/beh_model.pickle") , 'wb') as handle:    
-#     pickle.dump(data, handle)
+with open(os.path.expanduser("../Figures/beh_model.pickle") , 'wb') as handle:    
+    pickle.dump(data, handle)
 
 
 fig = figure(figsize = (15, 12))

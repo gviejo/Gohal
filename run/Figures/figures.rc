@@ -8,9 +8,9 @@ lines.antialiased : True
 font.family : serif
 font.style : normal
 font.variant : small-caps
-font.weight : 600
+font.weight : 500
 font.stretch : condensed
-font.size : 12.0
+font.size : 7.0
 font.serif : Bitstream Vera serif
 font.monospace : Andale Mono
 
@@ -18,9 +18,9 @@ text.usetex : False
 
 #axes.facecolor : eeeeee
 #axes.edgecolor : bcbcbc
-axes.linewidth : 1.2
-axes.titlesize : x-large
-axes.labelsize : medium
+axes.linewidth : 1.1
+axes.titlesize : x-small
+axes.labelsize : small
 #axes.labelcolor : 555555
 axes.axisbelow : True
 
@@ -31,7 +31,7 @@ xtick.minor.size : 0
 xtick.minor.width: 2
 xtick.minor.pad  : 6
 #xtick.color 	 : 555555
-xtick.labelsize  : 9
+xtick.labelsize  : 5
 xtick.direction  : out
 
 
@@ -42,7 +42,7 @@ ytick.minor.size : 0
 ytick.minor.width: 2
 ytick.minor.pad  : 6
 #ytick.color     : 555555
-ytick.labelsize  : 9
+ytick.labelsize  : 5
 ytick.direction  : out
 
 legend.frameon   : False
