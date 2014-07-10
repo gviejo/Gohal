@@ -12,7 +12,7 @@ from matplotlib import *
 from pylab import *
 
 from Sferes import RBM
-from sklearn.neural_network import BernoulliRBM
+
 
 
 def genData():
@@ -44,13 +44,14 @@ def genData():
     return(vstack((X4[0:500],Y4[0:500])))
 
 
+
 X = genData().T
 X_test = np.random.random_sample((1000, 2))
 
 #model = BernoulliRBM(n_components=2, verbose = True)
 #model.fit(X)
 
-rbm = RBM(np.vstack(X[:,0]), np.vstack(X[:,1]), nh = 8, nbiter = 1000)
+rbm = RBM(np.vstack(X[:,0]), np.vstack(X[:,1]), nh = 10, nbiter = 1000)
 
 rbm.train()
 

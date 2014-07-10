@@ -70,7 +70,7 @@ for i in human.directory.keys():
 # -----------------------------------
 
 #fig = plt.figure(figsize = (16, 5))
-fig = plt.figure(figsize = (1.8, 3.3))
+fig = plt.figure(figsize = (4.5, 1.5))
 
 lwidth = 0.9
 elwidth = 0.4
@@ -79,9 +79,9 @@ cpsize = 1.1
 dashes = ['-', '--', ':']
 colors = ['blue','red','green']
 line1 = tuple([plt.Line2D(range(1),range(1),marker='o',alpha=1.0,color=colors[i], markersize = 2.0) for i in xrange(3)])
-plt.figlegend(line1,tuple(["One error", "Three errors", "Fours errors"]), loc = 'lower right', bbox_to_anchor = (0.99, 0.6))
+plt.figlegend(line1,tuple(["One error", "Three errors", "Fours errors"]), loc = 'lower right', bbox_to_anchor = (0.45, 0.25))
 
-ax1 = fig.add_subplot(211)
+ax1 = fig.add_subplot(121)
 ax1.spines['right'].set_visible(False)
 ax1.spines['top'].set_visible(False)
 ax1.get_xaxis().tick_bottom()
@@ -96,8 +96,8 @@ for i in xrange(3):
 ax1.set_ylabel("Probability correct responses")
 ax1.set_xlabel("Trial")
 fig.text(0.085, 0.92, "A.", fontsize = 6, fontweight='bold')
-fig.text(0.085, 0.45, "B.", fontsize = 6, fontweight='bold')
-# fig.text(0.53, 0.92, "B.", fontsize = 6, fontweight='bold')
+# fig.text(0.085, 0.45, "B.", fontsize = 6, fontweight='bold')
+fig.text(0.53, 0.92, "B.", fontsize = 6, fontweight='bold')
 # legend(loc = 'lower right')
 ax1.set_xticks(range(1,15,2))
 # xlabel("Trial")
@@ -107,7 +107,7 @@ ax1.set_ylim(0.0, 1.05)
 # ylabel('Probability Correct Responses')
 # title('A')
 
-ax2 = fig.add_subplot(212)
+ax2 = fig.add_subplot(122)
 ax2.spines['right'].set_visible(False)
 ax2.spines['top'].set_visible(False)
 ax2.get_xaxis().tick_bottom()
@@ -142,7 +142,7 @@ ax2.set_xticks(range(1,17,2))
 
 
 
-subplots_adjust(hspace = 0.4)
+subplots_adjust(wspace = 0.4)
 fig.savefig(os.path.expanduser("~/Dropbox/ISIR/SBDM/poster_2014/pics/beh.eps"), bbox_inches='tight')
 os.system("evince "+os.path.expanduser("~/Dropbox/ISIR/SBDM/poster_2014/pics/beh.eps"))
 
