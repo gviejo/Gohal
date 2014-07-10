@@ -16,3 +16,4 @@ submit_job.sh
 *.out
 *.dat
 *.tar
+old/

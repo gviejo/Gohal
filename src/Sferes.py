@@ -22,14 +22,14 @@ if os.uname()[1] in ['atlantis', 'paradise']:
     from multiprocessing import Pool, Process
     from pylab import *
 
-from fonctions import *
-from Selection import *
-from Models import *
-from HumanLearning import HLearning
-from ColorAssociationTasks import CATS
-from scipy.stats import sem
-from scipy.stats import norm
-from scipy.optimize import leastsq
+#from fonctions import *
+#from Selection import *
+#from Models import *
+#from HumanLearning import HLearning
+#from ColorAssociationTasks import CATS
+#from scipy.stats import sem
+#from scipy.stats import norm
+#from scipy.optimize import leastsq
 
 def unwrap_self_load_data(arg, **kwarg):
     return pareto.loadPooled(*arg, **kwarg)
@@ -44,42 +44,32 @@ class EA():
         self.data = data
         self.n_trials = 39
         self.n_blocs = 4
-        self.n_repets = 5
+        self.n_repets = 5 # if changing here don't forget to change inside models
+        self.n_rs = 15
+        self.mean = np.zeros((2,self.n_rs))
         self.fit = np.zeros(2)
-        self.rt = np.array([self.data[i]['rt'][0:self.n_trials,0] for i in [1,2,3,4]]).flatten()        
-        self.state = np.array([self.data[i]['sar'][0:self.n_trials,0] for i in [1,2,3,4]])
-        self.action = np.array([self.data[i]['sar'][0:self.n_trials,1] for i in [1,2,3,4]]).astype(int)
-        self.responses = np.array([self.data[i]['sar'][0:self.n_trials,2] for i in [1,2,3,4]])
-        # self.fitfunc = lambda p, x: p[0] + p[1] * x
-        # self.errfunc = lambda p, x, y : (y - self.fitfunc(p, x))
-        # self.bin_size = 2*(np.percentile(self.rt, 75)-np.percentile(self.rt, 25))*np.power(len(self.rt), -(1/3.))        
-        # self.mass, self.edges = np.histogram(self.rt, bins=np.arange(self.rt.min(), self.rt.max()+self.bin_size, self.bin_size))        
-        # self.mass = self.mass/float(self.mass.sum())
-        # self.position = np.digitize(self.rt, self.edges)-1
-        # self.f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
-        # self.p = None
-        # self.p_rtm = None
+        self.rt = self.data['rt'] # array (4*39)
+        self.state = self.data['state'] # array int (4*39) 
+        self.action = self.data['action'] # array int (4*39)
+        self.responses = self.data['reward'] # array int (4*39)
+        self.indice = self.data['indice'] # array int (4*39)
+        self.mean[0] = self.data['mean'][0] # array (15) centered on median for human
 
     def getFitness(self):
         np.seterr(all = 'ignore')
-        self.model.startExp()
-        for e in xrange(self.n_repets):
-            for i in xrange(self.n_blocs):
+        #self.model.startExp()        
+        for i in xrange(self.n_blocs*self.n_repets):
                 self.model.startBloc()
                 for j in xrange(self.n_trials):                
-                    self.model.computeValue(int(self.state[i,j])-1, int(self.action[i,j])-1)                
-                    self.model.updateValue(self.responses[i,j])
+                    self.model.computeValue(self.state[i%self.n_blocs,j]-1, self.action[i%self.n_blocs,j]-1, (i,j))
+                    self.model.updateValue(self.responses[i%self.n_blocs,j])
         
-        self.model.value = np.array(self.model.value)        
-        self.rtm = np.array(self.model.reaction).flatten()
-
-        self.fit[0] = float(np.sum(np.log(self.model.value)))
-        #tmp = self.computeMutualInformation()        
-        self.alignToMedian()
+        self.fit[0] = float(np.sum(np.log(self.model.value)))        
+        self.alignToMedian()        
         self.fit[1] = float(-self.leastSquares())        
         self.fit = np.round(self.fit, 4)
-        self.fit[np.isnan(self.fit)] = -10000.0
-        self.fit[np.isinf(self.fit)] = -10000.0                
+        self.fit[np.isnan(self.fit)] = -100000.0
+        self.fit[np.isinf(self.fit)] = -100000.0                
         choice = str(self.fit[0]+2000.0)
         rt = str(self.fit[1]+500.0)
         # FUCKING UGLY ########
@@ -89,51 +79,16 @@ class EA():
         
         return choice, rt
 
-    def leastSquares(self):
-        self.rt = np.tile(self.rt, self.n_repets)        
-        self.state = np.tile(self.state, (self.n_repets, 1))
-        self.action = np.tile(self.action, (self.n_repets, 1))
-        self.responses = np.tile(self.responses, (self.n_repets, 1))
-        pinit = [1.0, -1.0]
-        self.mean = []
-        for i in [self.rt, self.rtm]:
-            tmp = i.reshape(self.n_blocs*self.n_repets, self.n_trials)            
-            step, indice = getRepresentativeSteps(tmp, self.state, self.action, self.responses)
-            self.mean.append(computeMeanRepresentativeSteps(step)[0])
-        self.mean = np.array(self.mean)
-        #p = leastsq(self.errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)                
+    def leastSquares(self):        
+        self.indice = np.tile(self.indice, (self.n_repets, 1))
+        for i in xrange(self.n_rs):            
+            self.mean[1,i] = np.mean(self.model.reaction[self.indice == i+1])
         return np.sum(np.power(self.mean[0]-self.mean[1], 2))            
         #return np.sum(np.power(self.errfunc(p[0], mean[1][0], mean[0][0]), 2))
 
-    def computeMutualInformation(self):
-        self.p_rtm, edges = np.histogram(self.rtm, bins = np.linspace(self.rtm.min(), self.rtm.max()+0.00001, 25))        
-        self.p_rtm = self.p_rtm/float(self.p_rtm.sum())
-        self.p = np.zeros((len(self.mass), len(self.p_rtm)))
-        positionm = np.digitize(self.rtm, edges)-1        
-        self.position = np.tile(self.position, self.n_repets)
- 
-        for i in xrange(len(self.position)): self.p[self.position[i], positionm[i]] += 1        
-        
-        self.p = self.p/float(self.p.sum())
-        
-        tmp = np.log2(self.p/np.outer(self.mass, self.p_rtm))        
-        tmp[np.isinf(tmp)] = 0.0
-        tmp[np.isnan(tmp)] = 0.0
-        return np.sum(self.p*tmp)        
-
-    def computeDistance(self):
-        sup = self.edges[self.position]
-        #self.sup = sup
-        #size_bin = self.edges[1]-self.edges[0]        
-        sup = np.tile(np.vstack(sup), int(self.model.parameters['length'])+1)
-        self.d = norm.cdf(sup, self.rt_model, self.model.sigma)-norm.cdf(sup-self.bin_size, self.rt_model, self.model.sigma)
-        self.d[np.isnan(self.d)] = 0.0
-
-    def alignToMedian(self):
-        self.rt = self.rt - np.median(self.rt)
-        self.rtm = self.rtm - np.median(self.rtm)
-        self.rtm = self.rtm / (np.percentile(self.rtm, 75)-np.percentile(self.rtm, 25))
-        self.rt = self.rt / (np.percentile(self.rt, 75)-np.percentile(self.rt, 25))
+    def alignToMedian(self):        
+        self.model.reaction = self.model.reaction - np.median(self.model.reaction)
+        self.model.reaction = self.model.reaction / (np.percentile(self.model.reaction, 75)-np.percentile(self.model.reaction, 25))        
 
 
 class RBM():
@@ -267,7 +222,7 @@ class pareto():
                             "mixture":CSelection(self.states, self.actions)})
 
         self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma'],
-                            'qlearning':['alpha','beta','gamma'],
+                            'qlearning':['alpha','beta','gamma','sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
                             'mixture':['alpha', 'beta', 'gamma', 'noise', 'length', 'weight', 'threshold', 'sigma', 'gain']})
@@ -283,7 +238,7 @@ class pareto():
         self.indd = dict()
         self.loadData()
         #self.simpleLoadData()
-        self.constructParetoFrontier()        
+        self.constructParetoFrontier()
         self.constructMixedParetoFrontier()
 
 
@@ -326,7 +281,6 @@ class pareto():
         for r in list_file:
             s = r.split("_")[3]
             n = int(r.split("_")[4].split(".")[0])
-            data[m][s] = dict()
             filename = self.directory+"/"+m+"/"+r            
             nb_ind = int(self.tail(filename, 1)[0].split(" ")[1])
             last_gen = np.array(map(lambda x: x[0:-1].split(" "), self.tail(filename, nb_ind+1))).astype('float')
@@ -368,7 +322,7 @@ class pareto():
                 
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - 2000.0
                 self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0
-                #self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
+                self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
                 #self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
                 for t in xrange(len(self.threshold)):
                     self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+t] >= self.threshold[t]]                            
@@ -553,64 +507,64 @@ class pareto():
         self.hrt.append(mean[0][0])
         ###
 
-    def run(self, plot=True):
-        nb_blocs = 4
-        nb_trials = self.human.responses['fmri'].shape[1]
-        cats = CATS(nb_trials)
-        ###
-        self.hrt = []
-        ###
-        for s in self.p_test.iterkeys():             
-            m = self.p_test[s].keys()[0]
-            print "Testing "+s+" with "+m            
-            self.models[m].setAllParameters(self.p_test[s][m])
-            self.models[m].startExp()
-            for i in xrange(nb_blocs):
-                cats.reinitialize()
-                cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
-                self.models[m].startBloc()                
-                for j in xrange(nb_trials):
-                    state = cats.getStimulus(j)
-                    action = self.models[m].chooseAction(state)
-                    reward = cats.getOutcome(state, action)
-                    self.models[m].updateValue(reward)            
-            self.models[m].reaction = np.array(self.models[m].reaction)
+    # def run(self, plot=True):
+    #     nb_blocs = 4
+    #     nb_trials = self.human.responses['fmri'].shape[1]
+    #     cats = CATS(nb_trials)
+    #     ###
+    #     self.hrt = []
+    #     ###
+    #     for s in self.p_test.iterkeys():             
+    #         m = self.p_test[s].keys()[0]
+    #         print "Testing "+s+" with "+m            
+    #         self.models[m].setAllParameters(self.p_test[s][m])
+    #         self.models[m].startExp()
+    #         for i in xrange(nb_blocs):
+    #             cats.reinitialize()
+    #             cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
+    #             self.models[m].startBloc()                
+    #             for j in xrange(nb_trials):
+    #                 state = cats.getStimulus(j)
+    #                 action = self.models[m].chooseAction(state)
+    #                 reward = cats.getOutcome(state, action)
+    #                 self.models[m].updateValue(reward)            
+    #         self.models[m].reaction = np.array(self.models[m].reaction)
             
-            #self.learnRBM(m, s, nb_blocs, nb_trials)
-            #sys.exit()
-            #self.alignToMedian(m, s, nb_blocs, nb_trials)
-            self.leastSquares(m, s, nb_blocs, nb_trials)
+    #         #self.learnRBM(m, s, nb_blocs, nb_trials)
+    #         #sys.exit()
+    #         #self.alignToMedian(m, s, nb_blocs, nb_trials)
+    #         self.leastSquares(m, s, nb_blocs, nb_trials)
 
-            self.beh['reaction'].append(self.models[m].reaction)
-            for i in xrange(nb_blocs):
-                self.beh['state'].append(self.models[m].state[i])
-                self.beh['action'].append(self.models[m].action[i])
-                self.beh['responses'].append(self.models[m].responses[i])
+    #         self.beh['reaction'].append(self.models[m].reaction)
+    #         for i in xrange(nb_blocs):
+    #             self.beh['state'].append(self.models[m].state[i])
+    #             self.beh['action'].append(self.models[m].action[i])
+    #             self.beh['responses'].append(self.models[m].responses[i])
 
-        self.hrt = np.array(self.hrt)
-        for k in self.beh.iterkeys():
-            self.beh[k] = np.array(self.beh[k])
-        self.beh['state'] = convertStimulus(self.beh['state'])
-        self.beh['action'] = convertAction(self.beh['action'])
+    #     self.hrt = np.array(self.hrt)
+    #     for k in self.beh.iterkeys():
+    #         self.beh[k] = np.array(self.beh[k])
+    #     self.beh['state'] = convertStimulus(self.beh['state'])
+    #     self.beh['action'] = convertAction(self.beh['action'])
          
     
-        if plot:                                                            
-            pcr = extractStimulusPresentation(self.beh['responses'], self.beh['state'], self.beh['action'], self.beh['responses'])
-            pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])            
+    #     if plot:                                                            
+    #         pcr = extractStimulusPresentation(self.beh['responses'], self.beh['state'], self.beh['action'], self.beh['responses'])
+    #         pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])            
                                                             
-            #step, indice = getRepresentativeSteps(self.beh['reaction'], self.beh['state'], self.beh['action'], self.beh['responses'])
-            #rt = computeMeanRepresentativeSteps(step)
-            step, indice = getRepresentativeSteps(self.human.reaction['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
-            rt_human = computeMeanRepresentativeSteps(step) 
-            rt = (np.mean(self.beh['reaction'], 0), np.var(self.beh['reaction'], 0))
+    #         #step, indice = getRepresentativeSteps(self.beh['reaction'], self.beh['state'], self.beh['action'], self.beh['responses'])
+    #         #rt = computeMeanRepresentativeSteps(step)
+    #         step, indice = getRepresentativeSteps(self.human.reaction['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
+    #         rt_human = computeMeanRepresentativeSteps(step) 
+    #         rt = (np.mean(self.beh['reaction'], 0), np.var(self.beh['reaction'], 0))
 
-            colors = ['blue', 'red', 'green']
-            self.fig_quick = figure(figsize=(10,5))
-            ax1 = self.fig_quick.add_subplot(1,2,1)
-            [ax1.errorbar(range(1, len(pcr['mean'][t])+1), pcr['mean'][t], pcr['sem'][t], linewidth = 1.5, elinewidth = 1.5, capsize = 0.8, linestyle = '-', alpha = 1, color = colors[t]) for t in xrange(3)]
-            [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
-            ax2 = self.fig_quick.add_subplot(1,2,2)
-            ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-            #ax3 = ax2.twinx()
-            ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
-            show()
+    #         colors = ['blue', 'red', 'green']
+    #         self.fig_quick = figure(figsize=(10,5))
+    #         ax1 = self.fig_quick.add_subplot(1,2,1)
+    #         [ax1.errorbar(range(1, len(pcr['mean'][t])+1), pcr['mean'][t], pcr['sem'][t], linewidth = 1.5, elinewidth = 1.5, capsize = 0.8, linestyle = '-', alpha = 1, color = colors[t]) for t in xrange(3)]
+    #         [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
+    #         ax2 = self.fig_quick.add_subplot(1,2,2)
+    #         ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
+    #         #ax3 = ax2.twinx()
+    #         ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
+    #         show()

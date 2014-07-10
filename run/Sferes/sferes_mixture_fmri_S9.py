@@ -14,37 +14,21 @@ from pylab import *
 
 
 
-
-
-model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'])
-
-p_order = ['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma']
-
-pp = map(float, "0.905331 1 0.985419 0.631207 0.159728 0.0923251 0.0875467 0.865847".split(" "))
-
-tmp = dict()
-for i in p_order:
-	tmp[i] = pp[p_order.index(i)]
-
-parameters = tmp
-for p in parameters.iterkeys():
-	if parameters[p]:
-		parameters[p] = model.bounds[p][0]+parameters[p]*(model.bounds[p][1]-model.bounds[p][0])
-
 parameters = {'alpha': 0.61865101,
   'beta': 3.0690819999999999,
-  'gain': 1.9799880400000001,
+  'weight': 0.5,
   'gamma': 0.45588070000000003,
   'length': 9.2744959999999992,
   'noise': 0.11032897600000001,
   'sigma': 0.52055982999999995,
-  'threshold': 12.629}
+  'gain':0.5,
+  'threshold': 1.0}
 
 
 with open("fmri/S9.pickle", "rb") as f:
    data = pickle.load(f)
 
-model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes = True)
+model = CSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes = True)
 
 
 opt = EA(data, 'S9', model)
@@ -53,12 +37,11 @@ opt = EA(data, 'S9', model)
 
 llh, lrs = opt.getFitness()
 print llh, lrs
-sys.exit()
 
+sys.exit()
 figure(2)
 plot(opt.mean[0], 'o-')
 plot(opt.mean[1], 'o--')
-
 
 
 
@@ -66,23 +49,8 @@ show()
 sys.exit()
 
 
-left, width = 0.1, 0.65
-bottom, height = 0.1, 0.65
-bottom_h = left_h = left+width+0.02
-rect_scatter = [left, bottom, width, height]
-rect_histx = [left, bottom_h, width, 0.2]
-rect_histy = [left_h, bottom, 0.2, height]
-plt.figure(1, figsize=(12,9))
-axScatter = plt.axes(rect_scatter)
-axHistx = plt.axes(rect_histx)
-axHisty = plt.axes(rect_histy)
-axScatter.imshow(opt.p, interpolation = 'nearest', origin = 'lower')
-axHistx.plot(opt.p_rtm)
-axHisty.plot(opt.mass, np.arange(len(opt.mass)))
-#axHistx.set_title("dh/n")
-#axHistx.set_title("dh")
-axHistx.set_title("n")
-plt.text(s = "MI "+str(lrs), x = 0.0, y = 16.0)
+
+
 
 
 plt.figure(3, figsize=(8,8))

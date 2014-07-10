@@ -9,22 +9,27 @@ Class of for strategy selection when training
 Copyright (c) 2014 Guillaume VIEJO. All rights reserved.
 """
 
-import sys
-import os
 import numpy as np
 from fonctions import *
 from Models import *
+
+# Parameters for sferes optimization 
+# To speed up the process and avoid list
+n_trials = 39
+n_blocs = 4
+n_repets = 5
 
 class FSelection():
     """ fusion strategy
     Specially tuned for Brovelli experiment so beware
 
     """
-    def __init__(self, states, actions, parameters={"length":1}):
+    def __init__(self, states, actions, parameters={"length":1}, sferes = False):
         #State Action Spaces
         self.states=states
         self.actions=actions
         #Parameters
+        self.sferes = sferes
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
@@ -59,12 +64,16 @@ class FSelection():
         self.Hb = self.max_entropy
         self.Hf = self.max_entropy
         # List Init
-        self.state = list()
-        self.action = list()
-        self.responses = list()
-        self.reaction = list()
-        self.value = list()
-        self.pdf = list()
+        if self.sferes:
+            self.value = np.zeros((n_blocs*n_repets, n_trials))
+            self.reaction = np.zeros((n_blocs*n_repets, n_trials))
+        else:
+            self.state = list()
+            self.action = list()
+            self.responses = list()
+            self.reaction = list()
+            self.value = list()
+            self.pdf = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -80,11 +89,12 @@ class FSelection():
                 self.setParameters(i, parameters[i])
 
     def startBloc(self):
-        self.state.append([])
-        self.action.append([])
-        self.responses.append([])
-        self.reaction.append([])
-        self.pdf.append([])
+        if not self.sferes:
+            self.state.append([])
+            self.action.append([])
+            self.responses.append([])
+            self.reaction.append([])
+            self.pdf.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -96,8 +106,7 @@ class FSelection():
         self.Hb = self.max_entropy
         self.Hf = self.max_entropy        
 
-    def startExp(self):
-        self.n_element = 0                
+    def startExp(self):        
         self.state = list()
         self.action = list()
         self.responses = list()
@@ -143,7 +152,7 @@ class FSelection():
         # if True in np.isnan(self.p_a):
         #     self.p_a = np.isnan(self.p_a)*0.995+0.001
 
-    def computeValue(self, s, a):        
+    def computeValue(self, s, a, ind):        
         self.current_state = s
         self.current_action = a
         self.p = self.uniform[:,:,:]
@@ -157,43 +166,10 @@ class FSelection():
             self.evaluationModule()
         self.fusionModule()
         
-        self.value.append(float(self.p_a[self.current_action]))
+        self.value[ind] = float(self.p_a[self.current_action])
         H = -(self.p_a*np.log2(self.p_a)).sum()
-        N = float(self.nb_inferences+1)
-        
-        self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
-        
-        #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb)/float(self.nb_inferences+1))        
-        #self.reaction[-1].append((2*self.max_entropy-self.Hf-self.Hb))
-        #self.reaction[-1].append(float(self.nb_inferences+1))
-
-        #rt = 1+((2*self.max_entropy-self.Hf-self.Hb)/(2*self.max_entropy))**0.2
-
-        #self.reaction[-1].append(rt)
-
-
-        #value = np.zeros(int(self.parameters['length']+1))        
-        #pdf = np.zeros(int(self.parameters['length'])+1)
-
-        #d = self.sigmoideModule()
-        #pdf[self.nb_inferences] = float(self.pA)
-        #self.fusionModule()
-        #value[self.nb_inferences] = float(self.p_a[self.current_action])        
-
-        #while self.nb_inferences < self.n_element:
-        #     self.inferenceModule()
-        #     self.evaluationModule()
-        #     self.fusionModule()
-        #     value[self.nb_inferences] = float(self.p_a[self.current_action])        
-        #     d = self.sigmoideModule()
-        #     pdf[self.nb_inferences] = float(self.pA)
-        
-        # pdf = np.array(pdf)
-        # pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
-        #pdf = pdf/pdf.sum()
-        
-        # self.pdf.append(pdf)
-        # self.value.append(value)
+        N = float(self.nb_inferences+1)        
+        self.reaction[ind] = float(H*self.parameters['sigma']+np.log2(N))        
                 
     def chooseAction(self, state):
         self.state[-1].append(state)
@@ -232,7 +208,8 @@ class FSelection():
 
     def updateValue(self, reward):
         r = int((reward==1)*1)
-        self.responses[-1].append(r)
+        if not self.sferes:
+            self.responses[-1].append(r)
         if self.parameters['noise']:
             self.p_s = self.p_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_state*np.ones(self.p_s.shape))
             self.p_a_s = self.p_a_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_action*np.ones(self.p_a_s.shape))
@@ -264,11 +241,12 @@ class KSelection():
     """Class that implement Keramati models for action selection
     Specially tuned for Brovelli experiment so beware
     """
-    def __init__(self, states, actions, parameters={"length":1,"eta":0.0001}, var_obs = 0.05, init_cov = 10, kappa = 0.1):
+    def __init__(self, states, actions, parameters={"length":1,"eta":0.0001}, var_obs = 0.05, init_cov = 10, kappa = 0.1, sferes=False):
         #State Action Spaces
         self.states=states
         self.actions=actions
         #Parameters
+        self.sferes = sferes
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
@@ -308,15 +286,19 @@ class KSelection():
         self.Hb = self.max_entropy
         self.reward_rate = np.zeros(self.n_state)
         # List Init
-        self.state = list()
-        self.action = list()
-        self.responses = list()
-        self.reaction = list()
-        self.value = list()
-        self.vpi = list()
-        self.rrate = list()
-        #self.sigma = list()
-        #self.sigma_test = list()
+        if self.sferes:
+            self.value = np.zeros((n_blocs*n_repets, n_trials))
+            self.reaction = np.zeros((n_blocs*n_repets, n_trials))
+        else:
+            self.state = list()
+            self.action = list()
+            self.responses = list()
+            self.reaction = list()
+            self.value = list()
+            self.vpi = list()
+            self.rrate = list()
+            #self.sigma = list()
+            #self.sigma_test = list()        
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -332,13 +314,14 @@ class KSelection():
                 self.setParameters(i, parameters[i])
 
     def startBloc(self):
-        self.state.append([])
-        self.action.append([])
-        self.responses.append([])
-        self.reaction.append([])
-        self.vpi.append([])
-        self.rrate.append([])
-        #self.sigma_test.append([])
+        if not self.sferes:
+            self.state.append([])
+            self.action.append([])
+            self.responses.append([])
+            self.reaction.append([])
+            self.vpi.append([])
+            self.rrate.append([])
+            #self.sigma_test.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -401,7 +384,8 @@ class KSelection():
 
     def updateRewardRate(self, reward, delay = 0.0):
         self.reward_rate[self.current_state] = (1.0-self.parameters['sigma'])*self.reward_rate[self.current_state]+self.parameters['sigma']*reward
-        self.rrate[-1].append(self.reward_rate[self.current_state])
+        if not self.sferes:        
+            self.rrate[-1].append(self.reward_rate[self.current_state])
 
     def softMax(self, values):
         tmp = np.exp(values*float(self.parameters['beta']))
@@ -411,7 +395,7 @@ class KSelection():
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
         return np.sum(np.array(tmp) < np.random.rand())-1        
         
-    def computeValue(self, s, a):
+    def computeValue(self, s, a, ind):
         self.current_state = s
         self.current_action = a
         self.nb_inferences = 0
@@ -429,10 +413,10 @@ class KSelection():
                 self.evaluationModule()
             values = self.p_a_mb/np.sum(self.p_a_mb)
         
-        self.value.append(float(values[self.current_action]))
+        self.value[ind] = float(values[self.current_action])
         H = -(values*np.log2(values)).sum()
         N = float(self.nb_inferences+1)
-        self.reaction[-1].append(H*self.parameters['sigma_rt']+np.log2(N))
+        self.reaction[ind] = float(H*self.parameters['sigma_rt']+np.log2(N))
         
         
     def chooseAction(self, state):
@@ -479,7 +463,8 @@ class KSelection():
 
     def updateValue(self, reward):
         r = int((reward==1)*1)
-        self.responses[-1].append(r)
+        if not self.sferes:
+            self.responses[-1].append(r)
         if self.parameters['noise']:
             self.p_s = self.p_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_state*np.ones(self.p_s.shape))
             self.p_a_s = self.p_a_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_action*np.ones(self.p_a_s.shape))
@@ -520,11 +505,12 @@ class CSelection():
     Model-based must be provided
     Specially tuned for Brovelli experiment so beware
     """
-    def __init__(self, states, actions, parameters={'length':1, 'weight':0.5}):
+    def __init__(self, states, actions, parameters={'length':1, 'weight':0.5}, sferes = False):
         # State Action Space        
         self.states=states
         self.actions=actions        
         #Parameters
+        self.sferes = sferes
         self.parameters = parameters
         self.n_action=int(len(actions))
         self.n_state=int(len(states))
@@ -562,13 +548,17 @@ class CSelection():
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
         self.p_r_s = np.ones(2)*0.5
         #List Init
-        self.state=list()        
-        self.action=list()
-        self.responses=list()        
-        self.reaction=list()
-        self.value=list()
-        self.pdf = list()
-        #self.sigma = list()
+        if self.sferes:
+            self.value = np.zeros((n_blocs*n_repets, n_trials))
+            self.reaction = np.zeros((n_blocs*n_repets, n_trials))
+        else:
+            self.state=list()        
+            self.action=list()
+            self.responses=list()        
+            self.reaction=list()
+            self.value=list()
+            self.pdf = list()
+            #self.sigma = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -584,10 +574,14 @@ class CSelection():
                 self.setParameters(i, parameters[i])
 
     def startBloc(self):
-        self.state.append([])
-        self.action.append([])
-        self.responses.append([])
-        self.reaction.append([])
+        if not self.sferes:
+            self.state.append([])
+            self.action.append([])
+            self.responses.append([])
+            self.reaction.append([])
+            self.weights.append([])
+            self.p_wm.append([])
+            self.p_rl.append([])
         self.n_element = 0
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
@@ -599,9 +593,6 @@ class CSelection():
         self.nb_inferences = 0
         self.current_state = None
         self.current_action = None
-        self.weights.append([])
-        self.p_wm.append([])
-        self.p_rl.append([])
 
     def startExp(self):
         self.n_element = 0
@@ -653,10 +644,10 @@ class CSelection():
             p_wmc = 1.0 - self.p_a_mb[self.current_action]
             p_rl = 1.0 - self.p_a_mf[self.current_action]
         self.w[self.current_state] = (p_wmc*self.w[self.current_state])/(p_wmc*self.w[self.current_state] + p_rl * (1.0 - self.w[self.current_state]))
-        self.p_wm[-1].append(self.p_a_mb[self.current_action])
-        self.p_rl[-1].append(self.p_a_mf[self.current_action])
+        # self.p_wm[-1].append(self.p_a_mb[self.current_action])
+        # self.p_rl[-1].append(self.p_a_mf[self.current_action])
         
-    def computeValue(self, s, a):
+    def computeValue(self, s, a, ind):
         self.current_state = s
         self.current_action = a
         self.p = self.uniform[:,:,:]
@@ -669,10 +660,10 @@ class CSelection():
 
         self.fusionModule()
 
-        self.value.append(self.p_a[self.current_action])
+        self.value[ind] = float(self.p_a[self.current_action])
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
-        self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
+        self.reaction[ind] = float(H*self.parameters['sigma']+np.log2(N))
 
     def chooseAction(self, state):
         self.state[-1].append(state)
@@ -699,7 +690,8 @@ class CSelection():
 
     def updateValue(self, reward):
         r = int((reward==1)*1)
-        self.responses[-1].append(r)        
+        if not self.sferes:
+            self.responses[-1].append(r)        
         # Specific to Collins model
         self.updateWeight(float(r))
         if self.parameters['noise']:

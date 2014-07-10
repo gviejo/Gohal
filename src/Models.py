@@ -15,6 +15,12 @@ import sys
 import numpy as np
 from fonctions import *
 
+# Parameters for sferes optimization 
+# To speed up the process and avoid list
+n_trials = 39
+n_blocs = 4
+n_repets = 5
+
 class QLearning():
     """Class that implement a Qlearning
     """
@@ -235,11 +241,12 @@ class BayesianWorkingMemory():
 
     """
 
-    def __init__(self, states, actions, parameters={'length':1}):
+    def __init__(self, states, actions, parameters={'length':1}, sferes = False):
         # State Action Space        
         self.states=states
         self.actions=actions        
         #Parameters
+        self.sferes = sferes
         self.parameters = parameters
         self.n_action=int(len(actions))
         self.n_state=int(len(states))
@@ -264,13 +271,17 @@ class BayesianWorkingMemory():
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
         self.p_r_s = np.ones(2)*0.5
         #List Init
-        self.state=list()        
-        self.action=list()
-        self.responses=list()        
-        self.reaction=list()
-        self.value=list()
-        self.pdf = list()
-        #self.sigma = list()
+        if self.sferes:
+            self.value = np.zeros((n_blocs*n_repets, n_trials))
+            self.reaction = np.zeros((n_blocs*n_repets, n_trials))
+        else:            
+            self.state=list()        
+            self.action=list()
+            self.responses=list()        
+            self.reaction=list()
+            self.value=list()
+            self.pdf = list()
+            #self.sigma = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -286,10 +297,11 @@ class BayesianWorkingMemory():
                 self.setParameters(i, parameters[i])
 
     def startBloc(self):
-        self.state.append([])
-        self.action.append([])
-        self.responses.append([])
-        self.reaction.append([])
+        if not self.sferes:
+            self.state.append([])
+            self.action.append([])
+            self.responses.append([])
+            self.reaction.append([])
         self.n_element = 0
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
@@ -331,7 +343,7 @@ class BayesianWorkingMemory():
         self.values = self.values/np.sum(self.values)
         self.entropy = -np.sum(self.values*np.log2(self.values))
 
-    def computeValue(self, s, a):
+    def computeValue(self, s, a, ind):
         self.current_state = s
         self.current_action = a
         self.p = self.uniform[:,:,:]
@@ -342,10 +354,10 @@ class BayesianWorkingMemory():
             self.inferenceModule()
             self.evaluationModule()                    
 
-        self.value.append(self.values[self.current_action])
+        self.value[ind] = float(self.values[self.current_action])
         H = -(self.values*np.log2(self.values)).sum()
         N = float(self.nb_inferences+1)
-        self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
+        self.reaction[ind] = float(H*self.parameters['sigma']+np.log2(N))
 
     def chooseAction(self, state):
         self.state[-1].append(state)
@@ -367,7 +379,8 @@ class BayesianWorkingMemory():
 
     def updateValue(self, reward):
         r = int((reward==1)*1)
-        self.responses[-1].append(r)
+        if not self.sferes:
+            self.responses[-1].append(r)
         if self.parameters['noise']:
             self.p_s = self.p_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_state*np.ones(self.p_s.shape))
             self.p_a_s = self.p_a_s*(1-self.parameters['noise'])+self.parameters['noise']*(1.0/self.n_action*np.ones(self.p_a_s.shape))

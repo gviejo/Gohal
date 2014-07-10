@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#!/usr/bin/python
-# encoding: utf-8
 """
-subjectTest.py
 
 load and and plot multi objective results from Sferes 2 optimisation 
 
@@ -38,7 +35,7 @@ parser = OptionParser()
 parser.add_option("-i", "--input", action="store", help="The name of the directory to load", default=False)
 parser.add_option("-m", "--model", action="store", help="The name of the model to test \n If none is provided, all files are loaded", default=False)
 parser.add_option("-o", "--output", action="store", help="The output file of best parameters to test", default=False)
-(options, args) = parser.parse_args() 
+(options, args) = parser.parse_args()
 # -----------------------------------
 
 # -----------------------------------
@@ -58,7 +55,7 @@ w = dict({'S2':[0.2,0.8],
 
 front.rankMixedFront(w)
 front.preview()
-
+show()
 
 
 #front.run(plot=True)
@@ -69,8 +66,8 @@ front.preview()
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
 #     pickle.dump(front.mixed, handle)
 
-with open("parameters.pickle", 'wb') as f:
-    pickle.dump(front.p_test, f)
+# with open("parameters.pickle", 'wb') as f:
+#     pickle.dump(front.p_test, f)
 
 # data = front.data['fusion']['S5'][0]
 # gen = data[:,0]
