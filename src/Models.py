@@ -25,11 +25,12 @@ class QLearning():
     """Class that implement a Qlearning
     """
     
-    def __init__(self, states, actions, parameters={'length':0}):
+    def __init__(self, states, actions, parameters={'length':0}, sferes = False):
         # State action space
         self.states=states
         self.actions=actions
         #Parameters
+        self.sferes = sferes
         self.parameters = parameters
         self.n_action=len(actions)
         self.n_state=len(states)
@@ -44,13 +45,16 @@ class QLearning():
         self.current_state = None
         self.current_action = None
         # List Init
-        self.state = list()
-        self.action = list()
-        self.responses = list()
-        self.reaction = list()
-        self.value = list()
-        #self.sigma = list()
-        self.pdf = list()
+        if self.sferes:
+            self.value = np.zeros((n_blocs*n_repets, n_trials))
+            self.reaction = np.zeros((n_blocs*n_repets, n_trials))
+        else:
+            self.state = list()
+            self.action = list()
+            self.responses = list()
+            self.reaction = list()
+            self.value = list()            
+            self.pdf = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -66,11 +70,12 @@ class QLearning():
                 self.setParameters(i, parameters[i])
 
     def startBloc(self):
-        self.responses.append([])
+        if not self.sferes:
+            self.responses.append([])
+            self.action.append([])
+            self.state.append([])
+            self.reaction.append([])
         self.values = np.zeros((self.n_state, self.n_action))
-        self.action.append([])
-        self.state.append([])
-        self.reaction.append([])
 
     def startExp(self):
         self.values = np.zeros((self.n_state, self.n_action))
@@ -88,18 +93,18 @@ class QLearning():
         tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
         return np.sum(np.array(tmp) < np.random.rand())-1        
 
-    def computeValue(self, s, a):
+    def computeValue(self, s, a, ind):
         self.current_state = s
         self.current_action = a
 
         value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
-        self.value.append([float(value[self.current_action])])
+        
+        self.value[ind] = float(value[self.current_action])
         
         H = -(value*np.log2(value)).sum()        
-        self.reaction[-1].append(self.parameters['sigma']*H)
+        self.reaction[ind] = float(self.parameters['sigma']*H)
         #self.pdf.append(np.ones(1))
         #self.sigma.append([self.parameters['sigma']])
-
         
     def chooseAction(self, state):        
         self.state[-1].append(state)
@@ -113,7 +118,8 @@ class QLearning():
         return self.actions[self.current_action]
     
     def updateValue(self, reward):
-        self.responses[-1].append(int((reward==1)*1))
+        if not self.sferes:
+            self.responses[-1].append(int((reward==1)*1))
         r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
         delta = r+self.parameters['gamma']*np.max(self.values[self.current_state])-self.values[self.current_state, self.current_action]        
         self.values[self.current_state, self.current_action] = self.values[self.current_state, self.current_action]+self.parameters['alpha']*delta

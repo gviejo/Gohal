@@ -90,7 +90,14 @@ ax1.get_yaxis().tick_left()
 m = data['pcr']['fmri']['mean']
 s = data['pcr']['fmri']['sem']
 for i in xrange(3):
-    ax1.errorbar(range(1, len(m[i])+1), m[i], s[i], marker = 'o', markersize = msize, linestyle = dashes[0], color = colors[i], linewidth = lwidth, elinewidth = elwidth, markeredgecolor = colors[i], capsize = cpsize)
+    ax1.errorbar(range(1, len(m[i])+1), m[i], s[i], marker = 'o', 
+                                                    markersize = msize, 
+                                                    linestyle = dashes[0], 
+                                                    color = colors[i], 
+                                                    linewidth = lwidth, 
+                                                    elinewidth = elwidth, 
+                                                    markeredgecolor = colors[i], 
+                                                    capsize = cpsize)
     
 
 ax1.set_ylabel("Probability correct responses")
@@ -115,7 +122,12 @@ ax2.get_yaxis().tick_left()
 
 m = data['rt']['fmri']['mean']
 s = data['rt']['fmri']['sem']
-ax2.errorbar(range(1, len(m)+1), m, s, color = 'black', marker = 'o', linewidth = lwidth, elinewidth = elwidth, markersize = msize, capsize = cpsize)
+ax2.errorbar(range(1, len(m)+1), m, s, color = 'black', 
+                                        marker = 'o', 
+                                        linewidth = lwidth, 
+                                        elinewidth = elwidth, 
+                                        markersize = msize, 
+                                        capsize = cpsize)
 ax2.set_xlabel("Representative step")
 ax2.set_ylabel("Reaction time (s)")
 # ###

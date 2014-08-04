@@ -51,23 +51,6 @@ def leastSquares(x, y):
         x[i] = fitfunc(p[0], x[i])
     return x    
 
-def mutualInformation(x, y):
-    np.seterr('ignore')
-    bin_size = 2*(np.percentile(y, 75)-np.percentile(y, 25))*np.power(len(y), -(1/3.))
-    py, edges = np.histogram(y, bins=np.arange(y.min(), y.max()+bin_size, bin_size))
-    py = py/float(py.sum())
-    yp = np.digitize(y, edges)-1
-    px, edges = np.histogram(x, bins = np.linspace(x.min(), x.max()+0.00001, 15))
-    px = px/float(px.sum())
-    xp = np.digitize(x, edges)-1
-    p = np.zeros((len(py), len(px)))
-    for i in xrange(len(yp)): p[yp[i], xp[i]] += 1
-    p = p/float(p.sum())
-    tmp = np.log2(p/np.outer(py, px))
-    tmp[np.isinf(tmp)] = 0.0
-    tmp[np.isnan(tmp)] = 0.0
-    return (np.sum(p*tmp), p)
-
 def center(x):
     #x = x-np.mean(x)
     #x = x/np.std(x)
@@ -81,6 +64,7 @@ def center(x):
 # HUMAN LEARNING
 # -----------------------------------
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
+
 # -----------------------------------
 
 # -----------------------------------
@@ -88,7 +72,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 10
+nb_repeat = 100
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -131,11 +115,7 @@ for s in p_test.iterkeys():
     rt = np.array([human.subject['fmri'][s][i]['rt'][0:nb_trials,0] for i in range(1,nb_blocs+1)])
     rt_all.append(rt.flatten())    
     rtm_all.append(rtm[0:nb_blocs].flatten())
-    rt = np.tile(rt, (nb_repeat, 1))
-    v, p = mutualInformation(rtm.flatten(), rt.flatten())
-    mi.append(v)
-    pmi.append(p)
-    
+    rt = np.tile(rt, (nb_repeat, 1))        
     # CENTER
     rtm = center(rtm)    
     state = convertStimulus(np.array(models[m].state))
@@ -176,15 +156,15 @@ rt = computeMeanRepresentativeSteps(step)
 
 #SAVING DATA
 data = dict()
-data['pcr'] = pcr
-data['rt'] = rt
+data['pcr'] = dict({'model':pcr,'fmri':pcr_human})
+data['rt'] = dict({'model':rt,'fmri':rt_fmri})
 data['s'] = dict()
 for i, s in zip(xrange(14), p_test.keys()):
     data['s'][s] = dict()
     data['s'][s]['m'] = hrtm[i]
     data['s'][s]['h'] = hrt[i]
-with open(os.path.expanduser("../Figures/beh_model.pickle") , 'wb') as handle:    
-    pickle.dump(data, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_model.pickle") , 'wb') as handle:    
+     pickle.dump(data, handle)
 
 
 fig = figure(figsize = (15, 12))

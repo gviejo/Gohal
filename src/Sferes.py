@@ -23,9 +23,9 @@ if os.uname()[1] in ['atlantis', 'paradise']:
     from pylab import *
 
 #from fonctions import *
-#from Selection import *
-#from Models import *
-#from HumanLearning import HLearning
+from Selection import *
+from Models import *
+from HumanLearning import HLearning
 #from ColorAssociationTasks import CATS
 #from scipy.stats import sem
 #from scipy.stats import norm
@@ -33,6 +33,9 @@ if os.uname()[1] in ['atlantis', 'paradise']:
 
 def unwrap_self_load_data(arg, **kwarg):
     return pareto.loadPooled(*arg, **kwarg)
+
+def unwrap_self_re_test(arg, **kwarg):
+    return pareto.poolTest(*arg, **kwarg)
 
 class EA():
     """
@@ -207,11 +210,15 @@ class pareto():
     """
     Explore Pareto Front from Sferes Optimization
     """
-    def __init__(self, directory, threshold, N = 156.):
-        self.directory = directory
-        self.threshold = threshold
+    def __init__(self, directory, best, N = 156.):
+        self.directory = directory        
         self.N = N
-        self.human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
+        self.best = best
+        # loading pre-treated data for fmri
+        self.human = dict({s_dir.split(".")[0]:self.pickling("fmri/"+s_dir) for s_dir in os.listdir("fmri/")})
+        # making bound for rt et likelihood
+        self.front_bounds = dict(zip(self.human.keys(), np.zeros((len(self.human.keys()), 2))))
+        self.bounding_front()
         self.data = dict()
         self.states = ['s1', 's2', 's3']
         self.actions = ['thumb', 'fore', 'midd', 'ring', 'little']
@@ -231,16 +238,22 @@ class pareto():
         self.colors_m = dict({'fusion':'r', 'bayesian':'g', 'qlearning':'grey', 'selection':'b', 'mixture':'y'})
         self.opt = dict()
         self.pareto = dict()
-        self.rank = dict()
+        self.distance = dict()
         self.p_test = dict()
         self.mixed = dict()
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
         self.indd = dict()
         self.loadData()
         #self.simpleLoadData()
-        self.constructParetoFrontier()
-        self.constructMixedParetoFrontier()
 
+    def bounding_front(self):        
+        for s in self.human.keys():
+            self.front_bounds[s][0] = self.N*np.log(0.2)*5
+            self.front_bounds[s][1] = -np.sum(2*np.abs(self.human[s]['mean'][0]))
+
+    def pickling(self, direc):
+        with open(direc, "rb") as f:
+            return pickle.load(f)
 
     def loadData(self):
         model_in_folders = os.listdir(self.directory)
@@ -307,7 +320,7 @@ class pareto():
         for m in self.data.iterkeys():
             self.pareto[m] = dict()
             for s in self.data[m].iterkeys():
-                print m, s        
+                # print m, s        
                 self.pareto[m][s] = dict()   
                 tmp={n:self.data[m][s][n][self.data[m][s][n][:,0]==np.max(self.data[m][s][n][:,0])] for n in self.data[m][s].iterkeys()}
                 tmp=np.vstack([np.hstack((np.ones((len(tmp[n]),1))*n,tmp[n])) for n in tmp.iterkeys()])
@@ -323,11 +336,13 @@ class pareto():
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - 2000.0
                 self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
-                #self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
-                for t in xrange(len(self.threshold)):
-                    self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+t] >= self.threshold[t]]                            
+                #self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - np.log(self.N)*float(len(self.models[m].bounds.keys()))                
+                for i in xrange(2): self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+i] >= self.front_bounds[s][i]]                            
+                self.pareto[m][s][:,3:5] = (self.pareto[m][s][:,3:5]-self.front_bounds[s])/(self.best-self.front_bounds[s])
+
 
     def constructMixedParetoFrontier(self):
+        # One transformation is applied to rescale each fitness function
         subjects = set.intersection(*map(set, [self.pareto[m].keys() for m in self.pareto.keys()]))
         for s in subjects:
             self.mixed[s] = []
@@ -342,170 +357,218 @@ class pareto():
                 if pair[5] >= self.mixed[s][-1][5]:
                     self.mixed[s].append(pair)
             self.mixed[s] = np.array(self.mixed[s])
+            #self.mixed[s][:,4:6] = (self.mixed[s][:,4:6]-self.front_bounds[s])/(self.best-self.front_bounds[s])
 
-    def rankMixedFront(self, w):    
+    def removeIndivDoublons(self):
+        for m in self.pareto.iterkeys():
+            for s in self.pareto[m].iterkeys():
+                # start at column 5; for each parameters columns, find the minimal number of value
+                # then mix all parameters
+                tmp = np.zeros((len(self.pareto[m][s]),len(self.p_order[m])))
+                for i in xrange(len(self.p_order[m])):
+                    tmp[:,i][np.unique(self.pareto[m][s][:,i+5], return_index = True)[1]] = 1.0
+                self.pareto[m][s] = self.pareto[m][s][tmp.sum(1)>0]
+
+    def reTest(self, n):        
+        pool = Pool(len(self.pareto.keys()))
+        tmp = pool.map(unwrap_self_re_test, zip([self]*len(self.pareto.keys()), self.pareto.iterkeys(), [n]*len(self.pareto.keys())))
+        return tmp
+                                
+
+    def poolTest(self, m, n):       
+        models = dict({"fusion":FSelection(self.states, self.actions, sferes = True),
+                "qlearning":QLearning(self.states, self.actions, sferes = True),
+                "bayesian":BayesianWorkingMemory(self.states, self.actions, sferes = True),
+                "selection":KSelection(self.states, self.actions, sferes = True),
+                "mixture":CSelection(self.states, self.actions, sferes = True)})        
+        model = models[m]
+        for s in self.pareto[m].iterkeys():                
+                for i in xrange(len(self.pareto[m][s])):                    
+                    parameters = dict(zip(self.p_order[m], self.pareto[m][s][i,5:]))
+                    model.setAllParameters(parameters)
+                    model.value = np.zeros((4*n,39))
+                    model.reaction = np.zeros((4*n,39))
+                    with open("fmri/"+s+".pickle", "rb") as f:
+                        data = pickle.load(f)
+                    opt = EA(data, s, model)
+                    opt.n_repets = n
+                    fit1, fit2 = opt.getFitness()
+                    self.pareto[m][s][i,3] = float(fit1)
+                    self.pareto[m][s][i,4] = float(fit2)
+
+    def rankDistance(self):
         for s in self.mixed.iterkeys():
-            # self.rank[s] = self.OWA((self.mixed[s][:,4:]), w)            
-            if s in w.keys():
-                self.rank[s] = self.Tchebychev(self.mixed[s][:,4:], w[s], 0.01)
-            else:
-                self.rank[s] = self.Tchebychev(self.mixed[s][:,4:], [0.5,0.5], 0.01)
-            # i = np.argmax(self.rank[s])
-            i = np.argmin(self.rank[s])
-            m = self.m_order[int(self.mixed[s][i,0])]
-            ind = self.pareto[m][s][(self.pareto[m][s][:,0] == self.mixed[s][i][1])*(self.pareto[m][s][:,1] == self.mixed[s][i][2])*(self.pareto[m][s][:,2] == self.mixed[s][i][3])][0]
-            self.indd[s] = ind            
-            self.p_test[s] = {m:{}}
-            for p in self.p_order[m.split("_")[0]]:
-                self.p_test[s][m][p] = ind[self.p_order[m].index(p)+5]
-
-    def OWA(self, value, w):
-        m,n=value.shape
-        #assert m>=n
-        assert len(w) == n
-        assert np.sum(w) == 1
-        return np.sum(np.sort(value)*w,1)
-
-    def Tchebychev(self, value, lambdaa, epsilon):
-        m,n = value.shape
-        #assert m>=n
-        assert len(lambdaa) == n
-        assert np.sum(lambdaa) == 1
-        assert epsilon < 1.0
-        ideal = np.max(value, 0)
-        nadir = np.min(value, 0)
-        tmp = lambdaa*((ideal-value)/(ideal-nadir))
-        return np.max(tmp, 1)+epsilon*np.sum(tmp,1) 
+            self.distance[s] = np.zeros((len(self.mixed[s]), 3))
+            self.distance[s][:,1] = np.sqrt(np.sum(np.power(self.mixed[s][:,4:6]-np.ones(2), 2),1))
+            ind_best_point = np.argmin(self.distance[s][:,1])
+            best_point = self.mixed[s][ind_best_point,4:6]
+            self.distance[s][:,0] = np.sqrt(np.sum(np.power(self.mixed[s][:,4:6]-best_point,2),1))
+            self.distance[s][0:ind_best_point,0] = -1.0*self.distance[s][0:ind_best_point,0]
+            self.distance[s][0:ind_best_point,2] = np.arange(-ind_best_point,0)
+            self.distance[s][ind_best_point:,2] = np.arange(0, len(self.distance[s])-ind_best_point)
+            # Saving best individual                        
+            best_ind = self.mixed[s][ind_best_point]
+            m = self.m_order[int(best_ind[0])]            
+            tmp = self.pareto[m][s][(self.pareto[m][s][:,0] == best_ind[1])*(self.pareto[m][s][:,2] == best_ind[3])]
+            assert len(tmp) == 1
+            self.p_test[s] = dict({m:dict(zip(self.p_order[m],tmp[0,5:]))})
 
     def preview(self):
-        fig_pareto = figure(figsize = (12, 9))
-        #fig_par = figure(figsize = (12, 9))
-        #fig_p = figure(figsize = (12,9))
         rcParams['ytick.labelsize'] = 8
-        rcParams['xtick.labelsize'] = 8
-        # n_params_max = np.max([len(t) for t in [self.p_order[m.split("_")[0]] for m in self.pareto.keys()]])
-        # n_model = len(self.pareto.keys())
-        # for i in xrange(n_model):
-        #     m = self.pareto.keys()[i]
-        #     for j in xrange(len(self.p_order[m.split("_")[0]])):
-        #         p = self.p_order[m.split("_")[0]][j]
-        #         ax2 = fig_par.add_subplot(n_params_max, n_model, i+1+n_model*j)                
-        #         ax3 = fig_p.add_subplot(n_params_max, n_model, i+1+n_model*j)
-        #         for s in self.pareto[m].iterkeys():
-        #             y, x = np.histogram(self.pareto[m][s][:,5+j])
-        #             y = y/np.sum(y.astype("float"))
-        #             x = (x-(x[1]-x[0])/2)[1:]
-        #             ax2.plot(x, y, 'o-', linewidth = 2)
-        #             ax2.set_ylim(0, 1)
-        #             ax2.set_xlim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
-        #             ax2.set_xlabel(p)
-        #             ax3.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,5+j], 'o-')
-        #             ax3.set_ylim(self.models[m.split("_")[0]].bounds[p][0],self.models[m.split("_")[0]].bounds[p][1])
-        #             ax3.set_ylabel(p)
-        #         if j == 0:
-        #             ax2.set_title(m)
-                
-        for s, i in zip(self.mixed.keys(), xrange(len(self.mixed.keys()))):
-            ax1 = fig_pareto.add_subplot(4,4,i+1)
-            ax1.scatter(self.indd[s][3], self.indd[s][4], s = 100, color = 'black')
-            for m in self.pareto.iterkeys():                
-                ax1.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m], alpha = 0.6)
-                ax1.set_title(s)                            
+        rcParams['xtick.labelsize'] = 8        
+        fig_model = figure(figsize = (10,10)) # for each model all subject            
+        fig_rank = figure(figsize = (6,6))         
+        for m,i in zip(self.pareto.iterkeys(), xrange(len(self.pareto.keys()))):
+            ax2 = fig_model.add_subplot(3,2,i+1)
+            for s in self.pareto[m].iterkeys():
+                ax2.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m], alpha = 1.0)        
+            ax2.set_title(m)
+            ax2.set_xlim(0,1)
+            ax2.set_ylim(0,1)
+        ax4 = fig_model.add_subplot(3,2,6)                                    
+        ax5 = fig_rank.add_subplot(1,1,1)
+        for s in self.mixed.keys():
+            for m in np.unique(self.mixed[s][:,0]):
+                ind = self.mixed[s][:,0] == m
+                ax4.plot(self.mixed[s][ind,4], self.mixed[s][ind,5], 'o-', color = self.colors_m[self.m_order[int(m)]])
+                ax5.plot(self.distance[s][ind,0], self.distance[s][ind,1], 'o-', color = self.colors_m[self.m_order[int(m)]])
+                #ax5.plot(self.distance[s][ind,2], self.distance[s][ind,1], 'o-', color = self.colors_m[self.m_order[int(m)]])
+        ax5.axvline(0.0)
+        
+        
+        
+        
 
-        #fig_par.subplots_adjust(hspace = 0.8, top = 0.98, bottom = 0.1)
-        fig_pareto.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
-        #fig_p.subplots_adjust(left = 0.08, wspace = 0.26, hspace = 0.26, right = 0.92, top = 0.96)
-        show()        
-    
-    def _convertStimulus(self, s):
-        return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
+
+
+
+
+
+
+
+    # def rankMixedFront(self, w):    
+    #     for s in self.mixed.iterkeys():
+    #         # self.distance[s] = self.OWA((self.mixed[s][:,4:]), w)            
+    #         if s in w.keys():
+    #             self.distance[s] = self.Tchebychev(self.mixed[s][:,4:], w[s], 0.01)
+    #         else:
+    #             self.distance[s] = self.Tchebychev(self.mixed[s][:,4:], [0.5,0.5], 0.01)
+    #         # i = np.argmax(self.distance[s])
+    #         i = np.argmin(self.distance[s])
+    #         m = self.m_order[int(self.mixed[s][i,0])]
+    #         ind = self.pareto[m][s][(self.pareto[m][s][:,0] == self.mixed[s][i][1])*(self.pareto[m][s][:,1] == self.mixed[s][i][2])*(self.pareto[m][s][:,2] == self.mixed[s][i][3])][0]
+    #         self.indd[s] = ind            
+    #         self.p_test[s] = {m:{}}
+    #         for p in self.p_order[m.split("_")[0]]:
+    #             self.p_test[s][m][p] = ind[self.p_order[m].index(p)+5]
+
+    # def OWA(self, value, w):
+    #     m,n=value.shape
+    #     #assert m>=n
+    #     assert len(w) == n
+    #     assert np.sum(w) == 1
+    #     return np.sum(np.sort(value)*w,1)
+
+    # def Tchebychev(self, value, lambdaa, epsilon):
+    #     m,n = value.shape
+    #     #assert m>=n
+    #     assert len(lambdaa) == n
+    #     assert np.sum(lambdaa) == 1
+    #     assert epsilon < 1.0
+    #     ideal = np.max(value, 0)
+    #     nadir = np.min(value, 0)
+    #     tmp = lambdaa*((ideal-value)/(ideal-nadir))
+    #     return np.max(tmp, 1)+epsilon*np.sum(tmp,1) 
+
+    # def _convertStimulus(self, s):
+    #     return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
+
+    # # def alignToMedian(self, m, s, n_blocs, n_trials):
+    # #     x = np.array(self.models[m].reaction).flatten()
+    # #     y = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                
+    # #     Ex = np.percentile(x, 75) - np.percentile(x, 25)        
+    # #     Ey = np.percentile(y, 75) - np.percentile(y, 25)
+    # #     if Ex == 0.0: Ex = 1.0
+    # #     x = x*(Ey/Ex)
+    # #     x = x-(np.median(x)-np.median(y))
+    # #     self.models[m].reaction = x.reshape(n_blocs, n_trials)
 
     # def alignToMedian(self, m, s, n_blocs, n_trials):
-    #     x = np.array(self.models[m].reaction).flatten()
-    #     y = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                
-    #     Ex = np.percentile(x, 75) - np.percentile(x, 25)        
-    #     Ey = np.percentile(y, 75) - np.percentile(y, 25)
-    #     if Ex == 0.0: Ex = 1.0
-    #     x = x*(Ey/Ex)
-    #     x = x-(np.median(x)-np.median(y))
-    #     self.models[m].reaction = x.reshape(n_blocs, n_trials)
-
-    def alignToMedian(self, m, s, n_blocs, n_trials):
-        p = np.sum(np.array(self.models[m].pdf), 0)
-        p = p/p.sum()        
-        wp = []
-        tmp = np.cumsum(p)
-        f = lambda x: (x-np.sum(tmp<x)*tmp[np.sum(tmp<x)-1]+(np.sum(tmp<x)-1.0)*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-        for i in [0.25, 0.75]:
-            if np.min(tmp)>i:
-                wp.append(0.0)
-            else:
-                wp.append(f(i))              
-        yy = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                                
-        xx = np.array(self.models[m].reaction).flatten()
-        b = np.arange(int(self.models[m].parameters['length'])+1)
-        wh = [np.percentile(yy, i) for i in [25, 75]]
-        if (wp[1]-wp[0]):
-            xx = xx*((wh[1]-wh[0])/(wp[1]-wp[0]))
-            b = b*((wh[1]-wh[0])/(wp[1]-wp[0]))
-        f = lambda x: (x*(b[np.sum(tmp<x)]-b[np.sum(tmp<x)-1])-b[np.sum(tmp<x)]*tmp[np.sum(tmp<x)-1]+b[np.sum(tmp<x)-1]*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-        half = f(0.5) if np.min(tmp)<0.5 else 0.0        
+    #     p = np.sum(np.array(self.models[m].pdf), 0)
+    #     p = p/p.sum()        
+    #     wp = []
+    #     tmp = np.cumsum(p)
+    #     f = lambda x: (x-np.sum(tmp<x)*tmp[np.sum(tmp<x)-1]+(np.sum(tmp<x)-1.0)*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
+    #     for i in [0.25, 0.75]:
+    #         if np.min(tmp)>i:
+    #             wp.append(0.0)
+    #         else:
+    #             wp.append(f(i))              
+    #     yy = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                                
+    #     xx = np.array(self.models[m].reaction).flatten()
+    #     b = np.arange(int(self.models[m].parameters['length'])+1)
+    #     wh = [np.percentile(yy, i) for i in [25, 75]]
+    #     if (wp[1]-wp[0]):
+    #         xx = xx*((wh[1]-wh[0])/(wp[1]-wp[0]))
+    #         b = b*((wh[1]-wh[0])/(wp[1]-wp[0]))
+    #     f = lambda x: (x*(b[np.sum(tmp<x)]-b[np.sum(tmp<x)-1])-b[np.sum(tmp<x)]*tmp[np.sum(tmp<x)-1]+b[np.sum(tmp<x)-1]*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
+    #     half = f(0.5) if np.min(tmp)<0.5 else 0.0        
         
-        xx = xx-(half-np.median(yy))
-        self.models[m].reaction = xx.reshape(n_blocs, n_trials)
+    #     xx = xx-(half-np.median(yy))
+    #     self.models[m].reaction = xx.reshape(n_blocs, n_trials)
 
-    def learnRBM(self, m, s, n_blocs, n_trials):
-        x = np.array([self.human.subject['fmri'][s][i]['rt'][0:n_trials,0] for i in range(1,n_blocs+1)]).flatten()
-        #x = 1./x
-        x_bin_size = 2*(np.percentile(x, 75)-np.percentile(x, 25))*np.power(len(x), -(1/3.))
-        px, xedges = np.histogram(x, bins=np.arange(x.min(), x.max()+ x_bin_size, x_bin_size))
-        px = px/float(px.sum())
-        xposition = np.digitize(x, xedges)-1
+    # def learnRBM(self, m, s, n_blocs, n_trials):
+    #     x = np.array([self.human.subject['fmri'][s][i]['rt'][0:n_trials,0] for i in range(1,n_blocs+1)]).flatten()
+    #     #x = 1./x
+    #     x_bin_size = 2*(np.percentile(x, 75)-np.percentile(x, 25))*np.power(len(x), -(1/3.))
+    #     px, xedges = np.histogram(x, bins=np.arange(x.min(), x.max()+ x_bin_size, x_bin_size))
+    #     px = px/float(px.sum())
+    #     xposition = np.digitize(x, xedges)-1
 
-        y = self.models[m].reaction.flatten()
-        y_bin_size = 2*(np.percentile(y, 75)-np.percentile(y, 25))*np.power(len(y), -(1/3.))
-        py, yedges = np.histogram(y, bins=np.arange(y.min(), y.max()+y_bin_size, y_bin_size))
-        py = py/float(py.sum())
-        yposition = np.digitize(y, yedges)-1
+    #     y = self.models[m].reaction.flatten()
+    #     y_bin_size = 2*(np.percentile(y, 75)-np.percentile(y, 25))*np.power(len(y), -(1/3.))
+    #     py, yedges = np.histogram(y, bins=np.arange(y.min(), y.max()+y_bin_size, y_bin_size))
+    #     py = py/float(py.sum())
+    #     yposition = np.digitize(y, yedges)-1
 
-        f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
-        xdata = np.zeros((x.shape[0], xposition.max()+1))
-        for i in xrange(xposition.shape[0]): xdata[i,xposition[i]] = 1.0
-        ydata = np.zeros((y.shape[0], yposition.max()+1))
-        for i in xrange(yposition.shape[0]): ydata[i,yposition[i]] = 1.0
+    #     f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
+    #     xdata = np.zeros((x.shape[0], xposition.max()+1))
+    #     for i in xrange(xposition.shape[0]): xdata[i,xposition[i]] = 1.0
+    #     ydata = np.zeros((y.shape[0], yposition.max()+1))
+    #     for i in xrange(yposition.shape[0]): ydata[i,yposition[i]] = 1.0
 
-        rbm = RBM(xdata, ydata, nh = 10, nbiter = 1000)
-        rbm.train()
+    #     rbm = RBM(xdata, ydata, nh = 10, nbiter = 1000)
+    #     rbm.train()
                 
-        Y = rbm.getInputfromOutput(ydata)
+    #     Y = rbm.getInputfromOutput(ydata)
 
-        tirage = np.argmax(Y, 1)
+    #     tirage = np.argmax(Y, 1)
         
-        center = xedges[1:]-(x_bin_size/2.)
+    #     center = xedges[1:]-(x_bin_size/2.)
                 
-        self.models[m].reaction = np.reshape(center[tirage], (n_blocs, n_trials))        
+    #     self.models[m].reaction = np.reshape(center[tirage], (n_blocs, n_trials))        
 
-    def leastSquares(self, m, s, n_blocs, n_trials):
-        rt = np.array([self.human.subject['fmri'][s][i]['rt'][0:n_trials,0] for i in range(1,n_blocs+1)]).flatten()
-        rtm = self.models[m].reaction.flatten()
-        state = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,0] for i in range(1,n_blocs+1)])
-        action = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,1] for i in range(1,n_blocs+1)])
-        responses = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,2] for i in range(1,n_blocs+1)])
-        pinit = [1.0, -1.0]
-        fitfunc = lambda p, x: p[0] + p[1] * x
-        errfunc = lambda p, x, y : (y - fitfunc(p, x))
-        mean = []
-        for i in [rt,rtm]:
-            tmp = i.reshape(n_blocs, n_trials)
-            step, indice = getRepresentativeSteps(tmp, state, action, responses)
-            mean.append(computeMeanRepresentativeSteps(step))
-        mean = np.array(mean)
-        p = leastsq(errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)        
-        #self.models[m].reaction = fitfunc(p[0], mean[1][0])
-        self.models[m].reaction = mean[1][0]
-        ###
-        self.hrt.append(mean[0][0])
-        ###
+    # def leastSquares(self, m, s, n_blocs, n_trials):
+    #     rt = np.array([self.human.subject['fmri'][s][i]['rt'][0:n_trials,0] for i in range(1,n_blocs+1)]).flatten()
+    #     rtm = self.models[m].reaction.flatten()
+    #     state = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,0] for i in range(1,n_blocs+1)])
+    #     action = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,1] for i in range(1,n_blocs+1)])
+    #     responses = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,2] for i in range(1,n_blocs+1)])
+    #     pinit = [1.0, -1.0]
+    #     fitfunc = lambda p, x: p[0] + p[1] * x
+    #     errfunc = lambda p, x, y : (y - fitfunc(p, x))
+    #     mean = []
+    #     for i in [rt,rtm]:
+    #         tmp = i.reshape(n_blocs, n_trials)
+    #         step, indice = getRepresentativeSteps(tmp, state, action, responses)
+    #         mean.append(computeMeanRepresentativeSteps(step))
+    #     mean = np.array(mean)
+    #     p = leastsq(errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)        
+    #     #self.models[m].reaction = fitfunc(p[0], mean[1][0])
+    #     self.models[m].reaction = mean[1][0]
+    #     ###
+    #     self.hrt.append(mean[0][0])
+    #     ###
 
     # def run(self, plot=True):
     #     nb_blocs = 4

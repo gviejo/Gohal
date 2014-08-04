@@ -194,7 +194,7 @@ class FSelection():
         
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
-        self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
+        self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))
         
         # while self.nb_inferences < self.n_element:            
         #     self.inferenceModule()

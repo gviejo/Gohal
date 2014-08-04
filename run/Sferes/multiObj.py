@@ -41,33 +41,31 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-front = pareto(options.input, threshold = [-800, -20], N = 156)
+best = np.array([-257.0, 0.0])
+front = pareto(options.input, best, N = 156)
 
-w = dict({'S2':[0.2,0.8],
-			'S17':[0.1,0.9],
-			'S5':[0.1,0.9],
-			'S15':[0.1,0.9],
-			'S12':[0.2,0.8],
-			'S16':[0.1,0.9],
-			'S9':[0.1,0.9],
-			'S13':[0.9,0.1],
-			'S6':[0.9,0.1]})
 
-front.rankMixedFront(w)
+
+front.constructParetoFrontier()
+front.removeIndivDoublons()
+#model = front.reTest(10)
+#front.constructParetoFrontier()
+front.constructMixedParetoFrontier()
+front.rankDistance()
 front.preview()
 show()
 
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
+    pickle.dump(front.pareto, handle)
 
-#front.run(plot=True)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
+    pickle.dump(front.mixed, handle)
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
-#     pickle.dump(front.pareto, handle)
-
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
-#     pickle.dump(front.mixed, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_distance.pickle"), 'wb') as handle:
+	pickle.dump(front.distance, handle)
 
 # with open("parameters.pickle", 'wb') as f:
-#     pickle.dump(front.p_test, f)
+#      pickle.dump(front.p_test, f)
 
 # data = front.data['fusion']['S5'][0]
 # gen = data[:,0]
