@@ -44,16 +44,18 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 best = np.array([-257.0, 0.0])
 front = pareto(options.input, best, N = 156)
 
-
-
 front.constructParetoFrontier()
+
 front.removeIndivDoublons()
 #model = front.reTest(10)
-#front.constructParetoFrontier()
+##front.constructParetoFrontier()
 front.constructMixedParetoFrontier()
 front.rankDistance()
-front.preview()
-show()
+front.rankOWA()
+front.rankTchebytchev()
+front.zoomBox(0.0, 0.0)
+# front.preview()
+# show()
 
 with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
     pickle.dump(front.pareto, handle)
@@ -64,8 +66,11 @@ with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front
 with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_distance.pickle"), 'wb') as handle:
 	pickle.dump(front.distance, handle)
 
-# with open("parameters.pickle", 'wb') as f:
-#      pickle.dump(front.p_test, f)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators.pickle"), 'wb') as handle:
+	pickle.dump(front.zoom, handle)
+
+with open("parameters.pickle", 'wb') as f:
+	pickle.dump(front.p_test, f)
 
 # data = front.data['fusion']['S5'][0]
 # gen = data[:,0]

@@ -239,10 +239,13 @@ class pareto():
         self.opt = dict()
         self.pareto = dict()
         self.distance = dict()
+        self.owa = dict()
+        self.tche = dict()
         self.p_test = dict()
         self.mixed = dict()
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
         self.indd = dict()
+        self.zoom = dict()
         self.loadData()
         #self.simpleLoadData()
 
@@ -332,13 +335,17 @@ class pareto():
                     if pair[4] >= pareto_frontier[-1][4]:
                         pareto_frontier.append(pair)
                 self.pareto[m][s] = np.array(pareto_frontier)
-                
+
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - 2000.0
                 self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
                 #self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - np.log(self.N)*float(len(self.models[m].bounds.keys()))                
-                for i in xrange(2): self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+i] >= self.front_bounds[s][i]]                            
-                self.pareto[m][s][:,3:5] = (self.pareto[m][s][:,3:5]-self.front_bounds[s])/(self.best-self.front_bounds[s])
+                for i in xrange(2): 
+                    self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+i] >= self.front_bounds[s][i]]
+                if len(self.pareto[m][s]):
+                    self.pareto[m][s][:,3:5] = (self.pareto[m][s][:,3:5]-self.front_bounds[s])/(self.best-self.front_bounds[s])
+                else:
+                    print "No point for ", s, m
 
 
     def constructMixedParetoFrontier(self):
@@ -362,12 +369,13 @@ class pareto():
     def removeIndivDoublons(self):
         for m in self.pareto.iterkeys():
             for s in self.pareto[m].iterkeys():
-                # start at column 5; for each parameters columns, find the minimal number of value
-                # then mix all parameters
-                tmp = np.zeros((len(self.pareto[m][s]),len(self.p_order[m])))
-                for i in xrange(len(self.p_order[m])):
-                    tmp[:,i][np.unique(self.pareto[m][s][:,i+5], return_index = True)[1]] = 1.0
-                self.pareto[m][s] = self.pareto[m][s][tmp.sum(1)>0]
+                if len(self.pareto[m][s]):
+                    # start at column 5; for each parameters columns, find the minimal number of value
+                    # then mix all parameters
+                    tmp = np.zeros((len(self.pareto[m][s]),len(self.p_order[m])))
+                    for i in xrange(len(self.p_order[m])):
+                        tmp[:,i][np.unique(self.pareto[m][s][:,i+5], return_index = True)[1]] = 1.0
+                    self.pareto[m][s] = self.pareto[m][s][tmp.sum(1)>0]
 
     def reTest(self, n):        
         pool = Pool(len(self.pareto.keys()))
@@ -397,6 +405,7 @@ class pareto():
                     self.pareto[m][s][i,4] = float(fit2)
 
     def rankDistance(self):
+        self.p_test['distance'] = dict()
         for s in self.mixed.iterkeys():
             self.distance[s] = np.zeros((len(self.mixed[s]), 3))
             self.distance[s][:,1] = np.sqrt(np.sum(np.power(self.mixed[s][:,4:6]-np.ones(2), 2),1))
@@ -411,7 +420,38 @@ class pareto():
             m = self.m_order[int(best_ind[0])]            
             tmp = self.pareto[m][s][(self.pareto[m][s][:,0] == best_ind[1])*(self.pareto[m][s][:,2] == best_ind[3])]
             assert len(tmp) == 1
-            self.p_test[s] = dict({m:dict(zip(self.p_order[m],tmp[0,5:]))})
+            self.p_test['distance'][s] = dict({m:dict(zip(self.p_order[m],tmp[0,5:]))})
+
+    def rankOWA(self):
+        self.p_test['owa'] = dict()
+        for s in self.mixed.iterkeys():
+            tmp = self.mixed[s][:,4:6]
+            value = np.sum(np.sort(tmp)*[0.5, 0.5], 1)
+            self.owa[s] = value
+            ind_best_point = np.argmax(value)
+            # Saving best indivudual
+            best_ind = self.mixed[s][ind_best_point]
+            m = self.m_order[int(best_ind[0])]
+            tmp = self.pareto[m][s][(self.pareto[m][s][:,0] == best_ind[1])*(self.pareto[m][s][:,2] == best_ind[3])]
+            assert len(tmp) == 1
+            self.p_test['owa'][s] = dict({m:dict(zip(self.p_order[m],tmp[0,5:]))})            
+
+    def rankTchebytchev(self, lambdaa = 0.5, epsilon = 0.001):
+        self.p_test['tche'] = dict()
+        for s in self.mixed.iterkeys():
+            tmp = self.mixed[s][:,4:6]
+            ideal = np.max(tmp, 0)
+            nadir = np.min(tmp, 0)
+            value = lambdaa*((ideal-tmp)/(ideal-nadir))
+            value = np.max(value, 1)+epsilon*np.sum(value,1)
+            self.tche[s] = value
+            ind_best_point = np.argmin(value)
+            # Saving best individual
+            best_ind = self.mixed[s][ind_best_point]
+            m = self.m_order[int(best_ind[0])]
+            tmp = self.pareto[m][s][(self.pareto[m][s][:,0] == best_ind[1])*(self.pareto[m][s][:,2] == best_ind[3])]
+            assert len(tmp) == 1
+            self.p_test['tche'][s] = dict({m:dict(zip(self.p_order[m],tmp[0,5:]))})                        
 
     def preview(self):
         rcParams['ytick.labelsize'] = 8
@@ -435,8 +475,25 @@ class pareto():
                 #ax5.plot(self.distance[s][ind,2], self.distance[s][ind,1], 'o-', color = self.colors_m[self.m_order[int(m)]])
         ax5.axvline(0.0)
         
+        fig_zoom = figure(figsize = (5,5))
+        ax6 = fig_zoom.add_subplot(1,1,1)
+        for s in self.zoom.keys():
+            print s
+            ax6.plot(self.zoom[s][:,0], self.zoom[s][:,1], '.-', color = 'grey')
+            ax6.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 15, color = 'blue', alpha = 0.5)
+            ax6.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 15, color = 'red', alpha = 0.5)
+            ax6.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 15, color = 'green', alpha = 0.5)
+        ax6.set_xlim(0,1)
+        ax6.set_ylim(0,1)
         
-        
+    def zoomBox(self, xmin, ymin):
+        for s in self.mixed.iterkeys():
+            self.zoom[s] = np.hstack((self.mixed[s][:,4:6], self.distance[s][:,1:2], np.vstack(self.owa[s]), np.vstack(self.tche[s])))
+            if np.sum((self.zoom[s][:,0] > xmin)*(self.zoom[s][:,1] > ymin)):
+                self.zoom[s] = self.zoom[s][self.zoom[s][:,0] > xmin]
+                self.zoom[s] = self.zoom[s][self.zoom[s][:,1] > ymin]
+            else:
+                self.zoom.pop(s)       
         
 
 
@@ -475,10 +532,7 @@ class pareto():
     #     assert len(lambdaa) == n
     #     assert np.sum(lambdaa) == 1
     #     assert epsilon < 1.0
-    #     ideal = np.max(value, 0)
-    #     nadir = np.min(value, 0)
-    #     tmp = lambdaa*((ideal-value)/(ideal-nadir))
-    #     return np.max(tmp, 1)+epsilon*np.sum(tmp,1) 
+    
 
     # def _convertStimulus(self, s):
     #     return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
