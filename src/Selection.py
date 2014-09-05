@@ -37,9 +37,9 @@ class FSelection():
                             "beta":[1.0, 10.0],
                             "alpha":[0.1, 1.0],
                             "length":[6, 10],
-                            "threshold":[0.1, 20.0],
+                            "threshold":[1.0, 20.0], 
                             "noise":[0.01, 1.0],
-                            "gain":[0.01, 10.0],
+                            "gain":[0.01, 10.0], # new beta for p_a_mf
                             "sigma":[0.01, 1.0]})                            
 
         #Probability Initialization
@@ -135,8 +135,8 @@ class FSelection():
     def sigmoideModule(self):
         x = 2*self.max_entropy-self.Hb-self.Hf
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
-        self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
-        #self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['gain'])*np.exp(-x))
+        # self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
+        self.pA = 1/(1+(self.n_element-self.nb_inferences)*self.parameters['threshold']*np.exp(-x))
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))        
@@ -157,7 +157,8 @@ class FSelection():
         self.current_action = a
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy
-        self.Hf = computeEntropy(self.values_mf[self.current_state], self.parameters['beta'])
+        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['gain'])
+        self.Hf = -(self.p_a_mf*np.log2(self.p_a_mf)).sum()
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
 
@@ -176,17 +177,15 @@ class FSelection():
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy
-        self.Hf = computeEntropy(self.values_mf[self.current_state], self.parameters['beta'])
+        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['gain'])
+        self.Hf = -(self.p_a_mf*np.log2(self.p_a_mf)).sum()
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
-
-        #pdf = np.zeros(int(self.parameters['length'])+1)
         
         while self.sigmoideModule():
-            #pdf[self.nb_inferences] = float(self.pA)
             self.inferenceModule()
             self.evaluationModule()
-        #pdf[self.nb_inferences] = float(self.pA)            
+
         self.fusionModule()
         self.current_action = self.sample(self.p_a)
         self.value.append(float(self.p_a[self.current_action]))
@@ -196,14 +195,6 @@ class FSelection():
         N = float(self.nb_inferences+1)
         self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))
         
-        # while self.nb_inferences < self.n_element:            
-        #     self.inferenceModule()
-        #     self.evaluationModule()
-        #     d = self.sigmoideModule()
-        #     pdf[self.nb_inferences] = float(self.pA)            
-        
-        # pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
-        # self.pdf[-1].append(pdf)
         return self.actions[self.current_action]
 
     def updateValue(self, reward):
@@ -230,7 +221,7 @@ class FSelection():
         self.p_r_as[0, self.current_state, self.current_action] = 0.0
         self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0        
         # Updating model free
-        r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
+        r = (reward==0)*-0.1+(reward==1)*0.1+(reward==-1)*-0.1        
         delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
         #delta = float(r)-self.values_mf[self.current_state, self.current_action]        
         self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
