@@ -245,7 +245,7 @@ def computeMeanReactionTime(data, case = None, ind = 40):
                      'sem':stats.sem(tmp, 0)})
     return reaction
                 
-def getRepresentativeSteps(data, stimulus, action, responses):
+def getRepresentativeSteps(data, stimulus, action, responses, pastouche=16):
     m, n = data.shape
     bad_trials = 0
     incorrect_trials = 0
@@ -363,7 +363,7 @@ def getRepresentativeSteps(data, stimulus, action, responses):
         #             indice[i,j] = 0
 
     steps = dict()
-    for i in range(1,16):
+    for i in range(1,pastouche):
         steps[i] = data[indice == i]
     if incorrect_trials:
         print "Number of incorrect trials : %.2f" % (incorrect_trials/float(m)) + " %"
@@ -396,7 +396,7 @@ def extractStimulusPresentation(data, stimulus, action, responses):
     bad_trials = 0
     incorrect_trials = 0
 
-    for i in xrange(m):
+    for i in xrange(m):        
         first, second, third = searchStimOrder(stimulus[i], action[i], responses[i])
         tmp[1].append(data[i,stimulus[i] == first][0:n/3])
         tmp[2].append(data[i,stimulus[i] == second][0:n/3])

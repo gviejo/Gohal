@@ -1,5 +1,6 @@
-#!/usr/bin/python
-# encoding: utf-8
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 """
 ColorAssociationTask.py
 
@@ -26,11 +27,15 @@ class CATS():
         self.stimuli = self.createStimulusList()
         self.order = self.createOrderCorrect(self.states, [1,3,4])
         self.used = []
-        self.correct = []
+        self.correct = dict.fromkeys(self.states)
         self.one_error = False
         self.three_error = False
         self.four_error = False
-        
+        ## Devaluation ##
+        self.devaluation_interval = -1
+        self.interval = dict(zip(self.states,np.zeros(len(self.states),dtype='int')))
+        ################
+
     def reinitialize(self):
         #self.__init__(self.nb_trials)
         self.asso = self.createAssociationDict(self.states)
@@ -38,11 +43,14 @@ class CATS():
         self.stimuli = self.createStimulusList()
         self.order = self.createOrderCorrect(self.states, [1,3,4])
         self.used = []
-        self.correct = []
+        self.correct = dict.fromkeys(self.states)
         self.one_error = False
         self.three_error = False
         self.four_error = False
-        
+        ## Devaluation ##
+        self.devaluation_interval = -1
+        self.interval = dict(zip(self.states,np.zeros(len(self.states),dtype='int')))
+        ################
 
     def createOrderCorrect(self, states, nb_incorrect):
         s = list(states)
@@ -60,20 +68,12 @@ class CATS():
 
     def getStimulus(self, iteration):
         try:
+            if self.interval[self.stimuli[iteration]] == self.devaluation_interval:
+                self.devaluate(self.stimuli[iteration])
             return self.stimuli[iteration]
         except:
             print "Error: no more stimuli"
             sys.exit(0)
-
-    """
-    def createStimulusList(self, states, nb_trials):
-        tmp = list(states)
-        s = []
-        for i in xrange((nb_trials/len(states))+1):
-            np.random.shuffle(tmp)
-            s.append(list(tmp))
-        return (np.array(s)).flatten()
-    """
 
     def createStimulusList(self):
         s = np.tile(np.array(self.states), ((self.nb_trials/len(self.states))+1, 1))
@@ -83,179 +83,42 @@ class CATS():
 
     def getOutcome(self, state, action):
         if state in self.asso.keys() and action in self.asso[state].keys():
+            if 1 in self.asso[state].values():
+                self.interval[state]+=1
             return self.asso[state][action]
         elif np.sum(self.incorrect[self.states.index(state)] == -1) == 1 and 1 not in self.asso[state].values() and not self.one_error:
             self.one_error = True
             self.asso[state][action] = 1
             self.used.append(action)
-            self.correct.append(state+" => "+action)
+            self.correct[state] = action            
             return 1
         elif np.sum(self.incorrect[self.states.index(state)] == -1) == 3 and 1 not in self.asso[state].values() and not self.three_error:
             self.three_error = True
             self.asso[state][action] = 1
             self.used.append(action)
-            self.correct.append(state+" => "+action)
+            self.correct[state] = action            
             return 1
         elif np.sum(self.incorrect[self.states.index(state)] == -1) == 4 and 1 not in self.asso[state].values() and not self.four_error:
             self.four_error = True
             self.asso[state][action] = 1
             self.used.append(action)
-            self.correct.append(state+" => "+action)
+            self.correct[state] = action            
             return 1
         else:
             self.incorrect[self.states.index(state),self.actions.index(action)] = -1
             self.asso[state][action] = -1
             return -1
+###################################################
+# devaluation                                     #
+###################################################
 
+    def set_devaluation_interval(self, int):
+        self.devaluation_interval = int
 
-class CATS_MODELS():
-    """ Class that implement the visuo-motor learning task
-    as described in Brovelli & al, 2011 
-    Extended to run models in parallel 
-    Models can be for example [qlearning, kalmanQLearning, treelearning]
-    """
-    
-    def __init__(self, nb_trials, models):
-        self.nb_trials = nb_trials
-        self.states = ['s1', 's2', 's3']
-        self.actions = ['thumb', 'fore', 'midd', 'ring', 'little']
-        self.models = models
-        self.m_asso = self.createAssociationDict(self.models, self.states)
-        self.m_incorrect = dict()
-        for m in models:
-            self.m_incorrect[m] = np.zeros((len(self.states), len(self.actions)))
-        self.stimuli = self.createStimulusList(self.states, nb_trials)
-        self.order = self.createOrderCorrect(self.states, [1,3,4])
-        
-    def reinitialize(self):
-        self.__init__(self.nb_trials, self.models)
-
-    def createOrderCorrect(self, states, nb_incorrect):
-        s = list(states)
-        np.random.shuffle(s)
-        tmp = dict()
-        for i,j in zip(s, nb_incorrect):
-            tmp[i] = j
-        return tmp
-
-    def createAssociationDict(self, models, states):
-        tmp = dict()
-        for m in models:
-            tmp[m] = dict()
-            for i in states:
-                tmp[m][i] = dict()
-        return tmp
-
-    def getStimulus(self, iteration):
-        try:
-            return self.stimuli[iteration]
-        except:
-            print "Error: no more stimuli"
-            sys.exit(0)
-                        
-    def createStimulusList(self, states, nb_trials):
-        tmp = list(states)
-        s = []
-        for i in xrange((nb_trials/len(states))+1):
-            np.random.shuffle(tmp)
-            s.append(list(tmp))
-        return (np.array(s)).flatten()
-
-
-    def getOutcome(self, state, action, model):
-        if state in self.m_asso[model].keys() and action in self.m_asso[model][state].keys():
-            return self.m_asso[model][state][action]
-        elif np.sum(self.m_incorrect[model][self.states.index(state)] == -1) == self.order[state] and 1 not in self.m_asso[model][state].values():
-            self.m_asso[model][state][action] = 1
-            return 1
-        else:
-            self.m_incorrect[model][self.states.index(state),self.actions.index(action)] = -1
-            self.m_asso[model][state][action] = -1
-            return -1
-
-
-'''
-    def getOutcome(self, state, action):
-        tmp = self.asso[state].values()
-        if state in self.asso.keys() and action in self.asso[state].keys():
-            return self.asso[state][action]
-        elif tmp.count(-1) >= self.incorrect[state] and tmp.count(1) == 0:
-            self.asso[state][action] = 1
-            self.used.append(action)
-            self.correct.append(state+" => "+action)
-            return 1
-        else:
-            self.asso[state][action] = -1
-            return -1
-            
-
-                                                    
-    def getOutcome(self, state, action, i):
-        if i < self.time[0]:
-            self.asso[state][action] = -1
-            return -1
-        elif i >= self.time[0] and action in self.asso[state].keys():
-            return self.asso[state][action]
-        elif i >= self.time[0] and len(self.correct) == 0:
-            self.asso[state][action] = 1
-            self.used.append(action)
-            self.correct.append(state+' => '+action)
-            return 1
-        elif i >= self.time[1] and len(self.correct) == 1 and action not in self.used:
-            self.asso[state][action] = 1
-            self.used.append(action)
-            self.correct.append(state+' => '+action)
-            return 1
-        elif i >= self.time[2] and len(self.correct) == 2 and action not in self.used:
-            self.asso[state][action] = 1
-            self.used.append(action)
-            self.correct.append(state+' => '+action)
-            return 1
-        else:
-            self.asso[state][action] = -1
-            return -1
-
-    def getOutcome(self, state, action, i):
-        if i < 3:
-            self.asso[state][action] = -1
-            return -1
-        elif i >= 3 and action in self.asso[state].keys():
-            return self.asso[state][action]
-        else:
-            if state == 's1' and 1 not in self.asso['s1'].values():
-                self.asso[state][action] = 1
-                self.correct.append(state+' => '+action)
-                return 1
-            elif state == 's2' and np.sum(self.asso['s2'].values()) <= -3:
-                if np.max([self.asso[s][action] for s in self.states if action in self.asso[s].keys()]+[0]) <> 1:
-                    self.asso[state][action] = 1
-                    self.correct.append(state+' => '+action)
-                    return 1
-                else:
-                    self.asso[state][action] = -1
-                    return -1
-            elif state == 's3' and np.sum(self.asso['s3'].values()) <= -4:
-                if np.max([self.asso[s][action] for s in self.states if action in self.asso[s].keys()]+[0]) <> 1:
-                    self.asso[state][action] = 1
-                    self.correct.append(state+' => '+action)
-                    return 1
-                else:
-                    self.asso[state][action] = -1
-                    return -1
-            else:
-                self.asso[state][action] = -1
-                return -1
-      '''
-
-
-
-
-
-
-
-
-
-
-
+    def devaluate(self, state):
+        rest = list(set(self.actions)-set([self.correct[state]]))
+        self.asso[state][self.correct[state]] = -1
+        self.correct[state] = np.random.choice(rest)
+        self.asso[state][self.correct[state]] = 1
 
 

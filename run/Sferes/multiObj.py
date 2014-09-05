@@ -47,14 +47,14 @@ front = pareto(options.input, best, N = 156)
 front.constructParetoFrontier()
 
 front.removeIndivDoublons()
-#model = front.reTest(10)
+# model = front.reTest(20)
 ##front.constructParetoFrontier()
 front.constructMixedParetoFrontier()
 front.rankDistance()
 front.rankOWA()
 front.rankTchebytchev()
 front.zoomBox(0.0, 0.0)
-# front.preview()
+front.preview()
 # show()
 
 with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
@@ -79,4 +79,4 @@ with open("parameters.pickle", 'wb') as f:
 
 # [plot(data[:,2][gen == i],data[:,3][gen == i], 'o', markersize = 8*i) for i in np.unique(gen)]
 
-# show()
+show()
