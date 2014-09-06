@@ -43,8 +43,8 @@ import matplotlib.pyplot as plt
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-nb_blocs = 10
-nb_trials = 80
+nb_blocs = 5
+nb_trials = 70
 
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
@@ -57,7 +57,7 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 # ------------------------------------
 # Parameter testing
 # ------------------------------------
-with open("../Sferes/parameters.pickle", 'r') as f:
+with open("../Sferes/parameters_extra.pickle", 'r') as f:
 	p_test = pickle.load(f)
 # tmp = dict({k:[] for k in p_test['distance']['S9']['fusion'].keys()})
 # for o in p_test.iterkeys():
@@ -145,8 +145,9 @@ for d in devaluation_time:
 	# ax2 = fig2.add_subplot(2,3,ind+3)
 	# ax2.plot(range(len(rtm2['mean'][2])), rtm2['mean'][2], '*-')
 	
-	
+
+show()
 
 
-plt.savefig('devaluation.pdf')
-os.system("evince devaluation.pdf")
+# plt.savefig('devaluation_test.pdf')
+# os.system("evince devaluation_test.pdf")

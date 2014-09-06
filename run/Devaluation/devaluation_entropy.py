@@ -115,5 +115,6 @@ for d in xrange(len(devaluation_time)):
 		[ax[i].plot(Hfs['mean'][i], '*--', color = colors[i], alpha = alpha) for i in range(3)]
 	
 
-plt.savefig('devaluation_entropy.pdf')
-os.system("evince devaluation_entropy.pdf")
+show()
+# plt.savefig('devaluation_entropy.pdf')
+# os.system("evince devaluation_entropy.pdf")
