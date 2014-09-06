@@ -74,7 +74,7 @@ with open("../Sferes/parameters_extra.pickle", 'r') as f:
 # 	ind+=1
 
 # -----------------------------------
-operator = 'owa'
+operator = 'distance'
 model = models['fusion']
 devaluation_time = [2,8,16]
 

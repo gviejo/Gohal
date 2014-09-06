@@ -47,14 +47,14 @@ import matplotlib.pyplot as plt
 # ------------------------------------
 # Parameter testing
 # ------------------------------------
-parameters= {'alpha': 0.8,
-			 'beta': 3.0,
-			 'gain': 1.0,
+parameters= {'alpha': 0.5,
+			 'beta': 5.0,
+			 'gain': 6.0,
 			 'gamma': 0.1,
 			 'length': 7,
 			 'noise': 0.0001,
 			 'sigma': 1.0,
-			 'threshold': 30.0,
+			 'threshold': 4.5,
 			 'reward': 0.5}
 
 
@@ -76,6 +76,7 @@ for i in xrange(nb_blocs):
 	Hfs.append([])
 	cats.reinitialize()
 	model.startBloc()
+	# cats.set_devaluation_interval(5)
 	for j in xrange(nb_trials):
 		# print cats.asso				
 		state = cats.getStimulus(j)				
@@ -105,21 +106,26 @@ rtm2 = extractStimulusPresentation(reaction, states, actions, responses)
 
 fig1 = figure()
 
-ax = fig1.add_subplot(2,2,1)
+ax = fig1.add_subplot(3,2,1)
 [ax.errorbar(range(len(pcr['mean'][i])), pcr['mean'][i], pcr['sem'][i]) for i in range(3)]
 
-ax = fig1.add_subplot(2,2,2)
-ax.errorbar(range(len(rtm[0])), rtm[0], rtm[1])
+ax = fig1.add_subplot(3,2,2)
+ax.plot(rtm[0], 'o-')
 
 Hbmean = extractStimulusPresentation(Hbs, states, actions, responses)
 Hfmean = extractStimulusPresentation(Hfs, states, actions, responses)
 
 
 for i,c in zip([4,5,6],['blue','green','red']):
-	ax = fig1.add_subplot(2,3,i)
+	ax = fig1.add_subplot(3,3,i)
 	ax.plot(Hbmean['mean'][i-4], '-o', color = c)
 	ax.plot(Hfmean['mean'][i-4], '--*', color = c)
 	ax.set_ylim(0,model.max_entropy)
+
+
+for i,c in zip([7,8,9],['blue','green','red']):
+	ax = fig1.add_subplot(3,3,i)
+	ax.plot(rtm2['mean'][i-7], '-o', color = c)
 show()
 
 

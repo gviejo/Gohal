@@ -228,7 +228,7 @@ class pareto():
                             "selection":KSelection(self.states, self.actions),
                             "mixture":CSelection(self.states, self.actions)})
 
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma'],
+        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma', 'reward'],
                             'qlearning':['alpha','beta','gamma','sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_rt'],

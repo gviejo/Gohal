@@ -137,7 +137,8 @@ class FSelection():
         x = 2*self.max_entropy-self.Hb-self.Hf
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
         # self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
-        self.pA = 1/(1+(self.n_element-self.nb_inferences)*self.parameters['threshold']*np.exp(-x))
+        # self.pA = 1/(1+(self.n_element-self.nb_inferences)*self.parameters['threshold']*np.exp(-x))
+        self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x))
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))        
@@ -195,7 +196,7 @@ class FSelection():
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
         # self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))
-        self.reaction[-1].append(N)
+        self.reaction[-1].append(N-1)
         
         return self.actions[self.current_action]
 
