@@ -83,7 +83,7 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 # ------------------------------------
 # Parameter testing
 # ------------------------------------
-with open("parameters.pickle", 'r') as f:
+with open("parameters_extra.pickle", 'r') as f:
   p_test = pickle.load(f)
 
 super_data = dict()
@@ -166,30 +166,30 @@ for o in p_test.iterkeys():
         data['s'][s]['m'] = hrtm[i]
         data['s'][s]['h'] = hrt[i]
 
-    # fig = figure(figsize = (15, 12))
-    # colors = ['blue', 'red', 'green']
-    # ax1 = fig.add_subplot(4,4,1)
-    # for i in xrange(3):
-    #     plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
-    #     errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
-    #     plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
-    #     #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
+    fig = figure(figsize = (15, 12))
+    colors = ['blue', 'red', 'green']
+    ax1 = fig.add_subplot(4,4,1)
+    for i in xrange(3):
+        plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+        errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+        plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
+        #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
 
-    # ax1 = fig.add_subplot(4,4,2)
-    # ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, color = 'grey', alpha = 0.5)
-    # ax1.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2, color = 'black', alpha = 0.9)
+    ax1 = fig.add_subplot(4,4,2)
+    ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, color = 'grey', alpha = 0.5)
+    ax1.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2, color = 'black', alpha = 0.9)
 
-    # for i, s in zip(xrange(14), p_test[o].keys()):
-    #   ax1 = fig.add_subplot(4,4,i+3)
-    #   ax1.plot(hrt[i], 'o-')
-    #   #ax2 = ax1.twinx()
-    #   ax1.plot(hrtm[i], 'o--', color = 'green')
-    #   ax1.set_title(s+" "+p_test[o][s].keys()[0])
+    for i, s in zip(xrange(14), p_test[o].keys()):
+      ax1 = fig.add_subplot(4,4,i+3)
+      ax1.plot(hrt[i], 'o-')
+      #ax2 = ax1.twinx()
+      ax1.plot(hrtm[i], 'o--', color = 'green')
+      ax1.set_title(s+" "+p_test[o][s].keys()[0])
 
-    # show()
+    show()
 
     super_data[o] = data
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_model.pickle") , 'wb') as handle:    
-     pickle.dump(super_data, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_model.pickle") , 'wb') as handle:    
+#      pickle.dump(super_data, handle)
 

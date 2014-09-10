@@ -57,7 +57,7 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 # ------------------------------------
 # Parameter testing
 # ------------------------------------
-with open("../Sferes/parameters.pickle", 'r') as f:
+with open("../Sferes/parameters_extra.pickle", 'r') as f:
 	p_test = pickle.load(f)
 # tmp = dict({k:[] for k in p_test['distance']['S9']['fusion'].keys()})
 # for o in p_test.iterkeys():
@@ -80,7 +80,7 @@ devaluation_time = [2,8,16]
 colors = ['blue', 'red', 'green']
 alpha = 0.6
 fig1 = figure()
-s_to_plot = np.random.choice(list(set(p_test[operator].keys())-set(['S2'])), 4)
+s_to_plot = np.random.choice(list(set(p_test[operator].keys())-set(['S2'])), 1)
 subplot_positions = np.arange(1,len(devaluation_time)*len(s_to_plot)+1).reshape(len(s_to_plot),len(devaluation_time))
 
 

@@ -36,12 +36,12 @@ class FSelection():
         self.bounds = dict({"gamma":[0.1, 1.0],
                             "beta":[1.0, 10.0],
                             "alpha":[0.1, 1.0],
-                            "length":[6, 10],
-                            "threshold":[5.0, 30.0], 
+                            "length":[6, 11],
+                            "threshold":[0.1, 100.0], 
                             "noise":[0.0, 0.01],
                             "gain":[1.0, 10.0], # new beta for p_a_mf
                             "reward":[0.0, 1.0],
-                            "sigma":[0.01, 1.0]})                            
+                            "sigma":[0.0, 1.0]})                             
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
