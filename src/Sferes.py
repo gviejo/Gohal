@@ -45,8 +45,6 @@ class EA():
         self.model = ptr_model
         self.subject = subject
         self.data = data
-        self.n_trials = 39
-        self.n_blocs = 4
         self.n_repets = 5 # if changing here don't forget to change inside models
         self.n_rs = 15
         self.mean = np.zeros((2,self.n_rs))
@@ -57,6 +55,8 @@ class EA():
         self.responses = self.data['reward'] # array int (4*39)
         self.indice = self.data['indice'] # array int (4*39)
         self.mean[0] = self.data['mean'][0] # array (15) centered on median for human
+        self.n_trials = self.state.shape[0]
+        self.n_blocs = self.state.shape[1]
 
     def getFitness(self):
         np.seterr(all = 'ignore')
