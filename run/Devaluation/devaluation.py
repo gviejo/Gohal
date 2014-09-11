@@ -75,7 +75,7 @@ with open("../Sferes/parameters_extra.pickle", 'r') as f:
 
 # -----------------------------------
 operator = 'distance'
-model = models['fusion']
+model = models['selection']
 devaluation_time = [2,8,16]
 
 fig1 = figure()
@@ -86,10 +86,10 @@ fig1 = figure()
 ind = 1
 for d in devaluation_time:
 	model.startExp()	
-	for s in list(set(p_test[operator].keys())-set(['S2'])):
-	# for s in p_test[operator].keys():
+	# for s in list(set(p_test[operator].keys())-set(['S2'])):
+	for s in p_test[operator].keys():
 	# for s in ['S9']:
-		model.setAllParameters(p_test[operator][s]['fusion'])
+		model.setAllParameters(p_test[operator][s]['selection'])
 		for i in xrange(nb_blocs):
 			cats.reinitialize()
 			cats.set_devaluation_interval(d)

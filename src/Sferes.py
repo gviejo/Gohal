@@ -246,8 +246,8 @@ class pareto():
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
         self.indd = dict()
         self.zoom = dict()
-        # self.loadData()
-        self.simpleLoadData()
+        self.loadData()
+        # self.simpleLoadData()
 
     def bounding_front(self):        
         for s in self.human.keys():
