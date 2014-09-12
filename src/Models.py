@@ -17,7 +17,7 @@ from fonctions import *
 
 # Parameters for sferes optimization 
 # To speed up the process and avoid list
-n_trials = 39
+n_trials = 48
 n_blocs = 4
 n_repets = 5
 
