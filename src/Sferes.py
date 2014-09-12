@@ -55,15 +55,15 @@ class EA():
         self.responses = self.data['reward'] # array int (4*39)
         self.indice = self.data['indice'] # array int (4*39)
         self.mean[0] = self.data['mean'][0] # array (15) centered on median for human
-        self.n_trials = self.state.shape[0]
-        self.n_blocs = self.state.shape[1]
+        self.n_trials = self.state.shape[1]
+        self.n_blocs = self.state.shape[0]
 
     def getFitness(self):
         np.seterr(all = 'ignore')
         #self.model.startExp()        
         for i in xrange(self.n_blocs*self.n_repets):
                 self.model.startBloc()
-                for j in xrange(self.n_trials):                
+                for j in xrange(self.n_trials):
                     self.model.computeValue(self.state[i%self.n_blocs,j]-1, self.action[i%self.n_blocs,j]-1, (i,j))
                     self.model.updateValue(self.responses[i%self.n_blocs,j])
         
