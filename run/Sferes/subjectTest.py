@@ -87,6 +87,7 @@ with open("parameters.pickle", 'r') as f:
   p_test = pickle.load(f)
 
 super_data = dict()
+super_rt = dict()
 
 for o in p_test.iterkeys():
     hrt = []
@@ -96,7 +97,7 @@ for o in p_test.iterkeys():
     pcrm = dict({'s':[], 'a':[], 'r':[], 't':[]})
     rt_all = []
     rtm_all = []
-
+    super_rt[o] = dict({'model':[]})
     for s in p_test[o].iterkeys():    
         m = p_test[o][s].keys()[0]
         print "Testing "+s+" with "+m+" selected by "+o
@@ -137,6 +138,7 @@ for o in p_test.iterkeys():
         responses = np.tile(responses, (nb_repeat, 1))
         step, indice2 = getRepresentativeSteps(rt, state, action, responses)
         hrt.append(computeMeanRepresentativeSteps(step)[0])
+        super_rt[o]['model'].append(m)
         
     rt_all = np.array(rt_all)
     rtm_all = np.array(rtm_all)
@@ -189,7 +191,15 @@ for o in p_test.iterkeys():
     # show()
 
     super_data[o] = data
+    hrt = np.array(hrt)
+    hrtm = np.array(hrtm)
+    super_rt[o]['rt'] = np.zeros((hrtm.shape[0], hrtm.shape[1], 2))
+    super_rt[o]['rt'][:,:,0] = hrt
+    super_rt[o]['rt'][:,:,1] = hrtm
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_model.pickle") , 'wb') as handle:    
-     pickle.dump(super_data, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_model.pickle") , 'wb') as handle:    
+#      pickle.dump(super_data, handle)
 
+
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rts_all_subjects.pickle") , 'wb') as handle:    
+     pickle.dump(super_rt, handle)
