@@ -74,7 +74,7 @@ with open("../Sferes/parameters_extra.pickle", 'r') as f:
 # 	ind+=1
 
 # -----------------------------------
-operator = 'owa'
+operator = 'tche'
 model = models['fusion']
 devaluation_time = [2,8,16]
 colors = ['blue', 'red', 'green']
@@ -92,6 +92,7 @@ for d in xrange(len(devaluation_time)):
 		N = []
 		model.startExp()
 		model.setAllParameters(p_test[operator][s_to_plot[s]]['fusion'])
+		model.parameters['gamma'] = 0.9
 		cats.reinitialize()
 		cats.set_devaluation_interval(devaluation_time[d])
 		model.startBloc()
@@ -110,10 +111,12 @@ for d in xrange(len(devaluation_time)):
 		responses = np.array(model.responses)
 		Hbs = extractStimulusPresentation(np.array([Hb]),states,actions,responses)
 		Hfs = extractStimulusPresentation(np.array([Hf]),states,actions,responses)
-		
+		N = extractStimulusPresentation(np.array([N]), states, actions, responses)
 		[ax[i].plot(Hbs['mean'][i], 'o-', color = colors[i], alpha = alpha) for i in range(3)]
 		[ax[i].plot(Hfs['mean'][i], '*--', color = colors[i], alpha = alpha) for i in range(3)]
-	
+		for i in xrange(3):
+			ax2 = ax[i].twinx()
+			ax2.plot(N['mean'][i], '.-', color = 'black', alpha = 1.0)
 
 show()
 # plt.savefig('devaluation_entropy.pdf')

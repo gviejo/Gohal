@@ -33,15 +33,15 @@ class FSelection():
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
-        self.bounds = dict({"gamma":[0.1, 1.0],
+        self.bounds = dict({"gamma":[0.6, 1.0],
                             "beta":[1.0, 10.0],
                             "alpha":[0.1, 1.0],
                             "length":[6, 11],
-                            "threshold":[0.1, 100.0], 
+                            "threshold":[0.1, 20.0], 
                             "noise":[0.0, 0.01],
-                            "gain":[1.0, 10.0], # new beta for p_a_mf
-                            "reward":[0.0, 1.0],
-                            "sigma":[0.0, 1.0]})                             
+                            "gain":[1.0, 5.0], # new beta for p_a_mf
+                            "reward":[0.0, 0.9],
+                            "sigma":[0.0, 1.0]})                            
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -137,8 +137,8 @@ class FSelection():
         x = 2*self.max_entropy-self.Hb-self.Hf
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
         # self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
-        # self.pA = 1/(1+(self.n_element-self.nb_inferences)*self.parameters['threshold']*np.exp(-x))
-        self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x))
+        self.pA = 1/(1+(self.n_element-self.nb_inferences)*self.parameters['threshold']*np.exp(-x))
+        # self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x))
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))        
@@ -195,8 +195,8 @@ class FSelection():
         
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
-        # self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))
-        self.reaction[-1].append(N-1)
+        self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))
+        # self.reaction[-1].append(N-1)
         
         return self.actions[self.current_action]
 
