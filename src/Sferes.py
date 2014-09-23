@@ -488,7 +488,7 @@ class pareto():
         
     def zoomBox(self, xmin, ymin):
         for s in self.mixed.iterkeys():
-            self.zoom[s] = np.hstack((self.mixed[s][:,4:6], self.distance[s][:,1:2], np.vstack(self.owa[s]), np.vstack(self.tche[s])))
+            self.zoom[s] = np.hstack((self.mixed[s][:,4:6], self.distance[s][:,1:2], np.vstack(self.owa[s]), np.vstack(self.tche[s]), np.vstack(self.mixed[s][:,0])))
             if np.sum((self.zoom[s][:,0] > xmin)*(self.zoom[s][:,1] > ymin)):
                 self.zoom[s] = self.zoom[s][self.zoom[s][:,0] > xmin]
                 self.zoom[s] = self.zoom[s][self.zoom[s][:,1] > ymin]
