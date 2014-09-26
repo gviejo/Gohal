@@ -110,11 +110,12 @@ class QLearning():
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
         self.current_action = self.sampleSoftMax(self.values[self.current_state])
-        self.value.append(float(self.values[self.current_action]))
+        value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
+        # self.value.append(float(self.values[self.current_action]))
         self.action[-1].append(self.current_action)
         
         H = -(value*np.log2(value)).sum()        
-        self.reaction[-1].append(H)
+        self.reaction[-1].append(float(self.parameters['sigma']*H))
         return self.actions[self.current_action]
     
     def updateValue(self, reward):
