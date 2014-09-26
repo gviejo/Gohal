@@ -405,7 +405,7 @@ class pareto():
                     self.pareto[m][s][i,4] = float(fit2)
 
     def rankDistance(self):
-        self.p_test['distance'] = dict()
+        self.p_test['distance'] = dict()        
         for s in self.mixed.iterkeys():
             self.distance[s] = np.zeros((len(self.mixed[s]), 3))
             self.distance[s][:,1] = np.sqrt(np.sum(np.power(self.mixed[s][:,4:6]-np.ones(2), 2),1))
@@ -495,14 +495,43 @@ class pareto():
             else:
                 self.zoom.pop(s)       
         
-
-
-
-
-
-
-
-
+    def rankIndividualStrategy(self):
+        # order is distance, owa , tchenbytchev
+        data = {}
+        p_test = {}
+        for m in ['bayesian', 'qlearning']:
+            p_test[m] = dict({'tche':dict(),'owa':dict(),'distance':dict()})
+            data[m] = dict()
+            subjects = self.pareto[m].keys()
+            for s in subjects:
+                if len(self.pareto[m][s]):                
+                    data[m][s] = np.zeros((self.pareto[m][s].shape[0],5))                
+                    # pareto position
+                    data[m][s][:,0:2] = self.pareto[m][s][:,3:5]
+                    # tchenbytchev ranking
+                    lambdaa = 0.5
+                    epsilon = 0.001
+                    tmp = self.pareto[m][s][:,3:5]
+                    ideal = np.max(tmp, 0)                
+                    nadir = np.min(tmp, 0)
+                    value = lambdaa*((ideal-tmp)/(ideal-nadir))
+                    value = np.max(value, 1)+epsilon*np.sum(value,1)
+                    data[m][s][:,4] = value
+                    ind_best_point = np.argmin(value)            
+                    best_ind = self.pareto[m][s][ind_best_point]
+                    p_test[m]['tche'][s] = dict({m:dict(zip(self.p_order[m],best_ind[5:]))})                                          
+                    # owa ranking
+                    data[m][s][:,3] = np.sum(np.sort(tmp)*[0.5, 0.5], 1)                    
+                    ind_best_point = np.argmax(data[m][s][:,3])            
+                    best_ind = self.pareto[m][s][ind_best_point]
+                    p_test[m]['owa'][s] = dict({m:dict(zip(self.p_order[m],best_ind[5:]))})
+                    # distance ranking
+                    data[m][s][:,2] = np.sqrt(np.sum(np.power(tmp-np.ones(2), 2),1))
+                    ind_best_point = np.argmin(data[m][s][:,2])
+                    best_ind = self.pareto[m][s][ind_best_point]
+                    p_test[m]['distance'][s] = dict({m:dict(zip(self.p_order[m],best_ind[5:]))})
+        return data, p_test
+            
     # def rankMixedFront(self, w):    
     #     for s in self.mixed.iterkeys():
     #         # self.distance[s] = self.OWA((self.mixed[s][:,4:]), w)            

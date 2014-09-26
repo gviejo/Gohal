@@ -54,8 +54,10 @@ front.rankDistance()
 front.rankOWA()
 front.rankTchebytchev()
 front.zoomBox(0.0, 0.0)
-front.preview()
+# front.preview()
+data_single, p_test_single = front.rankIndividualStrategy()
 # show()
+
 
 with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
     pickle.dump(front.pareto, handle)
@@ -63,6 +65,7 @@ with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickl
 with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
     pickle.dump(front.mixed, handle)
 
+# useless
 with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_distance.pickle"), 'wb') as handle:
 	pickle.dump(front.distance, handle)
 
@@ -71,6 +74,13 @@ with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators
 
 with open("parameters.pickle", 'wb') as f:
 	pickle.dump(front.p_test, f)
+
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_single.pickle"), 'wb') as handle:
+	pickle.dump(data_single, handle)
+
+with open("parameters_single.pickle", 'wb') as f:
+	pickle.dump(p_test_single, f)
+
 
 # data = front.data['fusion']['S5'][0]
 # gen = data[:,0]
