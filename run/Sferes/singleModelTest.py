@@ -73,7 +73,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 2
+nb_repeat = 5
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -87,10 +87,11 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 with open("parameters_single.pickle", 'r') as f:
   p_test = pickle.load(f)
 
-super_data = dict(zip(p_test.keys(),[dict()]*2))
 
+super_data = dict()
 
 for m in p_test.iterkeys():    
+    super_data[m] = dict()
     for o in p_test[m].iterkeys():
         super_data[m][o] = dict({'pcr':{},'rt':{}})
 
@@ -133,6 +134,7 @@ for m in p_test.iterkeys():
         super_rt = np.array(super_rt).reshape(len(p_test[m][o].keys())*nb_repeat*nb_blocs,nb_trials)
 
         pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
+
         pcr = extractStimulusPresentation(super_response, super_state, super_action, super_response)
 
         step, indice = getRepresentativeSteps(center(human.reaction['fmri']), human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
@@ -146,20 +148,22 @@ for m in p_test.iterkeys():
         super_data[m][o]['rt']['model'] = rt_model
         super_data[m][o]['rt']['fmri'] = rt_fmri
 
-        fig = figure(figsize = (15, 12))
-        colors = ['blue', 'red', 'green']
-        ax1 = fig.add_subplot(1,2,1)
-        for i in xrange(3):
-            plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
-            errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
-            plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
-            #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
+        # fig = figure(figsize = (15, 12))
+        # colors = ['blue', 'red', 'green']
+        # ax1 = fig.add_subplot(1,2,1)
+        # for i in xrange(3):
+        #     plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+        #     errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+        #     plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
+        #     #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
 
-        ax1 = fig.add_subplot(1,2,2)
-        ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, color = 'grey', alpha = 0.5)
-        ax1.errorbar(range(1, len(rt_model[0])+1), rt_model[0], rt_model[1], linewidth = 2, color = 'black', alpha = 0.9)
+        # ax1 = fig.add_subplot(1,2,2)
+        # ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, color = 'grey', alpha = 0.5)
+        # ax1.errorbar(range(1, len(rt_model[0])+1), rt_model[0], rt_model[1], linewidth = 2, color = 'black', alpha = 0.9)
 
-        show()
+        # show()
+
+
 
 with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_single_model.pickle") , 'wb') as handle:    
      pickle.dump(super_data, handle)
