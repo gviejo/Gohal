@@ -194,16 +194,9 @@ class FSelection():
         
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
-        self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))
-        
-        # while self.nb_inferences < self.n_element:            
-        #     self.inferenceModule()
-        #     self.evaluationModule()
-        #     d = self.sigmoideModule()
-        #     pdf[self.nb_inferences] = float(self.pA)            
-        
-        # pdf[1:] = pdf[1:]*np.cumprod(1-pdf)[0:-1]
-        # self.pdf[-1].append(pdf)
+        self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))        
+        self.pdf[-1].append(N)
+
         return self.actions[self.current_action]
 
     def updateValue(self, reward):
