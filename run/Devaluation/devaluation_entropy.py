@@ -76,11 +76,13 @@ with open("../Sferes/parameters.pickle", 'r') as f:
 # -----------------------------------
 operator = 'owa'
 model = models['fusion']
-devaluation_time = [2,8,16]
+# devaluation_time = [2,8,16]
+devaluation_time = [0]
 colors = ['blue', 'red', 'green']
 alpha = 0.6
 fig1 = figure()
-s_to_plot = np.random.choice(list(set(p_test[operator].keys())-set(['S2'])), 4)
+# s_to_plot = np.random.choice(list(set(p_test[operator].keys())-set(['S2'])), 4)
+s_to_plot = ['S9']
 subplot_positions = np.arange(1,len(devaluation_time)*len(s_to_plot)+1).reshape(len(s_to_plot),len(devaluation_time))
 
 
@@ -92,6 +94,8 @@ for d in xrange(len(devaluation_time)):
 		N = []
 		model.startExp()
 		model.setAllParameters(p_test[operator][s_to_plot[s]]['fusion'])
+
+		p = model.parameters
 		cats.reinitialize()
 		cats.set_devaluation_interval(devaluation_time[d])
 		model.startBloc()
@@ -110,10 +114,13 @@ for d in xrange(len(devaluation_time)):
 		responses = np.array(model.responses)
 		Hbs = extractStimulusPresentation(np.array([Hb]),states,actions,responses)
 		Hfs = extractStimulusPresentation(np.array([Hf]),states,actions,responses)
-		
+		N = extractStimulusPresentation(np.array([N]),states,actions,responses)
 		[ax[i].plot(Hbs['mean'][i], 'o-', color = colors[i], alpha = alpha) for i in range(3)]
 		[ax[i].plot(Hfs['mean'][i], '*--', color = colors[i], alpha = alpha) for i in range(3)]
-	
-
-plt.savefig('devaluation_entropy.pdf')
-os.system("evince devaluation_entropy.pdf")
+		for i in xrange(3):
+			ax2 = ax[i].twinx()
+			ax2.plot(N['mean'][i], '.-', color = 'black', alpha = 1.0)
+			ax2.set_ylim(0,model.parameters['length'])
+show()
+# plt.savefig('devaluation_entropy.pdf')
+# os.system("evince devaluation_entropy.pdf")
