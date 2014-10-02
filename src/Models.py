@@ -75,6 +75,7 @@ class QLearning():
             self.action.append([])
             self.state.append([])
             self.reaction.append([])
+            self.Hf.append([])
         self.values = np.zeros((self.n_state, self.n_action))
 
     def startExp(self):
@@ -86,6 +87,7 @@ class QLearning():
         self.value = list()
         #self.sigma = list()      
         self.pdf = list()  
+        self.Hf = list()
 
     def sampleSoftMax(self, values):
         tmp = np.exp(values*float(self.parameters['beta']))
@@ -114,7 +116,9 @@ class QLearning():
         self.action[-1].append(self.current_action)
         
         H = -(value*np.log2(value)).sum()        
-        self.reaction[-1].append(H)
+        
+        self.reaction[-1].append(float(self.parameters['sigma']*H))
+        
         return self.actions[self.current_action]
     
     def updateValue(self, reward):
@@ -308,6 +312,11 @@ class BayesianWorkingMemory():
             self.action.append([])
             self.responses.append([])
             self.reaction.append([])
+<<<<<<< Updated upstream
+=======
+            self.pdf.append([])
+            self.Hb.append([])
+>>>>>>> Stashed changes
         self.n_element = 0
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
@@ -330,6 +339,7 @@ class BayesianWorkingMemory():
         self.values = np.ones(self.n_action)*(1./self.n_action)
         #self.sigma = list()
         self.pdf = list()
+        self.Hb = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -380,7 +390,12 @@ class BayesianWorkingMemory():
         H = -(self.values*np.log2(self.values)).sum()
         N = float(self.nb_inferences+1)
         self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
+<<<<<<< Updated upstream
 
+=======
+        self.pdf[-1].append(N)
+        self.Hb[-1].append(H)
+>>>>>>> Stashed changes
         return self.actions[self.current_action]
 
     def updateValue(self, reward):

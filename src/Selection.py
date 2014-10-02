@@ -33,14 +33,13 @@ class FSelection():
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
-        self.bounds = dict({"gamma":[0.6, 1.0],
-                            "beta":[1.0, 10.0],
-                            "alpha":[0.1, 1.0],
-                            "length":[6, 11],
+        self.bounds = dict({"gamma":[0.0, 1.0],
+                            "beta":[1.0, 5.0],
+                            "alpha":[0.0, 1.0],
+                            "length":[6, 12],
                             "threshold":[0.1, 20.0], 
                             "noise":[0.0, 0.01],
-                            "gain":[1.0, 5.0], # new beta for p_a_mf
-                            "reward":[0.0, 0.9],
+                            "gain":[1.0, 5.0], # new beta for p_a_mf                            
                             "sigma":[0.0, 1.0]})                            
 
         #Probability Initialization
@@ -224,7 +223,7 @@ class FSelection():
         self.p_r_as[0, self.current_state, self.current_action] = 0.0
         self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0        
         # Updating model free
-        r = (reward==0)*-self.parameters['reward']+(reward==1)*self.parameters['reward']+(reward==-1)*-self.parameters['reward']        
+        r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
         delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
         #delta = float(r)-self.values_mf[self.current_state, self.current_action]        
         self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta

@@ -59,6 +59,11 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 # ------------------------------------
 with open("../Sferes/parameters_extra.pickle", 'r') as f:
 	p_test = pickle.load(f)
+
+with open("../Sferes/parameters_single.pickle", 'r') as f:
+	p_single = pickle.load(f)
+
+sys.exit()
 # tmp = dict({k:[] for k in p_test['distance']['S9']['fusion'].keys()})
 # for o in p_test.iterkeys():
 # 	for s in p_test[o].iterkeys():
@@ -92,7 +97,7 @@ for d in xrange(len(devaluation_time)):
 		N = []
 		model.startExp()
 		model.setAllParameters(p_test[operator][s_to_plot[s]]['fusion'])
-		model.parameters['gamma'] = 0.9
+
 		cats.reinitialize()
 		cats.set_devaluation_interval(devaluation_time[d])
 		model.startBloc()
