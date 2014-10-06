@@ -35,7 +35,7 @@ class QLearning():
         self.n_action=len(actions)
         self.n_state=len(states)
         self.bounds = dict({"gamma":[0.1, 1.0],
-                            "beta":[1.0, 5.0],
+                            "beta":[1.0, 10.0],
                             "alpha":[0.1, 1.0],
                             "sigma":[0.001, 1.0]})
         
