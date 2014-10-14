@@ -74,6 +74,7 @@ class FSelection():
             self.reaction = list()
             self.value = list()
             self.pdf = list()
+            self.Hall = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -95,6 +96,7 @@ class FSelection():
             self.responses.append([])
             self.reaction.append([])
             self.pdf.append([])
+            self.Hall.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -113,6 +115,7 @@ class FSelection():
         self.reaction = list()
         self.value = list()        
         self.pdf = list()
+        self.Hall = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -196,7 +199,7 @@ class FSelection():
         N = float(self.nb_inferences+1)
         self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))        
         self.pdf[-1].append(N)
-
+        self.Hall[-1].append([float(self.Hb), float(self.Hf)])
         return self.actions[self.current_action]
 
     def updateValue(self, reward):
@@ -551,7 +554,7 @@ class CSelection():
             self.reaction=list()
             self.value=list()
             self.pdf = list()
-            #self.sigma = list()
+            self.Hall = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -575,6 +578,7 @@ class CSelection():
             self.weights.append([])
             self.p_wm.append([])
             self.p_rl.append([])
+            self.Hall.append([])
         self.n_element = 0
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
@@ -601,6 +605,7 @@ class CSelection():
         self.weights=list()
         self.p_wm=list()
         self.p_rl=list()
+        self.Hall=list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -617,18 +622,20 @@ class CSelection():
         p_r_s = np.sum(p_ra_s, axis = 0)
         p_a_rs = p_ra_s/p_r_s
         self.q_mb = p_a_rs[:,1]/p_a_rs[:,0]        
-        self.p_a_mb = np.exp(self.q_mb*float(self.parameters['gain']))
+        self.p_a_mb = np.exp(self.q_mb*float(self.parameters['gain']))        
         self.p_a_mb = self.p_a_mb/np.sum(self.p_a_mb)
+        
         self.entropy = -np.sum(self.p_a_mb*np.log2(self.p_a_mb))
+        
 
     def fusionModule(self):
         np.seterr(invalid='ignore')
         self.p_a_mf = np.exp(self.q_mf[self.current_state]*float(self.parameters['beta']))
         self.p_a_mf = self.p_a_mf/np.sum(self.p_a_mf)
+        self.Hf = -(self.p_a_mf*np.log2(self.p_a_mf)).sum()
         self.p_a = (1.0-self.w[self.current_state])*self.p_a_mf[self.current_state] + self.w[self.current_state]*self.p_a_mb                
         self.p_a = self.p_a/np.sum(self.p_a)
-
-
+        
     def updateWeight(self, r):
         if r:
             p_wmc = self.p_a_mb[self.current_action]
@@ -664,13 +671,12 @@ class CSelection():
         self.p = self.uniform[:,:,:]
         self.entropy = self.initial_entropy
         self.nb_inferences = 0             
-
+        
         while self.entropy > self.parameters['threshold'] and self.nb_inferences < self.n_element:
             self.inferenceModule()
             self.evaluationModule()
-
-        self.fusionModule()
-
+        
+        self.fusionModule()        
         self.current_action = self.sample(self.p_a)
         self.value.append(float(self.p_a[self.current_action]))
         self.action[-1].append(self.current_action)
@@ -678,7 +684,7 @@ class CSelection():
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
         self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
-
+        self.Hall[-1].append([float(self.entropy), float(self.Hf)])
         return self.actions[self.current_action]
 
     def updateValue(self, reward):

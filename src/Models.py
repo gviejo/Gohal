@@ -75,6 +75,8 @@ class QLearning():
             self.action.append([])
             self.state.append([])
             self.reaction.append([])
+            self.Hf.append([])
+            self.Hall.append([])
         self.values = np.zeros((self.n_state, self.n_action))
 
     def startExp(self):
@@ -85,7 +87,9 @@ class QLearning():
         self.reaction = list()
         self.value = list()
         #self.sigma = list()      
-        self.pdf = list()  
+        self.pdf = list()
+        self.Hf = list()
+        self.Hall = list()
 
     def sampleSoftMax(self, values):
         tmp = np.exp(values*float(self.parameters['beta']))
@@ -112,10 +116,11 @@ class QLearning():
         self.current_action = self.sampleSoftMax(self.values[self.current_state])
         value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
         # self.value.append(float(self.values[self.current_action]))
-        self.action[-1].append(self.current_action)
-        
+        self.action[-1].append(self.current_action)        
         H = -(value*np.log2(value)).sum()        
         self.reaction[-1].append(float(self.parameters['sigma']*H))
+        self.Hf[-1].append(H)
+        self.Hall[-1].append([0.0, float(H)])
         return self.actions[self.current_action]
     
     def updateValue(self, reward):
@@ -288,7 +293,7 @@ class BayesianWorkingMemory():
             self.reaction=list()
             self.value=list()
             self.pdf = list()
-            #self.sigma = list()
+            self.Hall = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -310,6 +315,8 @@ class BayesianWorkingMemory():
             self.responses.append([])
             self.reaction.append([])
             self.pdf.append([])
+            self.Hb.append([])
+            self.Hall.append([])
         self.n_element = 0
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
@@ -332,6 +339,8 @@ class BayesianWorkingMemory():
         self.values = np.ones(self.n_action)*(1./self.n_action)
         #self.sigma = list()
         self.pdf = list()
+        self.Hb = list()
+        self.Hall = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -383,6 +392,8 @@ class BayesianWorkingMemory():
         N = float(self.nb_inferences+1)
         self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
         self.pdf[-1].append(N)
+        self.Hb[-1].append(self.entropy)
+        self.Hall[-1].append([float(self.entropy), 0.0])
         return self.actions[self.current_action]
 
     def updateValue(self, reward):

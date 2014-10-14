@@ -344,8 +344,8 @@ class pareto():
                     self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+i] >= self.front_bounds[s][i]]
                 if len(self.pareto[m][s]):
                     self.pareto[m][s][:,3:5] = (self.pareto[m][s][:,3:5]-self.front_bounds[s])/(self.best-self.front_bounds[s])
-                else:
-                    print "No point for ", s, m
+                # else:
+                    # print "No point for ", s, m
 
 
     def constructMixedParetoFrontier(self):
@@ -532,6 +532,39 @@ class pareto():
                     p_test[m]['distance'][s] = dict({m:dict(zip(self.p_order[m],best_ind[5:]))})
         return data, p_test
             
+    def classifySubject(self):
+        self.choice_only = {m:[] for m in self.pareto.keys()}
+        models = self.pareto.keys()
+        for s in self.human.keys():
+            value = []
+            for m in models:
+                if len(self.pareto[m][s][:,3]):                    
+                    value.append(np.max(self.pareto[m][s][:,3]))
+                else :
+                    value.append(0.0)            
+            m_ind = np.argmax(value)            
+            self.choice_only[models[m_ind]].append(s)
+        # parameters from max fit to choice only
+        self.extremum = dict()
+        for s in self.human.iterkeys():
+            self.extremum[s] = dict()
+            for m in self.pareto.iterkeys():
+                if len(self.pareto[m][s]):
+                    self.extremum[s][m] = dict(zip(self.p_order[m],self.pareto[m][s][0,5:]))
+        self.obj_choice = dict()
+        for m in self.choice_only.iterkeys():
+            if len(self.choice_only[m]):
+                self.obj_choice[m] = dict()
+                for s in self.choice_only[m]:
+                    self.obj_choice[m][s] = dict()
+                    for x in self.pareto.iterkeys():
+                        if len(self.pareto[x][s]):
+                            self.obj_choice[m][s][x] = np.max(self.pareto[x][s][:,3])
+                        else :
+                            self.obj_choice[m][s][x] = 0.0
+
+
+
     # def rankMixedFront(self, w):    
     #     for s in self.mixed.iterkeys():
     #         # self.distance[s] = self.OWA((self.mixed[s][:,4:]), w)            

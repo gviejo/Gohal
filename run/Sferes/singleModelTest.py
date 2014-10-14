@@ -73,7 +73,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 5
+nb_repeat = 10
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -113,7 +113,7 @@ for m in p_test.iterkeys():
                     for j in xrange(nb_trials):
                         state = cats.getStimulus(j)
                         action = models[m].chooseAction(state)
-                        reward = cats.getOutcome(state, action)
+                        reward = cats.getOutcome(state, action, case='fmri')
                         models[m].updateValue(reward)                
 
             rtm = np.array(models[m].reaction)
@@ -168,6 +168,3 @@ for m in p_test.iterkeys():
 with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_single_model.pickle") , 'wb') as handle:    
      pickle.dump(super_data, handle)
 
-
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rts_all_subjects.pickle") , 'wb') as handle:    
-#      pickle.dump(super_rt, handle)

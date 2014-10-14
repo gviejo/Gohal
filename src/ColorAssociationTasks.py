@@ -81,33 +81,82 @@ class CATS():
         return s.flatten()
 
 
-    def getOutcome(self, state, action):
-        if state in self.asso.keys() and action in self.asso[state].keys():
-            if 1 in self.asso[state].values():
-                self.interval[state]+=1
-            return self.asso[state][action]
-        elif np.sum(self.incorrect[self.states.index(state)] == -1) == 1 and 1 not in self.asso[state].values() and not self.one_error:
-            self.one_error = True
-            self.asso[state][action] = 1
-            self.used.append(action)
-            self.correct[state] = action            
-            return 1
-        elif np.sum(self.incorrect[self.states.index(state)] == -1) == 3 and 1 not in self.asso[state].values() and not self.three_error:
-            self.three_error = True
-            self.asso[state][action] = 1
-            self.used.append(action)
-            self.correct[state] = action            
-            return 1
-        elif np.sum(self.incorrect[self.states.index(state)] == -1) == 4 and 1 not in self.asso[state].values() and not self.four_error:
-            self.four_error = True
-            self.asso[state][action] = 1
-            self.used.append(action)
-            self.correct[state] = action            
-            return 1
-        else:
-            self.incorrect[self.states.index(state),self.actions.index(action)] = -1
-            self.asso[state][action] = -1
-            return -1
+    def getOutcome(self, state, action, case='meg'):
+        if case=='fmri':            
+            if state in self.asso.keys() and action in self.asso[state].keys():
+                return self.asso[state][action]
+            elif state == 's1':                
+                if np.sum(self.incorrect[0]==-1)==0:
+                    self.incorrect[self.states.index(state),self.actions.index(action)] = -1
+                    self.asso[state][action]=-1
+                    return -1
+                elif np.sum(self.incorrect[0]==-1)==1 and 1 not in self.asso[state].values() and not self.one_error:
+                    self.one_error = True
+                    self.incorrect[self.states.index(state),self.actions.index(action)] = 1
+                    self.asso[state][action]=1
+                    return 1
+                elif 1 in self.asso[state].values():
+                    self.incorrect[self.states.index(state),self.actions.index(action)] = -1
+                    self.asso[state][action]=-1
+                    return -1
+
+            elif state == 's2':
+                if np.sum(self.incorrect[1]==-1)<3:
+                    self.incorrect[self.states.index(state),self.actions.index(action)] = -1
+                    self.asso[state][action]=-1
+                    return -1
+                elif np.sum(self.incorrect[1]==-1)==3 and 1 not in self.asso[state].values() and not self.three_error:
+                    self.three_error = True
+                    self.incorrect[self.states.index(state),self.actions.index(action)] = 1
+                    self.asso[state][action]=1
+                    return 1
+                elif 1 in self.asso[state].values():
+                    self.incorrect[self.states.index(state),self.actions.index(action)] = -1
+                    self.asso[state][action]=-1
+                    return -1
+
+            elif state == 's3':
+                if np.sum(self.incorrect[2]==-1)<4:
+                    self.incorrect[self.states.index(state),self.actions.index(action)] = -1
+                    self.asso[state][action]=-1
+                    return -1
+                elif np.sum(self.incorrect[2]==-1)==4 and 1 not in self.asso[state].values() and not self.four_error:
+                    self.four_error = True
+                    self.incorrect[self.states.index(state),self.actions.index(action)] = 1
+                    self.asso[state][action]=1
+                    return 1
+                elif 1 in self.asso[state].values():
+                    self.incorrect[self.states.index(state),self.actions.index(action)] = -1
+                    self.asso[state][action]=-1
+                    return -1
+
+        elif case=='meg':
+            if state in self.asso.keys() and action in self.asso[state].keys():
+                if 1 in self.asso[state].values():
+                    self.interval[state]+=1
+                return self.asso[state][action]
+            elif np.sum(self.incorrect[self.states.index(state)] == -1) == 1 and 1 not in self.asso[state].values() and not self.one_error:
+                self.one_error = True
+                self.asso[state][action] = 1
+                self.used.append(action)
+                self.correct[state] = action            
+                return 1
+            elif np.sum(self.incorrect[self.states.index(state)] == -1) == 3 and 1 not in self.asso[state].values() and not self.three_error:
+                self.three_error = True
+                self.asso[state][action] = 1
+                self.used.append(action)
+                self.correct[state] = action            
+                return 1
+            elif np.sum(self.incorrect[self.states.index(state)] == -1) == 4 and 1 not in self.asso[state].values() and not self.four_error:
+                self.four_error = True
+                self.asso[state][action] = 1
+                self.used.append(action)
+                self.correct[state] = action            
+                return 1
+            else:
+                self.incorrect[self.states.index(state),self.actions.index(action)] = -1
+                self.asso[state][action] = -1
+                return -1
 ###################################################
 # devaluation                                     #
 ###################################################

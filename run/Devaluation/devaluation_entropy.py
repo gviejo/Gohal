@@ -82,7 +82,7 @@ colors = ['blue', 'red', 'green']
 alpha = 0.6
 fig1 = figure()
 # s_to_plot = np.random.choice(list(set(p_test[operator].keys())-set(['S2'])), 4)
-s_to_plot = ['S9']
+s_to_plot = ['S8']
 subplot_positions = np.arange(1,len(devaluation_time)*len(s_to_plot)+1).reshape(len(s_to_plot),len(devaluation_time))
 
 

@@ -54,51 +54,61 @@ front.rankDistance()
 front.rankOWA()
 front.rankTchebytchev()
 front.zoomBox(0.0, 0.0)
+
+front.classifySubject()
 # front.preview()
-# data_single, p_test_single = front.rankIndividualStrategy()
+data_single, p_test_single = front.rankIndividualStrategy()
 # show()
 
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
-#     pickle.dump(front.pareto, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
+    pickle.dump(front.pareto, handle)
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
-#     pickle.dump(front.mixed, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
+    pickle.dump(front.mixed, handle)
 
 # # useless
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_distance.pickle"), 'wb') as handle:
 # 	pickle.dump(front.distance, handle)
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators.pickle"), 'wb') as handle:
-# 	pickle.dump(front.zoom, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators.pickle"), 'wb') as handle:
+	pickle.dump(front.zoom, handle)
 
-# with open("parameters.pickle", 'wb') as f:
-# 	pickle.dump(front.p_test, f)
+with open("parameters.pickle", 'wb') as f:
+	pickle.dump(front.p_test, f)
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_single.pickle"), 'wb') as handle:
-# 	pickle.dump(data_single, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_single.pickle"), 'wb') as handle:
+	pickle.dump(data_single, handle)
 
-# with open("parameters_single.pickle", 'wb') as f:
-# 	pickle.dump(p_test_single, f)
+with open("parameters_single.pickle", 'wb') as f:
+	pickle.dump(p_test_single, f)
 
+# fit to choice extremum of the front
+with open("extremum.pickle", 'wb') as f:
+	pickle.dump(front.extremum, f)
+
+# value of maximum BIC normalized 
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:
+	pickle.dump(front.obj_choice, f)
 
 figure()
-# s_to_plot = ['S2','S9','S19','S13','S8','S5','S14']
-s_to_plot = front.pareto['qlearning'].keys()
-
-for s in s_to_plot:	
-	for m in front.pareto.iterkeys():
-	# for s in front.pareto[m].iterkeys():
-	
-		obj = front.pareto[m][s][:,3]
-		ind = np.ones(len(obj))*(s_to_plot.index(s)+0.1*float(front.pareto.keys().index(m)))
-		plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
+s_to_plot = []
+x_pos = []
+tmp = 0
+for x in front.choice_only.iterkeys():	
+	for s in front.choice_only[x]:
+		x_pos.append(len(s_to_plot)+tmp)
+		s_to_plot.append(s)
+		for m in front.pareto.iterkeys():
+			obj = front.pareto[m][s][:,3]
+			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
+			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
+	tmp+=1
 ylim(0.55, 0.95)
-xticks(range(0,len(s_to_plot)), s_to_plot)
+xticks(np.array(x_pos)+1, s_to_plot)
 show()
 
 
 
 
 
-show()
