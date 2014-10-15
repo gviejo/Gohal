@@ -17,9 +17,9 @@ from fonctions import *
 
 # Parameters for sferes optimization 
 # To speed up the process and avoid list
-n_trials = 48
+n_trials = 39
 n_blocs = 4
-n_repets = 5
+n_repets = 20
 
 class QLearning():
     """Class that implement a Qlearning
@@ -35,9 +35,9 @@ class QLearning():
         self.n_action=len(actions)
         self.n_state=len(states)
         self.bounds = dict({"gamma":[0.1, 1.0],
-                            "beta":[1.0, 10.0],
+                            "beta":[1.0, 100.0],
                             "alpha":[0.1, 1.0],
-                            "sigma":[0.001, 1.0]})
+                            "sigma":[0.0001, 1.0]})
         
         #Values Initialization
         self.values = np.zeros((self.n_state, self.n_action))        
@@ -91,6 +91,7 @@ class QLearning():
         self.Hf = list()
         self.Hall = list()
 
+
     def sampleSoftMax(self, values):
         tmp = np.exp(values*float(self.parameters['beta']))
         tmp = tmp/float(np.sum(tmp))
@@ -103,9 +104,14 @@ class QLearning():
 
         value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
         
+        if np.isnan(value).sum():
+            value = np.isnan(value)*0.9995+0.0001
+
         self.value[ind] = float(value[self.current_action])
         
-        H = -(value*np.log2(value)).sum()        
+        H = -(value*np.log2(value)).sum()       
+        if np.isnan(H): H = 0.005
+
         self.reaction[ind] = float(self.parameters['sigma']*H)
         #self.pdf.append(np.ones(1))
         #self.sigma.append([self.parameters['sigma']])
@@ -121,6 +127,7 @@ class QLearning():
         self.reaction[-1].append(float(self.parameters['sigma']*H))
         self.Hf[-1].append(H)
         self.Hall[-1].append([0.0, float(H)])
+
         return self.actions[self.current_action]
     
     def updateValue(self, reward):
@@ -263,9 +270,9 @@ class BayesianWorkingMemory():
         self.n_action=int(len(actions))
         self.n_state=int(len(states))
         self.initial_entropy = -np.log2(1./self.n_action)
-        self.bounds = dict({"length":[6, 10], 
+        self.bounds = dict({"length":[6, 20], 
                             "threshold":[0.01, self.initial_entropy], 
-                            "noise":[0.01, 1.0],
+                            "noise":[0.0, 1.0],
                             "sigma":[0.001, 1.0]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -317,6 +324,7 @@ class BayesianWorkingMemory():
             self.pdf.append([])
             self.Hb.append([])
             self.Hall.append([])
+
         self.n_element = 0
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
@@ -341,6 +349,7 @@ class BayesianWorkingMemory():
         self.pdf = list()
         self.Hb = list()
         self.Hall = list()
+
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -371,9 +380,13 @@ class BayesianWorkingMemory():
             self.inferenceModule()
             self.evaluationModule()                    
 
-        self.value[ind] = float(self.values[self.current_action])
+        if np.isnan(self.values).sum(): self.p_a = np.isnan(self.values)*0.9995+0.0001
+            
         H = -(self.values*np.log2(self.values)).sum()
         N = float(self.nb_inferences+1)
+        if np.isnan(H): H = 0.005
+
+        self.value[ind] = float(self.values[self.current_action])
         self.reaction[ind] = float(H*self.parameters['sigma']+np.log2(N))
 
     def chooseAction(self, state):

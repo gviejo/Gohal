@@ -17,7 +17,7 @@ from Models import *
 # To speed up the process and avoid list
 n_trials = 39
 n_blocs = 4
-n_repets = 5
+n_repets = 20
 
 class FSelection():
     """ fusion strategy
@@ -33,14 +33,14 @@ class FSelection():
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
-        self.bounds = dict({"gamma":[0.1, 1.0],
-                            "beta":[1.0, 10.0],
-                            "alpha":[0.1, 1.0],
-                            "length":[6, 10],
-                            "threshold":[0.1, 20.0],
-                            "noise":[0.01, 1.0],
-                            "gain":[0.01, 10.0],
-                            "sigma":[0.01, 1.0]})                            
+        self.bounds = dict({"gamma":[0.0, 1.0],
+                            "beta":[1.0, 100.0],
+                            "alpha":[0.0, 1.0],
+                            "length":[5, 20],
+                            "threshold":[0.0001, 200.0], 
+                            "noise":[0.0, 1.0],
+                            "gain":[1.0, 100.0], # new beta for p_a_mf                            
+                            "sigma":[0.0, 1.0]})                            
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -74,7 +74,6 @@ class FSelection():
             self.reaction = list()
             self.value = list()
             self.pdf = list()
-            self.Hall = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -96,7 +95,6 @@ class FSelection():
             self.responses.append([])
             self.reaction.append([])
             self.pdf.append([])
-            self.Hall.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -115,7 +113,6 @@ class FSelection():
         self.reaction = list()
         self.value = list()        
         self.pdf = list()
-        self.Hall = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -138,8 +135,9 @@ class FSelection():
     def sigmoideModule(self):
         x = 2*self.max_entropy-self.Hb-self.Hf
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
-        self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
-        #self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['gain'])*np.exp(-x))
+        # self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
+        self.pA = 1/(1+(self.n_element-self.nb_inferences)*self.parameters['threshold']*np.exp(-x))
+        # self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x))
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
         #self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x/self.parameters['gain']))        
@@ -150,17 +148,17 @@ class FSelection():
         #w = (self.max_entropy-self.Hb)/self.max_entropy
         #self.values_net = w*self.p_a_mb+(1-w)*self.values_mf[self.current_state]
         self.values_net = self.p_a_mb+self.values_mf[self.current_state]
-        tmp = np.exp(self.values_net*float(self.parameters['beta']))        
+        tmp = np.exp(self.values_net*float(self.parameters['beta']))
         self.p_a = tmp/np.sum(tmp)        
-        # if True in np.isnan(self.p_a):
-        #     self.p_a = np.isnan(self.p_a)*0.995+0.001
-
+        if np.isnan(self.p_a).sum(): self.p_a = np.isnan(self.p_a)*0.9995+0.0001
+             
     def computeValue(self, s, a, ind):        
         self.current_state = s
         self.current_action = a
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy
-        self.Hf = computeEntropy(self.values_mf[self.current_state], self.parameters['beta'])
+        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['gain'])
+        self.Hf = -(self.p_a_mf*np.log2(self.p_a_mf)).sum()
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
 
@@ -168,10 +166,12 @@ class FSelection():
             self.inferenceModule()
             self.evaluationModule()
         self.fusionModule()
-        
-        self.value[ind] = float(self.p_a[self.current_action])
+
         H = -(self.p_a*np.log2(self.p_a)).sum()
-        N = float(self.nb_inferences+1)        
+        N = float(self.nb_inferences+1)
+        if np.isnan(H): H = 0.005
+
+        self.value[ind] = float(self.p_a[self.current_action])
         self.reaction[ind] = float(H*self.parameters['sigma']+np.log2(N))        
                 
     def chooseAction(self, state):
@@ -179,17 +179,15 @@ class FSelection():
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy
-        self.Hf = computeEntropy(self.values_mf[self.current_state], self.parameters['beta'])
+        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['gain'])
+        self.Hf = -(self.p_a_mf*np.log2(self.p_a_mf)).sum()
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
-
-        #pdf = np.zeros(int(self.parameters['length'])+1)
         
         while self.sigmoideModule():
-            #pdf[self.nb_inferences] = float(self.pA)
             self.inferenceModule()
             self.evaluationModule()
-        #pdf[self.nb_inferences] = float(self.pA)            
+
         self.fusionModule()
         self.current_action = self.sample(self.p_a)
         self.value.append(float(self.p_a[self.current_action]))
@@ -197,9 +195,9 @@ class FSelection():
         
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
-        self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))        
-        self.pdf[-1].append(N)
-        self.Hall[-1].append([float(self.Hb), float(self.Hf)])
+        self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))
+        # self.reaction[-1].append(N-1)
+        
         return self.actions[self.current_action]
 
     def updateValue(self, reward):
@@ -233,6 +231,7 @@ class FSelection():
         #self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+0.9*delta
         
 
+
 class KSelection():
     """Class that implement Keramati models for action selection
     Specially tuned for Brovelli experiment so beware
@@ -247,11 +246,11 @@ class KSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"gamma":[0.1, 1.0],
-                            "beta":[1.0, 10.0],
+                            "beta":[1.0, 100.0],
                             "eta":[0.00001, 0.001],
-                            "length":[6, 10],
+                            "length":[6, 20],
                             "threshold":[0.01, -np.log2(1./self.n_action)], 
-                            "noise":[0.01,1.0],
+                            "noise":[0.0,1.0],
                             "sigma":[0.0,1.0],
                             "sigma_rt":[0.001, 1.0]})
                             #"sigma_ql":[0.00001, 1.0]})        
@@ -409,9 +408,12 @@ class KSelection():
                 self.evaluationModule()
             values = self.p_a_mb/np.sum(self.p_a_mb)
         
-        self.value[ind] = float(values[self.current_action])
         H = -(values*np.log2(values)).sum()
         N = float(self.nb_inferences+1)
+
+        if np.isnan(values).sum(): values = np.isnan(values)*0.9995+0.0001            
+        if np.isnan(H): H = 0.005
+        self.value[ind] = float(values[self.current_action])        
         self.reaction[ind] = float(H*self.parameters['sigma_rt']+np.log2(N))
         
         
@@ -511,12 +513,12 @@ class CSelection():
         self.n_action=int(len(actions))
         self.n_state=int(len(states))
         self.initial_entropy = -np.log2(1./self.n_action)
-        self.bounds = dict({"length":[6, 10], 
+        self.bounds = dict({"length":[6, 20], 
                             "threshold":[0.01, self.initial_entropy], 
-                            "noise":[0.01, 1.0],
+                            "noise":[0.0, 1.0],
                             "alpha":[0.01, 1.0],
-                            "beta":[0.01, 10.0], # QLEARNING
-                            "gain":[0.01, 10.0], # WORKING MEMORY
+                            "beta":[0.01, 100.0], # QLEARNING
+                            "gain":[0.01, 100.0], # WORKING MEMORY
                             "gamma":[0.01, 1.0],                            
                             "sigma":[0.01, 1.0], 
                             "weight":[0.1, 0.9]})
@@ -635,7 +637,8 @@ class CSelection():
         self.Hf = -(self.p_a_mf*np.log2(self.p_a_mf)).sum()
         self.p_a = (1.0-self.w[self.current_state])*self.p_a_mf[self.current_state] + self.w[self.current_state]*self.p_a_mb                
         self.p_a = self.p_a/np.sum(self.p_a)
-        
+        if np.isnan(self.p_a).sum(): self.p_a = np.isnan(self.p_a)*0.9995+0.0001
+                    
     def updateWeight(self, r):
         if r:
             p_wmc = self.p_a_mb[self.current_action]
@@ -659,10 +662,11 @@ class CSelection():
             self.evaluationModule()                    
 
         self.fusionModule()
-
-        self.value[ind] = float(self.p_a[self.current_action])
+        
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
+        if np.isnan(H): H = 0.005
+        self.value[ind] = float(self.p_a[self.current_action])
         self.reaction[ind] = float(H*self.parameters['sigma']+np.log2(N))
 
     def chooseAction(self, state):

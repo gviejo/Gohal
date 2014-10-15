@@ -59,6 +59,11 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 # ------------------------------------
 with open("../Sferes/parameters.pickle", 'r') as f:
 	p_test = pickle.load(f)
+
+with open("../Sferes/parameters_single.pickle", 'r') as f:
+	p_single = pickle.load(f)
+
+sys.exit()
 # tmp = dict({k:[] for k in p_test['distance']['S9']['fusion'].keys()})
 # for o in p_test.iterkeys():
 # 	for s in p_test[o].iterkeys():
@@ -94,8 +99,10 @@ for d in xrange(len(devaluation_time)):
 		N = []
 		model.startExp()
 		model.setAllParameters(p_test[operator][s_to_plot[s]]['fusion'])
-
-		p = model.parameters
+		model.parameters['alpha'] = 1.0
+		model.parameters['beta'] = 4.38
+		model.parameters['gamma'] = 0.1
+ 		p = model.parameters
 		cats.reinitialize()
 		cats.set_devaluation_interval(devaluation_time[d])
 		model.startBloc()
@@ -106,21 +113,21 @@ for d in xrange(len(devaluation_time)):
 			model.updateValue(reward)
 			Hf.append(model.Hf)
 			N.append(model.nb_inferences)
-			Hb.append(model.Hb)			
+			# Hb.append(model.Hb)			
 			#sys.stdin.readline()
 
 		states = convertStimulus(np.array(model.state))
 		actions = np.array(model.action)
 		responses = np.array(model.responses)
-		Hbs = extractStimulusPresentation(np.array([Hb]),states,actions,responses)
+		# Hbs = extractStimulusPresentation(np.array([Hb]),states,actions,responses)
 		Hfs = extractStimulusPresentation(np.array([Hf]),states,actions,responses)
 		N = extractStimulusPresentation(np.array([N]),states,actions,responses)
-		[ax[i].plot(Hbs['mean'][i], 'o-', color = colors[i], alpha = alpha) for i in range(3)]
+		# [ax[i].plot(Hbs['mean'][i], 'o-', color = colors[i], alpha = alpha) for i in range(3)]
 		[ax[i].plot(Hfs['mean'][i], '*--', color = colors[i], alpha = alpha) for i in range(3)]
-		for i in xrange(3):
-			ax2 = ax[i].twinx()
-			ax2.plot(N['mean'][i], '.-', color = 'black', alpha = 1.0)
-			ax2.set_ylim(0,model.parameters['length'])
+		# for i in xrange(3):
+		# 	ax2 = ax[i].twinx()
+		# 	ax2.plot(N['mean'][i], '.-', color = 'black', alpha = 1.0)
+		# 	ax2.set_ylim(0,model.parameters['length'])
 show()
 # plt.savefig('devaluation_entropy.pdf')
 # os.system("evince devaluation_entropy.pdf")

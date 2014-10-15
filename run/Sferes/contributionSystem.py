@@ -72,7 +72,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 10
+nb_repeat = 2
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -85,6 +85,10 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 # ------------------------------------
 with open("parameters.pickle", 'r') as f:
   p_test = pickle.load(f)
+
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'r') as f:
+    best = pickle.load(f)
+groups = {m:[s for s in best[m].iterkeys()] for m in best.iterkeys()}
 
 colors = {'owa':'r','distance':'b','tche':'g'}
 
@@ -99,73 +103,97 @@ data = {}
 
 
 for o in ['owa', 'distance']:
-    data[o] = {'Hb':{},'Hf':{}}
-    entropy = {'Hb':{},'Hf':{}}
-    for s in p_test[o].iterkeys():    
-        m = p_test[o][s].keys()[0]
+	data[o] = {'Hb':{},'Hf':{}}
+	entropy = dict()
+	for g in groups.iterkeys():
+	    for s in groups[g]:
+	    	entropy[g] = dict({'Hb':{}, 'Hf':{}, 'N':{}})			
+	        m = p_test[o][s].keys()[0]
+	        print "Testing "+s+" with "+m+" selected by "+o+" in group "+g
+	        models[m].setAllParameters(p_test[o][s][m])	        
+	        models[m].startExp()
+	        for k in xrange(nb_repeat):
+	            for i in xrange(nb_blocs):
+	                cats.reinitialize()
+	                cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))
+	                models[m].startBloc()
+	                for j in xrange(nb_trials):
+	                    state = cats.getStimulus(j)
+	                    action = models[m].chooseAction(state)
+	                    reward = cats.getOutcome(state, action, case='fmri')
+	                    models[m].updateValue(reward)                                    
+	        state = convertStimulus(np.array(models[m].state))
+	        action = np.array(models[m].action)
+	        responses = np.array(models[m].responses)        
+	        hall = np.array(models[m].Hall)
+	        N = np.array(models[m].pdf)
 
-        print "Testing "+s+" with "+m+" selected by "+o
-        models[m].setAllParameters(p_test[o][s][m])
-        models[m].startExp()
-        for k in xrange(nb_repeat):
-            for i in xrange(nb_blocs):
-                cats.reinitialize()
-                cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))
-                models[m].startBloc()
-                for j in xrange(nb_trials):
-                    state = cats.getStimulus(j)
-                    action = models[m].chooseAction(state)
-                    reward = cats.getOutcome(state, action, case='fmri')
-                    models[m].updateValue(reward)                                    
-        state = convertStimulus(np.array(models[m].state))
-        action = np.array(models[m].action)
-        responses = np.array(models[m].responses)        
-        hall = np.array(models[m].Hall)
-        
-        data[o]['Hb'][s] = {m:extractStimulusPresentation(hall[:,:,0], state, action, responses)}        
-        data[o]['Hf'][s] = {m:extractStimulusPresentation(hall[:,:,1], state, action, responses)}
+	        data[o]['Hb'][s] = {m:extractStimulusPresentation(hall[:,:,0], state, action, responses)}        
+	        data[o]['Hf'][s] = {m:extractStimulusPresentation(hall[:,:,1], state, action, responses)}
 
-        entropy['Hb'][s] = {m:extractStimulusPresentation(hall[:,:,0], state, action, responses)}        
-        entropy['Hf'][s] = {m:extractStimulusPresentation(hall[:,:,1], state, action, responses)}
-    meanHall = dict()
-    for h in entropy.keys():
-        meanHall[h] = dict()
-        model = np.unique([entropy[h][s].keys()[0] for s in entropy[h].iterkeys()])
-        for m in model:
-            subject = [s for s in entropy[h].keys() if entropy[h][s].keys()[0] == m]
-            if len(subject) == 1:
-                meanHall[h][m] = entropy[h][subject[0]][m]
-            else:
-                tmp = np.array([entropy[h][s][m]['mean'] for s in subject])
-                meanHall[h][m] = {'mean':np.mean(tmp,0), 'sem':sem(tmp,0)}
+	        entropy[g]['Hb'][s] = extractStimulusPresentation(hall[:,:,0], state, action, responses)
+	        entropy[g]['Hf'][s] = extractStimulusPresentation(hall[:,:,1], state, action, responses)
+	        entropy[g]['N'][s] = extractStimulusPresentation(N, state, action, responses)
+	break
 
-    fig = figure(figsize = (9,5))
 
-    ax2 = fig.add_subplot(1,3,2)
-    # for s in entropy['Hb'].iterkeys():
-        # m = entropy['Hb'][s].keys()[0]
-        # tmp = entropy['Hb'][s][m]
-    for m in meanHall['Hb'].iterkeys():
-        tmp = meanHall['Hb'][m]    
-        for i in xrange(3):
-            x = range(1, len(tmp['mean'][i])+1)
-            y = tmp['mean'][i]
-            ax2.plot(x, y, linewidth=1.5, color = colors_m[m])        
-            ax2.fill_between(x, y-tmp['sem'][i], y+tmp['sem'][i], facecolor = colors_m[m], alpha = 0.5)
-    ax2.set_ylim(0,np.log2(5))
-    ax3 = fig.add_subplot(1,3,3)
-    # for s in entropy['Hf'].iterkeys():
-    #     m = entropy['Hf'][s].keys()[0]
-    #     tmp = entropy['Hf'][s][m]
-    for m in meanHall['Hf'].iterkeys():
-        tmp = meanHall['Hf'][m]
-        for i in xrange(3):
-            x = range(1, len(tmp['mean'][i])+1)
-            y = tmp['mean'][i]
-            ax3.plot(x, y, linewidth=1.5, color = colors_m[m])        
-            ax3.fill_between(x, y-tmp['sem'][i], y+tmp['sem'][i], facecolor = colors_m[m], alpha = 0.5)
-    ax3.set_ylim(0,np.log2(5))
-    show()
+fig = figure()
+
+axes = {'Hb':{i:fig.add_subplot(2,3,i+1) for i in xrange(3)}, 'Hf':{i:fig.add_subplot(2,3,i+4) for i in xrange(3)}}
+
+for g in entropy.iterkeys():
+	for h in ['Hb', 'Hf']:
+		for s in entropy[g][h].iterkeys():
+			for i in xrange(3):
+				y = entropy[g][h][s]['mean'][i]
+				x = range(1, len(y)+1)
+				e = entropy[g][h][s]['sem'][i]
+				axes[h][i].plot(x, y, color = colors_m[g], linewidth = 2)
+				axes[h][i].fill_between(x, y-e, y+e, facecolor = colors_m[g], alpha = 0.1)
+				axes[h][i].set_ylim(0,np.log2(5))
+				if h == 'Hb':
+					ax2 = axes[h][i].twinx()
+					ax2.plot(x, entropy[g]['N'][s]['mean'][i], '--', color = colors_m[g], linewidth = 3)
+show()
+	    # meanHall = dict()
+	    # for h in entropy.keys():
+	    #     meanHall[h] = dict()
+	    #     model = np.unique([entropy[h][s].keys()[0] for s in entropy[h].iterkeys()])
+	    #     for m in model:
+	    #         subject = [s for s in entropy[h].keys() if entropy[h][s].keys()[0] == m]
+	    #         if len(subject) == 1:
+	    #             meanHall[h][m] = entropy[h][subject[0]][m]
+	    #         else:
+	    #             tmp = np.array([entropy[h][s][m]['mean'] for s in subject])
+	    #             meanHall[h][m] = {'mean':np.mean(tmp,0), 'sem':sem(tmp,0)}
+
+	    # fig = figure(figsize = (9,5))
+
+	    # ax2 = fig.add_subplot(1,3,2)
+	    # # for s in entropy['Hb'].iterkeys():
+	    #     # m = entropy['Hb'][s].keys()[0]
+	    #     # tmp = entropy['Hb'][s][m]
+	    # for m in meanHall['Hb'].iterkeys():
+	    #     tmp = meanHall['Hb'][m]    
+	    #     for i in xrange(3):
+	    #         x = range(1, len(tmp['mean'][i])+1)
+	    #         y = tmp['mean'][i]
+	    #         ax2.plot(x, y, linewidth=1.5, color = colors_m[m])        
+	    #         ax2.fill_between(x, y-tmp['sem'][i], y+tmp['sem'][i], facecolor = colors_m[m], alpha = 0.5)
+	    # ax2.set_ylim(0,np.log2(5))
+	    # ax3 = fig.add_subplot(1,3,3)
+	    # # for s in entropy['Hf'].iterkeys():
+	    # #     m = entropy['Hf'][s].keys()[0]
+	    # #     tmp = entropy['Hf'][s][m]
+	    # for m in meanHall['Hf'].iterkeys():
+	    #     tmp = meanHall['Hf'][m]
+	    #     for i in xrange(3):
+	    #         x = range(1, len(tmp['mean'][i])+1)
+	    #         y = tmp['mean'][i]
+	    #         ax3.plot(x, y, linewidth=1.5, color = colors_m[m])        
+	    #         ax3.fill_between(x, y-tmp['sem'][i], y+tmp['sem'][i], facecolor = colors_m[m], alpha = 0.5)
+	    # ax3.set_ylim(0,np.log2(5))
+	    # show()
 
             
             

@@ -20,7 +20,7 @@ model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little
 
 p_order = ['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma']
 
-pp = map(float, "0.905331 1 0.985419 0.631207 0.159728 0.0923251 0.0875467 0.865847".split(" "))
+pp = map(float, "0.905331 0.9 0.985419 0.631207 0.159728 0.0923251 0.0875467 0.865847".split(" "))
 
 tmp = dict()
 for i in p_order:
@@ -31,14 +31,6 @@ for p in parameters.iterkeys():
 	if parameters[p]:
 		parameters[p] = model.bounds[p][0]+parameters[p]*(model.bounds[p][1]-model.bounds[p][0])
 
-parameters = {'alpha': 0.61865101,
-  'beta': 3.0690819999999999,
-  'gain': 1.9799880400000001,
-  'gamma': 0.45588070000000003,
-  'length': 9.2744959999999992,
-  'noise': 0.11032897600000001,
-  'sigma': 0.52055982999999995,
-  'threshold': 12.629}
 
 
 with open("fmri/S9.pickle", "rb") as f:

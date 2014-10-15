@@ -45,7 +45,7 @@ class EA():
         self.model = ptr_model
         self.subject = subject
         self.data = data
-        self.n_repets = 5 # if changing here don't forget to change inside models
+        self.n_repets = 20 # if changing here don't forget to change inside models
         self.n_rs = 15
         self.mean = np.zeros((2,self.n_rs))
         self.fit = np.zeros(2)
