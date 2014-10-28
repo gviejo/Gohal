@@ -72,7 +72,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 10
+nb_repeat = 5
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -99,8 +99,10 @@ entropy = {'Hb':{},'Hf':{}}
 
 pcrm = dict({'s':[], 'a':[], 'r':[]})
 
-for m in best.iterkeys():
-    for s in best[m].iterkeys():                
+# for m in best.iterkeys():
+for m in ['fusion']:
+    # for s in best[m].iterkeys():                
+    for s in p_test.keys():
         print "Testing "+s+" with "+m
         models[m].setAllParameters(p_test[s][m])
         models[m].startExp()
@@ -195,5 +197,5 @@ for m in meanHall['Hf'].iterkeys():
 
 show()
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_choice_only.pickle") , 'wb') as handle:    
-     pickle.dump(data, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_choice_only.pickle") , 'wb') as handle:    
+#      pickle.dump(data, handle)

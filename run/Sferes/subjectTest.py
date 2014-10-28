@@ -112,7 +112,8 @@ for o in p_test.iterkeys():
                     state = cats.getStimulus(j)
                     action = models[m].chooseAction(state)
                     reward = cats.getOutcome(state, action, case='fmri')
-                    models[m].updateValue(reward)    
+                    models[m].updateValue(reward)
+
         #MUTUAL Information
         rtm = np.array(models[m].reaction)
         rt = np.array([human.subject['fmri'][s][i]['rt'][0:nb_trials,0] for i in range(1,nb_blocs+1)])
@@ -197,9 +198,9 @@ for o in p_test.iterkeys():
     super_rt[o]['rt'][:,:,0] = hrt
     super_rt[o]['rt'][:,:,1] = hrtm
 
-saving = input("Save ? : y/n : ")
-if saving == "y":
-    with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_model.pickle") , 'wb') as handle:    
-         pickle.dump(super_data, handle)
-    with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rts_all_subjects.pickle") , 'wb') as handle:    
-         pickle.dump(super_rt, handle)
+# saving = input("Save ? : y/n : ")
+# if saving == "y":
+#     with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_model.pickle") , 'wb') as handle:    
+#          pickle.dump(super_data, handle)
+#     with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rts_all_subjects.pickle") , 'wb') as handle:    
+#          pickle.dump(super_rt, handle)

@@ -17,7 +17,6 @@ from Models import *
 # To speed up the process and avoid list
 n_trials = 39
 n_blocs = 4
-n_repets = 20
 
 class FSelection():
     """ fusion strategy
@@ -33,8 +32,7 @@ class FSelection():
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
-        self.bounds = dict({"gamma":[0.0, 1.0],
-                            "beta":[1.0, 100.0],
+        self.bounds = dict({"beta":[1.0, 100.0],
                             "alpha":[0.0, 1.0],
                             "length":[5, 20],
                             "threshold":[0.0001, 200.0], 
@@ -65,8 +63,9 @@ class FSelection():
         self.Hf = self.max_entropy
         # List Init
         if self.sferes:
-            self.value = np.zeros((n_blocs*n_repets, n_trials))
-            self.reaction = np.zeros((n_blocs*n_repets, n_trials))
+            self.value = np.zeros((n_blocs, n_trials))
+            self.reaction = np.zeros((n_blocs, n_trials))
+
         else:
             self.state = list()
             self.action = list()
@@ -74,6 +73,7 @@ class FSelection():
             self.reaction = list()
             self.value = list()
             self.pdf = list()
+            self.Hall = list()
 
     def setParameters(self, name, value):            
         if value < self.bounds[name][0]:
@@ -95,6 +95,7 @@ class FSelection():
             self.responses.append([])
             self.reaction.append([])
             self.pdf.append([])
+            self.Hall.append([])
         self.p_s = np.zeros((int(self.parameters['length']), self.n_state))
         self.p_a_s = np.zeros((int(self.parameters['length']), self.n_state, self.n_action))
         self.p_r_as = np.zeros((int(self.parameters['length']), self.n_state, self.n_action, 2))
@@ -113,6 +114,7 @@ class FSelection():
         self.reaction = list()
         self.value = list()        
         self.pdf = list()
+        self.Hall = list()
 
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
@@ -160,19 +162,29 @@ class FSelection():
         self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['gain'])
         self.Hf = -(self.p_a_mf*np.log2(self.p_a_mf)).sum()
         self.nb_inferences = 0
-        self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
-
-        while self.sigmoideModule():
+        self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)        
+        p_decision = np.zeros(self.n_element+1)
+        p_retrieval= np.zeros(self.n_element+1)
+        p_a = np.zeros(self.n_element+1)
+        reaction = np.zeros(self.n_element+1)
+        self.sigmoideModule()
+        p_decision[0] = self.pA
+        p_retrieval[0] = 1.0-self.pA
+        p_a[0] = 0.2
+        reaction[0] = np.log2(5)*self.parameters['sigma']
+        for i in xrange(self.n_element):
             self.inferenceModule()
             self.evaluationModule()
-        self.fusionModule()
-
-        H = -(self.p_a*np.log2(self.p_a)).sum()
-        N = float(self.nb_inferences+1)
-        if np.isnan(H): H = 0.005
-
-        self.value[ind] = float(self.p_a[self.current_action])
-        self.reaction[ind] = float(H*self.parameters['sigma']+np.log2(N))        
+            self.fusionModule()
+            p_a[i+1] = self.p_a[self.current_action]
+            reaction[i+1] = self.parameters['sigma']*-(self.p_a*np.log2(self.p_a)).sum()+np.log2(i+2)
+            self.sigmoideModule()
+            p_decision[i+1] = self.pA*p_retrieval[i]
+            p_retrieval[i+1] = (1.0-self.pA)*p_retrieval[i]            
+        reaction[np.isnan(reaction)] = 0.005
+        # self.value[ind] = float(self.p_a[self.current_action])
+        self.value[ind] = float(np.sum(np.log(p_a*p_decision)))
+        self.reaction[ind] = float(np.sum(reaction*p_decision))
                 
     def chooseAction(self, state):
         self.state[-1].append(state)
@@ -192,10 +204,12 @@ class FSelection():
         self.current_action = self.sample(self.p_a)
         self.value.append(float(self.p_a[self.current_action]))
         self.action[-1].append(self.current_action)                
-        
+        self.Hall[-1].append([float(self.Hb), float(self.Hf)])
         H = -(self.p_a*np.log2(self.p_a)).sum()
-        N = float(self.nb_inferences+1)
+        if np.isnan(H): H = 0.005
+        N = float(self.nb_inferences+1)        
         self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))
+        self.pdf[-1].append(N)
         # self.reaction[-1].append(N-1)
         
         return self.actions[self.current_action]
@@ -224,9 +238,8 @@ class FSelection():
         self.p_r_as[0, self.current_state, self.current_action] = 0.0
         self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0        
         # Updating model free
-        r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
-        delta = float(r)+self.parameters['gamma']*np.max(self.values_mf[self.current_state])-self.values_mf[self.current_state, self.current_action]        
-        #delta = float(r)-self.values_mf[self.current_state, self.current_action]        
+        r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0                
+        delta = float(r)-self.values_mf[self.current_state, self.current_action]        
         self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
         #self.values_mf[self.current_state, self.current_action] = self.values_mf[self.current_state, self.current_action]+0.9*delta
         
@@ -282,8 +295,8 @@ class KSelection():
         self.reward_rate = np.zeros(self.n_state)
         # List Init
         if self.sferes:
-            self.value = np.zeros((n_blocs*n_repets, n_trials))
-            self.reaction = np.zeros((n_blocs*n_repets, n_trials))
+            self.value = np.zeros((n_blocs, n_trials))
+            self.reaction = np.zeros((n_blocs, n_trials))
         else:
             self.state = list()
             self.action = list()
@@ -413,7 +426,7 @@ class KSelection():
 
         if np.isnan(values).sum(): values = np.isnan(values)*0.9995+0.0001            
         if np.isnan(H): H = 0.005
-        self.value[ind] = float(values[self.current_action])        
+        self.value[ind] = float(np.log(values[self.current_action]))
         self.reaction[ind] = float(H*self.parameters['sigma_rt']+np.log2(N))
         
         
@@ -547,8 +560,8 @@ class CSelection():
         self.p_r_s = np.ones(2)*0.5
         #List Init
         if self.sferes:
-            self.value = np.zeros((n_blocs*n_repets, n_trials))
-            self.reaction = np.zeros((n_blocs*n_repets, n_trials))
+            self.value = np.zeros((n_blocs, n_trials))
+            self.reaction = np.zeros((n_blocs, n_trials))
         else:
             self.state=list()        
             self.action=list()
@@ -666,7 +679,7 @@ class CSelection():
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
         if np.isnan(H): H = 0.005
-        self.value[ind] = float(self.p_a[self.current_action])
+        self.value[ind] = float(np.log(self.p_a[self.current_action]))
         self.reaction[ind] = float(H*self.parameters['sigma']+np.log2(N))
 
     def chooseAction(self, state):
@@ -717,7 +730,8 @@ class CSelection():
         self.p_r_as[0, self.current_state, self.current_action] = 0.0
         self.p_r_as[0, self.current_state, self.current_action, int(r)] = 1.0   
         r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
-        delta = float(r)+self.parameters['gamma']*np.max(self.q_mf[self.current_state])-self.q_mf[self.current_state, self.current_action]                
+        # delta = float(r)+self.parameters['gamma']*np.max(self.q_mf[self.current_state])-self.q_mf[self.current_state, self.current_action]                
+        delta = float(r)-self.q_mf[self.current_state, self.current_action]                        
         self.q_mf[self.current_state, self.current_action] = self.q_mf[self.current_state, self.current_action]+self.parameters['alpha']*delta
 
 

@@ -41,14 +41,15 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-best = np.array([-257.0, 0.0])
-front = pareto(options.input, best, N = 156)
+n_repet = 20
+best = np.array([np.log(0.2)*8*4*n_repet, 0.0])
+front = pareto(options.input, best, n_repet, N = 156)
 
 front.constructParetoFrontier()
 
 front.removeIndivDoublons()
 # model = front.reTest(20)
-# front.constructParetoFrontier()
+front.constructParetoFrontier()
 front.constructMixedParetoFrontier()
 front.rankDistance()
 front.rankOWA()
@@ -56,57 +57,57 @@ front.rankTchebytchev()
 front.zoomBox(0.0, 0.0)
 
 front.classifySubject()
-# front.preview()
-data_single, p_test_single = front.rankIndividualStrategy()
-# show()
+front.preview()
+# data_single, p_test_single = front.rankIndividualStrategy()
+show()
 
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
-    pickle.dump(front.pareto, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
+#     pickle.dump(front.pareto, handle)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
-    pickle.dump(front.mixed, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
+#     pickle.dump(front.mixed, handle)
 
-# # useless
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_distance.pickle"), 'wb') as handle:
-# 	pickle.dump(front.distance, handle)
+# # # useless
+# # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_distance.pickle"), 'wb') as handle:
+# # 	pickle.dump(front.distance, handle)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators.pickle"), 'wb') as handle:
-	pickle.dump(front.zoom, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators.pickle"), 'wb') as handle:
+# 	pickle.dump(front.zoom, handle)
 
 with open("parameters.pickle", 'wb') as f:
 	pickle.dump(front.p_test, f)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_single.pickle"), 'wb') as handle:
-	pickle.dump(data_single, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_single.pickle"), 'wb') as handle:
+# 	pickle.dump(data_single, handle)
 
-with open("parameters_single.pickle", 'wb') as f:
-	pickle.dump(p_test_single, f)
+# with open("parameters_single.pickle", 'wb') as f:
+# 	pickle.dump(p_test_single, f)
 
 # fit to choice extremum of the front
 with open("extremum.pickle", 'wb') as f:
 	pickle.dump(front.extremum, f)
 
-# value of maximum BIC normalized 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:
-	pickle.dump(front.obj_choice, f)
+# # value of maximum BIC normalized 
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:
+# 	pickle.dump(front.obj_choice, f)
 
-figure()
-s_to_plot = []
-x_pos = []
-tmp = 0
-for x in front.choice_only.iterkeys():	
-	for s in front.choice_only[x]:
-		x_pos.append(len(s_to_plot)+tmp)
-		s_to_plot.append(s)
-		for m in front.pareto.iterkeys():
-			obj = front.pareto[m][s][:,3]
-			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
-			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
-	tmp+=1
-ylim(0.55, 0.95)
-xticks(np.array(x_pos)+1, s_to_plot)
-show()
+# figure()
+# s_to_plot = []
+# x_pos = []
+# tmp = 0
+# for x in front.choice_only.iterkeys():	
+# 	for s in front.choice_only[x]:
+# 		x_pos.append(len(s_to_plot)+tmp)
+# 		s_to_plot.append(s)
+# 		for m in front.pareto.iterkeys():
+# 			obj = front.pareto[m][s][:,3]
+# 			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
+# 			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
+# 	tmp+=1
+# ylim(0.55, 0.95)
+# xticks(np.array(x_pos)+1, s_to_plot)
+# show()
 
 
 
@@ -124,15 +125,15 @@ show()
 # for s in front.pareto[m].keys():
 # 	plot(front.pareto[m][s][:,3], front.pareto[m][s][:,6], 'o')
 
-figure()
+# figure()
 
-for m in front.pareto.iterkeys():
-	for s in front.pareto[m].iterkeys():
-		obj = front.pareto[m][s][:,3]
-		ind = np.ones(len(obj))*(front.pareto[m].keys().index(s)+0.1*float(front.pareto.keys().index(m)))
-		plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
-xticks(range(0,len(front.pareto[m].keys())), front.pareto[m].keys())
-show()
+# for m in front.pareto.iterkeys():
+# 	for s in front.pareto[m].iterkeys():
+# 		obj = front.pareto[m][s][:,3]
+# 		ind = np.ones(len(obj))*(front.pareto[m].keys().index(s)+0.1*float(front.pareto.keys().index(m)))
+# 		plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
+# xticks(range(0,len(front.pareto[m].keys())), front.pareto[m].keys())
+# show()
 
 
 

@@ -19,7 +19,6 @@ from fonctions import *
 # To speed up the process and avoid list
 n_trials = 39
 n_blocs = 4
-n_repets = 20
 
 class QLearning():
     """Class that implement a Qlearning
@@ -34,8 +33,7 @@ class QLearning():
         self.parameters = parameters
         self.n_action=len(actions)
         self.n_state=len(states)
-        self.bounds = dict({"gamma":[0.1, 1.0],
-                            "beta":[1.0, 100.0],
+        self.bounds = dict({"beta":[1.0, 100.0],
                             "alpha":[0.1, 1.0],
                             "sigma":[0.0001, 1.0]})
         
@@ -46,8 +44,8 @@ class QLearning():
         self.current_action = None
         # List Init
         if self.sferes:
-            self.value = np.zeros((n_blocs*n_repets, n_trials))
-            self.reaction = np.zeros((n_blocs*n_repets, n_trials))
+            self.value = np.zeros((n_blocs, n_trials))
+            self.reaction = np.zeros((n_blocs, n_trials))
         else:
             self.state = list()
             self.action = list()
@@ -107,7 +105,7 @@ class QLearning():
         if np.isnan(value).sum():
             value = np.isnan(value)*0.9995+0.0001
 
-        self.value[ind] = float(value[self.current_action])
+        self.value[ind] = float(np.log(value[self.current_action]))
         
         H = -(value*np.log2(value)).sum()       
         if np.isnan(H): H = 0.005
@@ -134,7 +132,8 @@ class QLearning():
         if not self.sferes:
             self.responses[-1].append(int((reward==1)*1))
         r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
-        delta = r+self.parameters['gamma']*np.max(self.values[self.current_state])-self.values[self.current_state, self.current_action]        
+        # delta = r+self.parameters['gamma']*np.max(self.values[self.current_state])-self.values[self.current_state, self.current_action]        
+        delta = r-self.values[self.current_state, self.current_action]        
         self.values[self.current_state, self.current_action] = self.values[self.current_state, self.current_action]+self.parameters['alpha']*delta
     
 
@@ -291,8 +290,8 @@ class BayesianWorkingMemory():
         self.p_r_s = np.ones(2)*0.5
         #List Init
         if self.sferes:
-            self.value = np.zeros((n_blocs*n_repets, n_trials))
-            self.reaction = np.zeros((n_blocs*n_repets, n_trials))
+            self.value = np.zeros((n_blocs, n_trials))
+            self.reaction = np.zeros((n_blocs, n_trials))
         else:            
             self.state=list()        
             self.action=list()
@@ -386,7 +385,7 @@ class BayesianWorkingMemory():
         N = float(self.nb_inferences+1)
         if np.isnan(H): H = 0.005
 
-        self.value[ind] = float(self.values[self.current_action])
+        self.value[ind] = float(np.log(self.values[self.current_action]))
         self.reaction[ind] = float(H*self.parameters['sigma']+np.log2(N))
 
     def chooseAction(self, state):

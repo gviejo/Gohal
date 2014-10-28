@@ -30,7 +30,7 @@ for p in parameters.iterkeys():
 		parameters[p] = model.bounds[p][0]+parameters[p]*(model.bounds[p][1]-model.bounds[p][0])
 model = KSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes=True)
 
-opt = EA(data, 'S2', model)
+opt = EA(data, 'S9', model)
 
 llh, lrs = opt.getFitness()
 

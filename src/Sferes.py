@@ -44,8 +44,7 @@ class EA():
     def __init__(self, data, subject, ptr_model):
         self.model = ptr_model
         self.subject = subject
-        self.data = data
-        self.n_repets = 20 # if changing here don't forget to change inside models
+        self.data = data        
         self.n_rs = 15
         self.mean = np.zeros((2,self.n_rs))
         self.fit = np.zeros(2)
@@ -61,29 +60,28 @@ class EA():
     def getFitness(self):
         np.seterr(all = 'ignore')
         #self.model.startExp()        
-        for i in xrange(self.n_blocs*self.n_repets):
-                self.model.startBloc()
-                for j in xrange(self.n_trials):
-                    self.model.computeValue(self.state[i%self.n_blocs,j]-1, self.action[i%self.n_blocs,j]-1, (i,j))
-                    self.model.updateValue(self.responses[i%self.n_blocs,j])
-        
-        self.fit[0] = float(np.sum(np.log(self.model.value)))        
+        for i in xrange(self.n_blocs):
+            self.model.startBloc()
+            for j in xrange(self.n_trials):
+                self.model.computeValue(self.state[i%self.n_blocs,j]-1, self.action[i%self.n_blocs,j]-1, (i,j))
+                self.model.updateValue(self.responses[i%self.n_blocs,j])                        
+
+        self.fit[0] = float(np.sum(self.model.value))
         self.alignToMedian()        
-        self.fit[1] = float(-self.leastSquares())        
+        self.fit[1] = float(-self.leastSquares())                
         self.fit = np.round(self.fit, 4)
-        self.fit[np.isnan(self.fit)] = -100000.0
-        self.fit[np.isinf(self.fit)] = -100000.0                
+        self.fit[np.isnan(self.fit)] = -1000000.0
+        self.fit[np.isinf(self.fit)] = -1000000.0                
         choice = str(self.fit[0]+2000.0)
         rt = str(self.fit[1]+500.0)
         # FUCKING UGLY ########
-        if choice == '0.0' or choice == '0': choice = '-10000.0'
-        if rt == '0.0' or rt == '0': rt = '-10000.0'
+        if choice == '0.0' or choice == '0': choice = '-100000.0'
+        if rt == '0.0' or rt == '0': rt = '-100000.0'
         #######################
         
         return choice, rt
 
-    def leastSquares(self):        
-        self.indice = np.tile(self.indice, (self.n_repets, 1))
+    def leastSquares(self):                
         for i in xrange(self.n_rs):            
             self.mean[1,i] = np.mean(self.model.reaction[self.indice == i+1])
         return np.sum(np.power(self.mean[0]-self.mean[1], 2))            
@@ -210,9 +208,10 @@ class pareto():
     """
     Explore Pareto Front from Sferes Optimization
     """
-    def __init__(self, directory, best, N = 156.):
+    def __init__(self, directory, best, n_repets, N = 156.):
         self.directory = directory        
         self.N = N
+        self.n_repets = n_repets
         self.best = best
         # loading pre-treated data for fmri
         self.human = dict({s_dir.split(".")[0]:self.pickling("fmri/"+s_dir) for s_dir in os.listdir("fmri/")})
@@ -247,11 +246,11 @@ class pareto():
         self.indd = dict()
         self.zoom = dict()
         self.loadData()
-        #self.simpleLoadData()
+        # self.simpleLoadData()
 
     def bounding_front(self):        
         for s in self.human.keys():
-            self.front_bounds[s][0] = self.N*np.log(0.2)*5
+            self.front_bounds[s][0] = self.N*np.log(0.2)*self.n_repets
             self.front_bounds[s][1] = -np.sum(2*np.abs(self.human[s]['mean'][0]))
 
     def pickling(self, direc):
@@ -359,12 +358,13 @@ class pareto():
                     tmp.append(np.hstack((np.ones((len(self.pareto[m][s]),1))*self.m_order.index(m), self.pareto[m][s][:,0:5])))
             tmp = np.vstack(tmp)            
             tmp = tmp[tmp[:,4].argsort()][::-1]
+            print s
             self.mixed[s] = [tmp[0]]
             for pair in tmp[1:]:
                 if pair[5] >= self.mixed[s][-1][5]:
                     self.mixed[s].append(pair)
             self.mixed[s] = np.array(self.mixed[s])
-            #self.mixed[s][:,4:6] = (self.mixed[s][:,4:6]-self.front_bounds[s])/(self.best-self.front_bounds[s])
+            # self.mixed[s][:,4:6] = (self.mixed[s][:,4:6]-self.front_bounds[s])/(self.best-self.front_bounds[s])
 
     def removeIndivDoublons(self):
         for m in self.pareto.iterkeys():
@@ -535,7 +535,9 @@ class pareto():
     def classifySubject(self):
         self.choice_only = {m:[] for m in self.pareto.keys()}
         models = self.pareto.keys()
-        for s in self.human.keys():
+        subjects = self.data['fusion'].keys()
+        # subjects = self.human.keys()
+        for s in subjects:
             value = []
             for m in models:
                 if len(self.pareto[m][s][:,3]):                    
@@ -546,7 +548,7 @@ class pareto():
             self.choice_only[models[m_ind]].append(s)
         # parameters from max fit to choice only
         self.extremum = dict()
-        for s in self.human.iterkeys():
+        for s in subjects:
             self.extremum[s] = dict()
             for m in self.pareto.iterkeys():
                 if len(self.pareto[m][s]):
