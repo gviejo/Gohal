@@ -183,7 +183,7 @@ class FSelection():
             p_retrieval[i+1] = (1.0-self.pA)*p_retrieval[i]            
         reaction[np.isnan(reaction)] = 0.005
         # self.value[ind] = float(self.p_a[self.current_action])
-        self.value[ind] = float(np.sum(np.log(p_a*p_decision)))
+        self.value[ind] = float(np.log(np.sum(p_a*p_decision)))
         self.reaction[ind] = float(np.sum(reaction*p_decision))
                 
     def chooseAction(self, state):
