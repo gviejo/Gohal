@@ -33,9 +33,9 @@ class FSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"beta":[1.0, 100.0],
-                            "alpha":[0.0, 1.0],
-                            "length":[5, 20],
-                            "threshold":[0.0001, 200.0], 
+                            "alpha":[0.0, 0.99],
+                            "length":[1, 15],
+                            "threshold":[0.0001, 300.0], 
                             "noise":[0.0, 1.0],
                             "gain":[1.0, 100.0], # new beta for p_a_mf                            
                             "sigma":[0.0, 1.0]})                            
@@ -152,9 +152,9 @@ class FSelection():
         self.values_net = self.p_a_mb+self.values_mf[self.current_state]
         tmp = np.exp(self.values_net*float(self.parameters['beta']))
         self.p_a = tmp/np.sum(tmp)        
-        if np.isnan(self.p_a).sum(): 
+        if np.isnan(self.p_a).sum():            
             self.p_a = np.isnan(self.p_a)*0.9995+0.0001
-        if 0 in self.p_a:
+        if 0 in self.p_a:            
             self.p_a+=1e-4
             self.p_a = self.p_a/self.p_a.sum()
              
@@ -264,7 +264,7 @@ class KSelection():
         self.bounds = dict({"gamma":[0.1, 1.0],
                             "beta":[1.0, 100.0],
                             "eta":[0.00001, 0.001],
-                            "length":[6, 20],
+                            "length":[5, 15],
                             "threshold":[0.01, -np.log2(1./self.n_action)], 
                             "noise":[0.0,1.0],
                             "sigma":[0.0,1.0],
@@ -529,14 +529,14 @@ class CSelection():
         self.n_action=int(len(actions))
         self.n_state=int(len(states))
         self.initial_entropy = -np.log2(1./self.n_action)
-        self.bounds = dict({"length":[6, 20], 
+        self.bounds = dict({"length":[1, 15], 
                             "threshold":[0.01, self.initial_entropy], 
                             "noise":[0.0, 1.0],
-                            "alpha":[0.01, 1.0],
-                            "beta":[0.01, 100.0], # QLEARNING
-                            "gain":[0.01, 100.0], # WORKING MEMORY
-                            "gamma":[0.01, 1.0],                            
-                            "sigma":[0.01, 1.0], 
+                            "alpha":[0.0, 0.99],
+                            "beta":[1.0, 100.0], # QLEARNING
+                            "gain":[1.0, 100.0], # WORKING MEMORY
+                            "gamma":[0.0, 0.99],                            
+                            "sigma":[0.0, 1.0], 
                             "weight":[0.1, 0.9]})
 
         # Probability Initialization        
