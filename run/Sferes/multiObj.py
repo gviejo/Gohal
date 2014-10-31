@@ -41,9 +41,8 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-n_repet = 20
-best = np.array([np.log(0.2)*8*4*n_repet, 0.0])
-front = pareto(options.input, best, n_repet, N = 156)
+best = np.array([np.log(0.2)*8*4, 0.0])
+front = pareto(options.input, best, N = 156)
 
 front.constructParetoFrontier()
 
@@ -85,8 +84,8 @@ with open("parameters.pickle", 'wb') as f:
 # 	pickle.dump(p_test_single, f)
 
 # fit to choice extremum of the front
-with open("extremum.pickle", 'wb') as f:
-	pickle.dump(front.extremum, f)
+# with open("extremum.pickle", 'wb') as f:
+# 	pickle.dump(front.extremum, f)
 
 # # value of maximum BIC normalized 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:
@@ -108,6 +107,8 @@ with open("extremum.pickle", 'wb') as f:
 # ylim(0.55, 0.95)
 # xticks(np.array(x_pos)+1, s_to_plot)
 # show()
+
+# front evolution
 
 
 

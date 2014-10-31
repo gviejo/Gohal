@@ -152,7 +152,11 @@ class FSelection():
         self.values_net = self.p_a_mb+self.values_mf[self.current_state]
         tmp = np.exp(self.values_net*float(self.parameters['beta']))
         self.p_a = tmp/np.sum(tmp)        
-        if np.isnan(self.p_a).sum(): self.p_a = np.isnan(self.p_a)*0.9995+0.0001
+        if np.isnan(self.p_a).sum(): 
+            self.p_a = np.isnan(self.p_a)*0.9995+0.0001
+        if 0 in self.p_a:
+            self.p_a+=1e-4
+            self.p_a = self.p_a/self.p_a.sum()
              
     def computeValue(self, s, a, ind):        
         self.current_state = s
@@ -170,8 +174,9 @@ class FSelection():
         self.sigmoideModule()
         p_decision[0] = self.pA
         p_retrieval[0] = 1.0-self.pA
-        p_a[0] = 0.2
-        reaction[0] = np.log2(5)*self.parameters['sigma']
+        self.fusionModule()
+        p_a[0] = self.p_a[self.current_action]        
+        reaction[0] = float(-(self.p_a*np.log2(self.p_a)).sum()*self.parameters['sigma']+np.log2(1))
         for i in xrange(self.n_element):
             self.inferenceModule()
             self.evaluationModule()
@@ -180,12 +185,10 @@ class FSelection():
             reaction[i+1] = self.parameters['sigma']*-(self.p_a*np.log2(self.p_a)).sum()+np.log2(i+2)
             self.sigmoideModule()
             p_decision[i+1] = self.pA*p_retrieval[i]
-            p_retrieval[i+1] = (1.0-self.pA)*p_retrieval[i]            
-        reaction[np.isnan(reaction)] = 0.005
-        # self.value[ind] = float(self.p_a[self.current_action])
+            p_retrieval[i+1] = (1.0-self.pA)*p_retrieval[i]                    
         self.value[ind] = float(np.log(np.sum(p_a*p_decision)))
         self.reaction[ind] = float(np.sum(reaction*p_decision))
-                
+            
     def chooseAction(self, state):
         self.state[-1].append(state)
         self.current_state = convertStimulus(state)-1
@@ -206,7 +209,7 @@ class FSelection():
         self.action[-1].append(self.current_action)                
         self.Hall[-1].append([float(self.Hb), float(self.Hf)])
         H = -(self.p_a*np.log2(self.p_a)).sum()
-        if np.isnan(H): H = 0.005
+        # if np.isnan(H): H = 0.005                        
         N = float(self.nb_inferences+1)        
         self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))
         self.pdf[-1].append(N)

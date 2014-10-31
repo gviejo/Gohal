@@ -208,10 +208,9 @@ class pareto():
     """
     Explore Pareto Front from Sferes Optimization
     """
-    def __init__(self, directory, best, n_repets, N = 156.):
+    def __init__(self, directory, best, N = 156.):
         self.directory = directory        
-        self.N = N
-        self.n_repets = n_repets
+        self.N = N        
         self.best = best
         # loading pre-treated data for fmri
         self.human = dict({s_dir.split(".")[0]:self.pickling("fmri/"+s_dir) for s_dir in os.listdir("fmri/")})
@@ -227,11 +226,11 @@ class pareto():
                             "selection":KSelection(self.states, self.actions),
                             "mixture":CSelection(self.states, self.actions)})
 
-        self.p_order = dict({'fusion':['alpha','beta', 'gamma', 'noise','length','gain','threshold', 'sigma'],
-                            'qlearning':['alpha','beta','gamma','sigma'],
+        self.p_order = dict({'fusion':['alpha','beta', 'noise','length','gain','threshold', 'sigma'],
+                            'qlearning':['alpha','beta','sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
-                            'mixture':['alpha', 'beta', 'gamma', 'noise', 'length', 'weight', 'threshold', 'sigma', 'gain']})
+                            'mixture':['alpha', 'beta', 'noise', 'length', 'weight', 'threshold', 'sigma', 'gain']})
 
         self.m_order = ['qlearning', 'bayesian', 'selection', 'fusion', 'mixture']
         self.colors_m = dict({'fusion':'r', 'bayesian':'g', 'qlearning':'grey', 'selection':'b', 'mixture':'y'})
@@ -250,7 +249,7 @@ class pareto():
 
     def bounding_front(self):        
         for s in self.human.keys():
-            self.front_bounds[s][0] = self.N*np.log(0.2)*self.n_repets
+            self.front_bounds[s][0] = self.N*np.log(0.2)
             self.front_bounds[s][1] = -np.sum(2*np.abs(self.human[s]['mean'][0]))
 
     def pickling(self, direc):
@@ -457,7 +456,8 @@ class pareto():
         rcParams['ytick.labelsize'] = 8
         rcParams['xtick.labelsize'] = 8        
         fig_model = figure(figsize = (10,10)) # for each model all subject            
-        fig_rank = figure(figsize = (6,6))         
+        fig_rank = figure(figsize = (6,6))
+        fig_evo = figure(figsize = (10,6))         
         for m,i in zip(self.pareto.iterkeys(), xrange(len(self.pareto.keys()))):
             ax2 = fig_model.add_subplot(3,2,i+1)
             for s in self.pareto[m].iterkeys():
@@ -474,6 +474,18 @@ class pareto():
                 ax5.plot(self.distance[s][ind,0], self.distance[s][ind,1], 'o-', color = self.colors_m[self.m_order[int(m)]])
                 #ax5.plot(self.distance[s][ind,2], self.distance[s][ind,1], 'o-', color = self.colors_m[self.m_order[int(m)]])
         ax5.axvline(0.0)
+        ax7 = fig_evo.add_subplot(1,2,1)
+        ax8 = fig_evo.add_subplot(1,2,2)
+        for m in self.data.iterkeys():
+            for s in self.data[m].iterkeys():
+                tmp1 = []
+                tmp2 = []                
+                for g in np.unique(self.data[m][s][0][:,0]):
+                    tmp1.append(self.data[m][s][0][self.data[m][s][0][:,0]==g][0,2])
+                    # tmp2.append(self.data[m][s][0][self.data[m][s][0][:,0]==g][0,3])                                
+                ax7.plot(np.array(tmp1), 'o', color = self.colors_m[m])
+                # ax8.plot(np.array(tmp2))
+
         
         fig_zoom = figure(figsize = (5,5))
         ax6 = fig_zoom.add_subplot(1,1,1)
