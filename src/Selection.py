@@ -33,12 +33,12 @@ class FSelection():
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
         self.bounds = dict({"beta":[1.0, 100.0],
-                            "alpha":[0.0, 0.99],
-                            "length":[1, 15],
-                            "threshold":[0.0001, 300.0], 
-                            "noise":[0.0, 1.0],
+                            "alpha":[0.01, 0.99],
+                            "length":[2, 10],
+                            "threshold":[1.0, 100.0], 
+                            "noise":[0.0, 0.1],
                             "gain":[1.0, 100.0], # new beta for p_a_mf                            
-                            "sigma":[0.0, 1.0]})                            
+                            "sigma":[0.000001, 1.0]})                            
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -185,9 +185,15 @@ class FSelection():
             reaction[i+1] = self.parameters['sigma']*-(self.p_a*np.log2(self.p_a)).sum()+np.log2(i+2)
             self.sigmoideModule()
             p_decision[i+1] = self.pA*p_retrieval[i]
-            p_retrieval[i+1] = (1.0-self.pA)*p_retrieval[i]                    
+            p_retrieval[i+1] = (1.0-self.pA)*p_retrieval[i]
+        # print p_decision
+        # print np.round(p_decision,2)
+        # print reaction
+        # print reaction*np.round(p_decision,3), np.sum(reaction*np.round(p_decision,3))
+        # sys.stdin.readline()                
         self.value[ind] = float(np.log(np.sum(p_a*p_decision)))
-        self.reaction[ind] = float(np.sum(reaction*p_decision))
+        self.reaction[ind] = float(np.sum(reaction*np.round(p_decision,3)))            
+        # self.reaction[ind] = float(np.sum(reaction*p_decision))            
             
     def chooseAction(self, state):
         self.state[-1].append(state)

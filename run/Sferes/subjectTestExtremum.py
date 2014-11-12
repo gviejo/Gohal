@@ -86,8 +86,8 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 with open("extremum.pickle", 'r') as f:
     p_test = pickle.load(f)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'r') as f:
-    best = pickle.load(f)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'r') as f:
+#     best = pickle.load(f)
 
 colors_m = dict({'fusion':'#F1433F',
                 'bayesian': '#D5A253',

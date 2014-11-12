@@ -40,9 +40,8 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-n_repet = 20
-best = np.array([np.log(0.2)*8*4*n_repet, 0.0])
-front = pareto(options.input, best, n_repet, N = 156)
+best = np.array([-4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2)), 0.0])
+front = pareto(options.input, best, N = 156)
 
 front.constructParetoFrontier()
 

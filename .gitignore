@@ -17,3 +17,4 @@ submit_job.sh
 *.dat
 *.tar
 old/
+SFERES_FMRI*

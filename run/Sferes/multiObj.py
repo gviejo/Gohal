@@ -41,7 +41,7 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-best = np.array([np.log(0.2)*8*4, 0.0])
+best = np.array([-4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2)), 0.0])
 front = pareto(options.input, best, N = 156)
 
 front.constructParetoFrontier()
@@ -53,7 +53,7 @@ front.constructMixedParetoFrontier()
 front.rankDistance()
 front.rankOWA()
 front.rankTchebytchev()
-front.zoomBox(0.0, 0.0)
+# front.zoomBox(0.0, 0.0)
 
 front.classifySubject()
 front.preview()
@@ -84,13 +84,14 @@ with open("parameters.pickle", 'wb') as f:
 # 	pickle.dump(p_test_single, f)
 
 # fit to choice extremum of the front
-# with open("extremum.pickle", 'wb') as f:
-# 	pickle.dump(front.extremum, f)
+with open("extremum.pickle", 'wb') as f:
+	pickle.dump(front.extremum, f)
 
 # # value of maximum BIC normalized 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:
 # 	pickle.dump(front.obj_choice, f)
 
+# # BIC only 
 # figure()
 # s_to_plot = []
 # x_pos = []
@@ -109,32 +110,6 @@ with open("parameters.pickle", 'wb') as f:
 # show()
 
 # front evolution
-
-
-
-
-
-
-
-# figure()
-# m = 'qlearning'
-# subplot(211)
-# for s in front.pareto[m].keys():
-# 	plot(front.pareto[m][s][:,3], front.pareto[m][s][:,6], 'o')
-# m = 'fusion'
-# subplot(212)
-# for s in front.pareto[m].keys():
-# 	plot(front.pareto[m][s][:,3], front.pareto[m][s][:,6], 'o')
-
-# figure()
-
-# for m in front.pareto.iterkeys():
-# 	for s in front.pareto[m].iterkeys():
-# 		obj = front.pareto[m][s][:,3]
-# 		ind = np.ones(len(obj))*(front.pareto[m].keys().index(s)+0.1*float(front.pareto.keys().index(m)))
-# 		plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
-# xticks(range(0,len(front.pareto[m].keys())), front.pareto[m].keys())
-# show()
 
 
 
