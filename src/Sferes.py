@@ -242,8 +242,8 @@ class pareto():
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
         self.indd = dict()
         self.zoom = dict()
-        self.loadData()
-        # self.simpleLoadData()
+        # self.loadData()
+        self.simpleLoadData()
 
     def bounding_front(self):        
         for s in self.human.keys():
@@ -468,6 +468,9 @@ class pareto():
             for m in np.unique(self.mixed[s][:,0]):
                 ind = self.mixed[s][:,0] == m
                 ax4.plot(self.mixed[s][ind,4], self.mixed[s][ind,5], 'o-', color = self.colors_m[self.m_order[int(m)]])
+                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 20)
+                ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 20)
+                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 20)
 
         # fig_evo = figure(figsize = (10,6))                 
         # ax7 = fig_evo.add_subplot(1,2,1)
@@ -492,22 +495,22 @@ class pareto():
         # ax6.set_xlim(0,1)
         # ax6.set_ylim(0,1)
         
-        # fig_front = figure(figsize = (12,12))
-        # m = 'fusion'
-        # for i in xrange(len(self.data[m].keys())):
-        #     s = self.data[m].keys()[i]
-        #     ax9 = fig_front.add_subplot(3,3,i+1)
-        #     color=iter(cm.rainbow(np.linspace(0,1,len(np.unique(self.data[m][s][0][:,0])))))
-        #     for g in np.unique(self.data[m][s][0][:,0]):
-        #         c = next(color)
-        #         ind = self.data[m][s][0][:,0] == g
-        #         gen = self.data[m][s][0][:,2:4][ind] - [2000.0,500.0]
-        #         ax9.plot(gen[:,0], gen[:,1], 'o', c = c)
-        #         ax9.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], '-', linewidth = 3, color='black')
-        #     ax9.set_xlim(self.front_bounds[s][0], self.best[0])
-        #     ax9.set_ylim(self.front_bounds[s][1], self.best[1])
-        #     # ax9.axvline(-4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2)))
-        #     ax9.set_title(s)
+        fig_front = figure(figsize = (12,12))
+        m = 'fusion'
+        for i in xrange(len(self.data[m].keys())):
+            s = self.data[m].keys()[i]
+            ax9 = fig_front.add_subplot(3,3,i+1)
+            color=iter(cm.rainbow(np.linspace(0,1,len(np.unique(self.data[m][s][0][:,0])))))
+            for g in np.unique(self.data[m][s][0][:,0]):
+                c = next(color)
+                ind = self.data[m][s][0][:,0] == g
+                gen = self.data[m][s][0][:,2:4][ind] - [2000.0,500.0]
+                ax9.plot(gen[:,0], gen[:,1], 'o', c = c)
+                ax9.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], '-', linewidth = 3, color='black')
+            ax9.set_xlim(self.front_bounds[s][0], self.best[0])
+            ax9.set_ylim(self.front_bounds[s][1], self.best[1])
+            # ax9.axvline(-4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2)))
+            ax9.set_title(s)
 
 
     def zoomBox(self, xmin, ymin):

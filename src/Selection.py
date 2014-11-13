@@ -34,7 +34,7 @@ class FSelection():
         self.n_state = int(len(states))
         self.bounds = dict({"beta":[1.0, 100.0],
                             "alpha":[0.01, 0.99],
-                            "length":[2, 10],
+                            "length":[1, 10],
                             "threshold":[1.0, 100.0], 
                             "noise":[0.0, 0.1],
                             "gain":[1.0, 100.0], # new beta for p_a_mf                            
@@ -270,9 +270,9 @@ class KSelection():
         self.bounds = dict({"gamma":[0.1, 1.0],
                             "beta":[1.0, 100.0],
                             "eta":[0.00001, 0.001],
-                            "length":[5, 15],
+                            "length":[1, 10],
                             "threshold":[0.01, -np.log2(1./self.n_action)], 
-                            "noise":[0.0,1.0],
+                            "noise":[0.0,0.1],
                             "sigma":[0.0,1.0],
                             "sigma_rt":[0.001, 1.0]})
                             #"sigma_ql":[0.00001, 1.0]})        
@@ -535,9 +535,9 @@ class CSelection():
         self.n_action=int(len(actions))
         self.n_state=int(len(states))
         self.initial_entropy = -np.log2(1./self.n_action)
-        self.bounds = dict({"length":[1, 15], 
+        self.bounds = dict({"length":[1, 10], 
                             "threshold":[0.01, self.initial_entropy], 
-                            "noise":[0.0, 1.0],
+                            "noise":[0.0, 0.1],
                             "alpha":[0.0, 0.99],
                             "beta":[1.0, 100.0], # QLEARNING
                             "gain":[1.0, 100.0], # WORKING MEMORY

@@ -53,7 +53,7 @@ front.constructMixedParetoFrontier()
 front.rankDistance()
 front.rankOWA()
 front.rankTchebytchev()
-# front.zoomBox(0.0, 0.0)
+front.zoomBox(0.0, 0.0)
 
 front.classifySubject()
 front.preview()

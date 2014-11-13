@@ -148,13 +148,13 @@ for s in subjects:
 					ax.set_yticks([])
 					ax.set_xticks([])
 				else:
-					ax.set_yticks([0,5,10,15])
+					# ax.set_yticks([0,5,10,15])
 					ax.set_xticks([])
 	fig.subplots_adjust(left=0.0, right=1.0)
-	fig.savefig("contribution_"+s+".pdf")
-	
+	# fig.savefig("contribution_"+s+".pdf")
+	show()
 
-os.system("evince contribution_*.pdf")
+# os.system("evince contribution_*.pdf")
 
 
 

@@ -269,9 +269,9 @@ class BayesianWorkingMemory():
         self.n_action=int(len(actions))
         self.n_state=int(len(states))
         self.initial_entropy = -np.log2(1./self.n_action)
-        self.bounds = dict({"length":[1, 15], 
+        self.bounds = dict({"length":[1, 10], 
                             "threshold":[0.01, self.initial_entropy], 
-                            "noise":[0.0, 1.0],
+                            "noise":[0.0, 0.1],
                             "sigma":[0.001, 1.0]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))

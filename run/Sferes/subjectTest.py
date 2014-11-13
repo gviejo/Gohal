@@ -89,8 +89,8 @@ with open("parameters.pickle", 'r') as f:
 super_data = dict()
 super_rt = dict()
 
-# for o in p_test.iterkeys():
-for o in ['owa']:
+for o in p_test.iterkeys():
+# for o in ['owa']:
     hrt = []
     hrtm = []
     mi = []
@@ -141,8 +141,7 @@ for o in ['owa']:
         step, indice2 = getRepresentativeSteps(rt, state, action, responses)
         hrt.append(computeMeanRepresentativeSteps(step)[0])
         super_rt[o]['model'].append(m)
-        if s == 'S12':
-            sys.exit()
+
     rt_all = np.array(rt_all)
     rtm_all = np.array(rtm_all)
     mi = np.array(mi)
