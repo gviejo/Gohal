@@ -59,7 +59,7 @@ class EA():
 
     def getFitness(self):
         np.seterr(all = 'ignore')
-        #self.model.startExp()           
+        #self.model.startExp()        
         for i in xrange(self.n_blocs):
             self.model.startBloc()
             for j in xrange(self.n_trials):
@@ -499,7 +499,7 @@ class pareto():
         m = 'fusion'
         for i in xrange(len(self.data[m].keys())):
             s = self.data[m].keys()[i]
-            ax9 = fig_front.add_subplot(3,3,i+1)
+            ax9 = fig_front.add_subplot(4,4,i+1)
             color=iter(cm.rainbow(np.linspace(0,1,len(np.unique(self.data[m][s][0][:,0])))))
             for g in np.unique(self.data[m][s][0][:,0]):
                 c = next(color)

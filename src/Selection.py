@@ -38,7 +38,7 @@ class FSelection():
                             "threshold":[1.0, 100.0], 
                             "noise":[0.0, 0.1],
                             "gain":[1.0, 100.0], # new beta for p_a_mf                            
-                            "sigma":[0.000001, 1.0]})                            
+                            "sigma":[0.000001, 0.1]})                            
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -65,7 +65,6 @@ class FSelection():
         if self.sferes:
             self.value = np.zeros((n_blocs, n_trials))
             self.reaction = np.zeros((n_blocs, n_trials))
-
         else:
             self.state = list()
             self.action = list()
@@ -182,7 +181,8 @@ class FSelection():
             self.evaluationModule()
             self.fusionModule()
             p_a[i+1] = self.p_a[self.current_action]
-            reaction[i+1] = self.parameters['sigma']*-(self.p_a*np.log2(self.p_a)).sum()+np.log2(i+2)
+            H = -(self.p_a*np.log2(self.p_a)).sum()
+            reaction[i+1] = float(self.parameters['sigma']*H+np.log2(i+2))
             self.sigmoideModule()
             p_decision[i+1] = self.pA*p_retrieval[i]
             p_retrieval[i+1] = (1.0-self.pA)*p_retrieval[i]
@@ -193,7 +193,7 @@ class FSelection():
         # sys.stdin.readline()                
         self.value[ind] = float(np.log(np.sum(p_a*p_decision)))
         self.reaction[ind] = float(np.sum(reaction*np.round(p_decision,3)))            
-        # self.reaction[ind] = float(np.sum(reaction*p_decision))            
+        # self.reaction_predicted[ind] = float(np.mean(np.random.choice(reaction, 5000, p = p_decision)))                
             
     def chooseAction(self, state):
         self.state[-1].append(state)

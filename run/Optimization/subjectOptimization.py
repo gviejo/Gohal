@@ -1,4 +1,7 @@
-#!/usr/bin/python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+	#!/usr/bin/python
 # encoding: utf-8
 """
 subjectOptimization.py
@@ -21,8 +24,9 @@ from Models import *
 from Selection import FSelection
 from time import time
 from ColorAssociationTasks import CATS
-from Sweep import Likelihood
-
+# from Sweep import Likelihood
+from Sferes import EA
+from scipy.optimize import fmin_tnc, brute, fmin
 #from mpl_toolkits.mplot3d import Axes3D
 #import matplotlib.pyplot as plt
 
@@ -30,16 +34,16 @@ from Sweep import Likelihood
 # -----------------------------------
 # ARGUMENT MANAGER
 # -----------------------------------
-if not sys.argv[1:]:
-   sys.stdout.write("Sorry: you must specify at least 1 argument")
-   sys.stdout.write("More help avalaible with -h or --help option")
-   sys.exit(0)
-parser = OptionParser()
-parser.add_option("-m", "--model", action="store", help="The name of the model to optimize", default=False)
-parser.add_option("-s", "--subject", action="store", help="The subject to optimize", default=False)
-parser.add_option("-o", "--output", action="store", help="Output directory", default=False)
-parser.add_option("-f", "--fonction", action="store", help="Scipy function", default=False)
-(options, args) = parser.parse_args() 
+# if not sys.argv[1:]:
+#    sys.stdout.write("Sorry: you must specify at least 1 argument")
+#    sys.stdout.write("More help avalaible with -h or --help option")
+#    sys.exit(0)
+# parser = OptionParser()
+# parser.add_option("-m", "--model", action="store", help="The name of the model to optimize", default=False)
+# parser.add_option("-s", "--subject", action="store", help="The subject to optimize", default=False)
+# parser.add_option("-o", "--output", action="store", help="Output directory", default=False)
+# parser.add_option("-f", "--fonction", action="store", help="Scipy function", default=False)
+# (options, args) = parser.parse_args() 
 # -----------------------------------
 
 
@@ -47,12 +51,36 @@ parser.add_option("-f", "--fonction", action="store", help="Scipy function", def
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
-# -----------------------------------
+def func(x):
+	parameters = dict(zip(order, x))
+	model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'],parameters, sferes = True)	
+	opt = EA(data, s, model)
+	llh, lrs = opt.getFitness()                                                                                      
+	return -(float(llh)+float(lrs))
 
+# -----------------------------------
+with open("../Sferes/fmri/S9.pickle", "rb") as f:
+   data = pickle.load(f)
+s = 'S9'
+order = ['alpha','beta', 'noise','length','gain','threshold', 'sigma']
+model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'],sferes = True)
+bounds = [tuple(model.bounds[k]) for k in order]
+
+
+
+x0 = [0.1, 1.0, 0.001, 1, 1.0, 0.1, 0.00001]
+
+
+# x, nfeval, rc = fmin_tnc(func, x0, approx_grad = True, bounds = bounds)
+
+resbrute = brute(func, tuple(bounds), Ns = 4, full_output = False, finish = fmin)
+
+sys.exit()
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
+
 # -----------------------------------
 
 # -----------------------------------
