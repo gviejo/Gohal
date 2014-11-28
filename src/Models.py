@@ -125,7 +125,6 @@ class QLearning():
         self.reaction[-1].append(float(self.parameters['sigma']*H))
         self.Hf[-1].append(H)
         self.Hall[-1].append([0.0, float(H)])
-
         return self.actions[self.current_action]
     
     def updateValue(self, reward):
@@ -349,7 +348,6 @@ class BayesianWorkingMemory():
         self.Hb = list()
         self.Hall = list()
 
-
     def sample(self, values):
         tmp = [np.sum(values[0:i]) for i in range(len(values))]
         return np.sum(np.array(tmp) < np.random.rand())-1
@@ -406,6 +404,7 @@ class BayesianWorkingMemory():
         self.pdf[-1].append(N)
         self.Hb[-1].append(self.entropy)
         self.Hall[-1].append([float(self.entropy), 0.0])
+        
         return self.actions[self.current_action]
 
     def updateValue(self, reward):

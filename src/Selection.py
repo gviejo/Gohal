@@ -449,10 +449,6 @@ class KSelection():
         vpi = computeVPIValues(self.values_mf[self.current_state], self.covariance['cov'].diagonal()[t:t+self.n_action])
         self.vpi[-1].append(vpi)
 
-        #pdf = np.zeros(int(self.parameters['length'])+1)
-        #d = (np.sum(vpi > self.reward_rate[self.current_state])>0)*(self.nb_inferences < self.n_element)*1.0
-        #pdf[self.nb_inferences] = 1.0-float(d)
-
         if np.sum(vpi > self.reward_rate[self.current_state]):
             self.p = self.uniform[:,:,:]
             self.Hb = self.max_entropy            
@@ -460,8 +456,7 @@ class KSelection():
             while self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element:
                 self.inferenceModule()
                 self.evaluationModule()
-                #d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
-                #pdf[self.nb_inferences] = 1.0-float(d)
+
             values = self.p_a_mb/np.sum(self.p_a_mb)
         self.current_action = self.sample(values)
         self.value.append(float(values[self.current_action]))
@@ -469,17 +464,8 @@ class KSelection():
         H = -(values*np.log2(values)).sum()
         N = float(self.nb_inferences+1)
         self.reaction[-1].append(H*self.parameters['sigma_rt']+np.log2(N))
-        #self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
-        
-        # while self.nb_inferences < self.n_element:            
-        #     self.inferenceModule()
-        #     self.evaluationModule()
-        #     d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
-        #     pdf[self.nb_inferences] = 1.0-float(d)            
 
-        # pdf = pdf/pdf.sum()
-        # self.pdf.append(pdf)
-        return self.action[-1][-1]
+        return self.actions[self.current_action]        
 
     def updateValue(self, reward):
         r = int((reward==1)*1)

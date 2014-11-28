@@ -72,7 +72,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 1000
+nb_repeat = 30
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -101,7 +101,7 @@ for o in p_test.iterkeys():
         with open("fmri/"+s+".pickle", "rb") as f:
             data = pickle.load(f)          
         m = p_test[o][s].keys()[0]
-        print "Testing "+s+" with "+m+" selected by "+o
+        print "Testing "+s+" with "+m+" selected by "+o        
         models[m].setAllParameters(p_test[o][s][m])
         models[m].startExp()
         for k in xrange(nb_repeat):
@@ -109,7 +109,7 @@ for o in p_test.iterkeys():
                 cats.reinitialize()
                 cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))
                 models[m].startBloc()
-                for j in xrange(nb_trials):
+                for j in xrange(nb_trials):                    
                     state = cats.getStimulus(j)
                     action = models[m].chooseAction(state)
                     reward = cats.getOutcome(state, action, case='fmri')
@@ -132,8 +132,7 @@ for o in p_test.iterkeys():
 
         hrtm.append(np.mean(tmp,0))
         hrt.append(data['mean'][0])
-        a1 = tmp
-        sys.exit()
+        
         # rt = np.array([human.subject['fmri'][s][i]['rt'][0:nb_trials,0] for i in range(1,nb_blocs+1)])
         # rt_all.append(rt.flatten())    
         # rtm_all.append(rtm[0:nb_blocs].flatten())

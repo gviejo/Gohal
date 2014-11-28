@@ -224,7 +224,7 @@ class pareto():
                             "selection":KSelection(self.states, self.actions),
                             "mixture":CSelection(self.states, self.actions)})
 
-        self.p_order = dict({'fusion':['alpha','beta', 'noise','length','gain','threshold', 'sigma'],
+        self.p_order = dict({'fusion':['alpha','beta', 'noise','length','gain','threshold', 'sigma'],                            
                             'qlearning':['alpha','beta','sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
@@ -242,8 +242,8 @@ class pareto():
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
         self.indd = dict()
         self.zoom = dict()
-        # self.loadData()
-        self.simpleLoadData()
+        self.loadData()
+        # self.simpleLoadData()
 
     def bounding_front(self):        
         for s in self.human.keys():
@@ -345,23 +345,21 @@ class pareto():
 
 
     def constructMixedParetoFrontier(self):
-        # One transformation is applied to rescale each fitness function
-        subjects = set.intersection(*map(set, [self.pareto[m].keys() for m in self.pareto.keys()]))
+        # subjects = set.intersection(*map(set, [self.pareto[m].keys() for m in self.pareto.keys()]))
+        subjects = self.pareto['fusion'].keys()
         for s in subjects:
             self.mixed[s] = []
-            tmp = []
+            tmp = []            
             for m in self.pareto.iterkeys():
                 if s in self.pareto[m].keys():
-                    tmp.append(np.hstack((np.ones((len(self.pareto[m][s]),1))*self.m_order.index(m), self.pareto[m][s][:,0:5])))
+                    tmp.append(np.hstack((np.ones((len(self.pareto[m][s]),1))*self.m_order.index(m), self.pareto[m][s][:,0:5])))            
             tmp = np.vstack(tmp)            
-            tmp = tmp[tmp[:,4].argsort()][::-1]
-            print s
+            tmp = tmp[tmp[:,4].argsort()][::-1]            
             self.mixed[s] = [tmp[0]]
             for pair in tmp[1:]:
                 if pair[5] >= self.mixed[s][-1][5]:
                     self.mixed[s].append(pair)
-            self.mixed[s] = np.array(self.mixed[s])
-            # self.mixed[s][:,4:6] = (self.mixed[s][:,4:6]-self.front_bounds[s])/(self.best-self.front_bounds[s])
+            self.mixed[s] = np.array(self.mixed[s])            
 
     def removeIndivDoublons(self):
         for m in self.pareto.iterkeys():
@@ -458,19 +456,20 @@ class pareto():
         for m,i in zip(self.pareto.iterkeys(), xrange(len(self.pareto.keys()))):
             ax2 = fig_model.add_subplot(3,2,i+1)
             for s in self.pareto[m].iterkeys():
+                # ax2.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", alpha = 1.0, label = s)        
                 ax2.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m], alpha = 1.0)        
             ax2.set_title(m)
             ax2.set_xlim(0,1)
             ax2.set_ylim(0,1)
-        ax4 = fig_model.add_subplot(3,2,6)                                    
-        
+            ax2.legend()        
+        ax4 = fig_model.add_subplot(3,2,6)                                            
         for s in self.mixed.keys():
             for m in np.unique(self.mixed[s][:,0]):
                 ind = self.mixed[s][:,0] == m
                 ax4.plot(self.mixed[s][ind,4], self.mixed[s][ind,5], 'o-', color = self.colors_m[self.m_order[int(m)]])
-                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 20)
-                ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 20)
-                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 20)
+                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 10)
+                ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 10)
+                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 10)
 
         # fig_evo = figure(figsize = (10,6))                 
         # ax7 = fig_evo.add_subplot(1,2,1)
@@ -495,22 +494,23 @@ class pareto():
         # ax6.set_xlim(0,1)
         # ax6.set_ylim(0,1)
         
-        fig_front = figure(figsize = (12,12))
-        m = 'fusion'
-        for i in xrange(len(self.data[m].keys())):
-            s = self.data[m].keys()[i]
-            ax9 = fig_front.add_subplot(4,4,i+1)
-            color=iter(cm.rainbow(np.linspace(0,1,len(np.unique(self.data[m][s][0][:,0])))))
-            for g in np.unique(self.data[m][s][0][:,0]):
-                c = next(color)
-                ind = self.data[m][s][0][:,0] == g
-                gen = self.data[m][s][0][:,2:4][ind] - [2000.0,500.0]
-                ax9.plot(gen[:,0], gen[:,1], 'o', c = c)
-                ax9.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], '-', linewidth = 3, color='black')
-            ax9.set_xlim(self.front_bounds[s][0], self.best[0])
-            ax9.set_ylim(self.front_bounds[s][1], self.best[1])
-            # ax9.axvline(-4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2)))
-            ax9.set_title(s)
+        # fig_front = figure(figsize = (12,12))
+        # m = 'fusion'
+        # n = 1
+        # for i in xrange(len(self.data[m].keys())):
+        #     s = self.data[m].keys()[i]
+        #     ax9 = fig_front.add_subplot(4,4,i+1)
+        #     color=iter(cm.rainbow(np.linspace(0,1,len(np.unique(self.data[m][s][n][:,0])))))
+        #     for g in np.unique(self.data[m][s][n][:,0]):
+        #         c = next(color)
+        #         ind = self.data[m][s][n][:,0] == g
+        #         gen = self.data[m][s][n][:,2:4][ind] - [2000.0,500.0]
+        #         ax9.plot(gen[:,0], gen[:,1], 'o', c = c)
+        #         ax9.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], '-', linewidth = 3, color='black')
+        #     ax9.set_xlim(self.front_bounds[s][0], self.best[0])
+        #     ax9.set_ylim(self.front_bounds[s][1], self.best[1])
+        #     # ax9.axvline(-4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2)))
+        #     ax9.set_title(s)
 
 
     def zoomBox(self, xmin, ymin):

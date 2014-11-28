@@ -26,7 +26,7 @@ from time import time
 from ColorAssociationTasks import CATS
 # from Sweep import Likelihood
 from Sferes import EA
-from scipy.optimize import fmin_tnc, brute, fmin
+from scipy.optimize import fmin_tnc, brute, fmin, leastsq, fmin_powell
 #from mpl_toolkits.mplot3d import Axes3D
 #import matplotlib.pyplot as plt
 
@@ -53,27 +53,62 @@ from scipy.optimize import fmin_tnc, brute, fmin
 # -----------------------------------
 def func(x):
 	parameters = dict(zip(order, x))
-	model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'],parameters, sferes = True)	
-	opt = EA(data, s, model)
-	llh, lrs = opt.getFitness()                                                                                      
-	return -(float(llh)+float(lrs))
+	try :
+		model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'],parameters, sferes = True)	
+		opt = EA(data, s, model)
+		llh, lrs = opt.getFitness()                                                                                      
+		return np.sum((opt.mean[1]-opt.mean[0])**2)
+	except :
+		return 100000.0
+
 
 # -----------------------------------
-with open("../Sferes/fmri/S9.pickle", "rb") as f:
+with open("../Sferes/fmri/S19.pickle", "rb") as f:
    data = pickle.load(f)
-s = 'S9'
+
+s = 'S19'
 order = ['alpha','beta', 'noise','length','gain','threshold', 'sigma']
 model = FSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'],sferes = True)
 bounds = [tuple(model.bounds[k]) for k in order]
 
 
 
-x0 = [0.1, 1.0, 0.001, 1, 1.0, 0.1, 0.00001]
+x0 = [0.8, 10.0, 0.1, 1, 1.0, 0.1, 0.1]
 
 
 # x, nfeval, rc = fmin_tnc(func, x0, approx_grad = True, bounds = bounds)
 
-resbrute = brute(func, tuple(bounds), Ns = 4, full_output = False, finish = fmin)
+# resbrute = brute(func, tuple(bounds), Ns = 4, full_output = False, finish = fmin)
+
+# x = leastsq(func, x0)
+
+# x = fmin(func, x0)
+# x = fmin_powell(func, x0, disp = True, retall=True)
+
+parameters = dict(zip(order,x))
+print parameters
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 sys.exit()
 # -----------------------------------

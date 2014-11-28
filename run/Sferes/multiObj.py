@@ -48,6 +48,7 @@ front.constructParetoFrontier()
 
 front.removeIndivDoublons()
 # model = front.reTest(20)
+
 front.constructParetoFrontier()
 front.constructMixedParetoFrontier()
 front.rankDistance()
@@ -55,7 +56,7 @@ front.rankOWA()
 front.rankTchebytchev()
 front.zoomBox(0.0, 0.0)
 
-front.classifySubject()
+# front.classifySubject()
 front.preview()
 # data_single, p_test_single = front.rankIndividualStrategy()
 show()
@@ -84,36 +85,32 @@ with open("parameters.pickle", 'wb') as f:
 # 	pickle.dump(p_test_single, f)
 
 # fit to choice extremum of the front
-with open("extremum.pickle", 'wb') as f:
-	pickle.dump(front.extremum, f)
+# with open("extremum.pickle", 'wb') as f:
+# 	pickle.dump(front.extremum, f)
 
 # # value of maximum BIC normalized 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:
 # 	pickle.dump(front.obj_choice, f)
 
-# BIC only 
-figure()
-s_to_plot = []
-x_pos = []
-tmp = 0
-for x in front.choice_only.iterkeys():	
-	for s in front.choice_only[x]:
-		x_pos.append(len(s_to_plot)+tmp)
-		s_to_plot.append(s)
-		for m in front.pareto.iterkeys():
-			obj = front.pareto[m][s][:,3]
-			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
-			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
-	tmp+=1
-ylim(0.55, 0.95)
-xticks(np.array(x_pos)+1, s_to_plot)
-show()
+# # BIC only 
+# figure()
+# s_to_plot = []
+# x_pos = []
+# tmp = 0
+# for x in front.choice_only.iterkeys():	
+# 	for s in front.choice_only[x]:
+# 		x_pos.append(len(s_to_plot)+tmp)
+# 		s_to_plot.append(s)
+# 		for m in front.pareto.iterkeys():
+# 			obj = front.pareto[m][s][:,3]
+# 			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
+# 			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
+# 	tmp+=1
+# ylim(0.55, 0.95)
+# xticks(np.array(x_pos)+1, s_to_plot)
+# show()
 
 # front evolution
-
-
-
-
 
 
 
