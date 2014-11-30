@@ -37,7 +37,7 @@ class FSelection():
                             "length":[1, 10],
                             "threshold":[1.0, 100.0], 
                             "noise":[0.0, 0.1],
-                            "gain":[1.0, 100.0], # new beta for p_a_mf                            
+                            "gain":[1.0, 100.0],                            
                             "sigma":[0.000001, 0.1]})                            
 
         #Probability Initialization
@@ -136,8 +136,8 @@ class FSelection():
     def sigmoideModule(self):
         x = 2*self.max_entropy-self.Hb-self.Hf
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
-        # self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
-        self.pA = 1/(1+(self.n_element-self.nb_inferences)*self.parameters['threshold']*np.exp(-x))
+        self.pA = 1/(1+((self.n_element-self.nb_inferences)*self.parameters['threshold'])*np.exp(-x*self.parameters['gain']))
+        #self.pA = 1/(1+(self.n_element-self.nb_inferences)*self.parameters['threshold']*np.exp(-x))
         # self.pA = 1/(1+((self.n_element-self.nb_inferences)/self.parameters['threshold'])*np.exp(-x))
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x*self.parameters['gain']))        
         #self.pA = 1/(1+(self.n_element-self.nb_inferences)*np.exp(-x))
@@ -157,7 +157,7 @@ class FSelection():
             self.p_a+=1e-4
             self.p_a = self.p_a/self.p_a.sum()
              
-    def computeValue(self, s, a, ind):        
+    def computeValue(self, s, a, ind):
         self.current_state = s
         self.current_action = a
         self.p = self.uniform[:,:,:]
@@ -200,7 +200,7 @@ class FSelection():
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy
-        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['gain'])
+        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['beta'])
         self.Hf = -(self.p_a_mf*np.log2(self.p_a_mf)).sum()
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
