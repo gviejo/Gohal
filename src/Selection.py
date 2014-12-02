@@ -162,7 +162,7 @@ class FSelection():
         self.current_action = a
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy
-        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['gain'])
+        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['beta'])
         self.Hf = -(self.p_a_mf*np.log2(self.p_a_mf)).sum()
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)        
