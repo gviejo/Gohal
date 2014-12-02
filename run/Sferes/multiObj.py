@@ -41,21 +41,29 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-best = np.array([-4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2)), 0.0])
-front = pareto(options.input, best, N = 156)
+front = pareto(options.input, N = 156)
 
 front.constructParetoFrontier()
-
 front.removeIndivDoublons()
 # model = front.reTest(20)
-
-front.constructParetoFrontier()
+# m = 'fusion'
+# fig = figure()
+# i = 1
+# for s in front.pareto[m].keys():	
+# 	subplot(3,2,i); i+=1
+# 	plot(front.pareto[m][s][:,3], front.pareto[m][s][:,4], 'o-')
+# 	axvline(front.front_bounds[s][m][0,0])
+# 	axvline(front.front_bounds[s][m][1,0])
+# 	axhline(front.front_bounds[s][m][0,1])
+# 	axhline(front.front_bounds[s][m][1,1])
+# show()
+# sys.exit()
 front.constructMixedParetoFrontier()
 front.rankDistance()
 front.rankOWA()
 front.rankTchebytchev()
-front.zoomBox(0.0, 0.0)
-
+front.retrieveRanking()
+front.timeConversion()
 # front.classifySubject()
 front.preview()
 # data_single, p_test_single = front.rankIndividualStrategy()
@@ -77,6 +85,9 @@ show()
 
 with open("parameters.pickle", 'wb') as f:
 	pickle.dump(front.p_test, f)
+
+with open("timing.pickle", 'wb') as f:
+	pickle.dump(front.timing, f)
 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_single.pickle"), 'wb') as handle:
 # 	pickle.dump(data_single, handle)

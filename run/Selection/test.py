@@ -50,7 +50,8 @@ def testModel():
                 reward = cats.getOutcome(state, action, case = 'fmri')
                 model.updateValue(reward)
         reaction = np.array(model.reaction[-4:])
-        # reaction = center(reaction)
+        reaction = reaction - 0.23355812
+        reaction = reaction / 0.32967988
         state = convertStimulus(np.array(model.state[-4:]))
         action = np.array(model.action[-4:])
         responses = np.array(model.responses[-4:])
@@ -67,7 +68,7 @@ def testModel():
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
 s = 'S9'
-s = 'S8'
+
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
@@ -87,13 +88,6 @@ parameters = {'alpha': 0.61835852000000002,
                'sigma': 0.092075579245000011,
                'threshold': 1.0}
 
-parameters = {'alpha': 0.57764638000000001,
-         'beta': 4.2085603000000003,
-         'gain': 2.6541513999999999,
-         'length': 1.1726983,
-         'noise': 0.10000000000000001,
-         'sigma': 0.030581394193000003,
-         'threshold': 4.4439723999999998}
 
 nb_trials = 39
 nb_blocs = 100
@@ -113,9 +107,9 @@ rt = testModel()
 # -----------------------------------
 model.reaction = np.array(model.reaction).reshape(nb_blocs, 4*nb_trials)
 # model.reaction = np.array(map(center, list(model.reaction)))
-plot(np.mean(model.reaction, 0), 'o-')
+# plot(np.mean(model.reaction, 0), 'o-')
 
-# plot(np.mean(rt, 0))
+plot(np.mean(rt, 0))
 
 show()
 sys.exit()
