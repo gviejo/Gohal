@@ -206,15 +206,11 @@ class pareto():
     """
     Explore Pareto Front from Sferes Optimization
     """
-    def __init__(self, directory, best, N = 156.):
+    def __init__(self, directory, N = 156.):
         self.directory = directory        
         self.N = N        
-        self.best = best
         # loading pre-treated data for fmri
-        self.human = dict({s_dir.split(".")[0]:self.pickling("fmri/"+s_dir) for s_dir in os.listdir("fmri/")})
-        # making bound for rt et likelihood
-        self.front_bounds = dict(zip(self.human.keys(), np.zeros((len(self.human.keys()), 2))))
-        self.bounding_front()
+        self.human = dict({s_dir.split(".")[0]:self.pickling("fmri/"+s_dir) for s_dir in os.listdir("fmri/")})        
         self.data = dict()
         self.states = ['s1', 's2', 's3']
         self.actions = ['thumb', 'fore', 'midd', 'ring', 'little']
@@ -224,7 +220,7 @@ class pareto():
                             "selection":KSelection(self.states, self.actions),
                             "mixture":CSelection(self.states, self.actions)})
 
-        self.p_order = dict({'fusion':['alpha','beta', 'noise','length','gain','threshold', 'sigma'],
+        self.p_order = dict({'fusion':['alpha','beta', 'noise','length','gain','threshold', 'sigma'],                            
                             'qlearning':['alpha','beta','sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
@@ -242,13 +238,26 @@ class pareto():
         self.beh = dict({'state':[],'action':[],'responses':[],'reaction':[]})
         self.indd = dict()
         self.zoom = dict()
-        # self.loadData()
-        self.simpleLoadData()
+        self.timing = dict()
+        self.bounding_fronts()
 
-    def bounding_front(self):        
-        for s in self.human.keys():
-            self.front_bounds[s][0] = self.N*np.log(0.2)
-            self.front_bounds[s][1] = -np.sum(2*np.abs(self.human[s]['mean'][0]))
+        self.loadData()
+        # self.simpleLoadData()
+
+    def bounding_fronts(self):
+        #                             best BIC  | best least
+        # self.front_bounds[m][s]  =  ----------------------
+        #                             worst BIC | worst least
+        best_log = -4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2))
+        self.front_bounds = {}
+        for s in self.human.keys():        
+            self.front_bounds[s] = dict()            
+            for m in self.models.iterkeys():
+                tmp = np.zeros((2,2))
+                tmp[1,1] = -np.power(2*self.human[s]['mean'][0], 2).sum()
+                tmp[1,0] = 2*self.N*np.log(1./len(self.actions))-len(self.p_order[m])*np.log(self.N)
+                tmp[0,0] = 2*best_log-len(self.p_order[m])*np.log(self.N)
+                self.front_bounds[s][m] = tmp
 
     def pickling(self, direc):
         with open(direc, "rb") as f:
@@ -334,34 +343,28 @@ class pareto():
 
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - 2000.0
                 self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0
-                self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - np.log(self.N)*float(len(self.models[m].bounds.keys()))
-                
+                self.pareto[m][s][:,3] = 2*self.pareto[m][s][:,3] - len(self.p_order[m])*np.log(self.N)
                 for i in xrange(2): 
-                    self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+i] >= self.front_bounds[s][i]]
-                # if len(self.pareto[m][s]):
-                self.pareto[m][s][:,3:5] = (self.pareto[m][s][:,3:5]-self.front_bounds[s])/(self.best-self.front_bounds[s])
-                # else:
-                #     print "No point for ", s, m
-
+                    self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+i] >= self.front_bounds[s][m][1,i]]
+                    self.pareto[m][s][:,3+i] = (self.pareto[m][s][:,3+i]-self.front_bounds[s][m][1,i])/(self.front_bounds[s][m][0,i]-self.front_bounds[s][m][1,i])
 
     def constructMixedParetoFrontier(self):
-        # One transformation is applied to rescale each fitness function
         subjects = set.intersection(*map(set, [self.pareto[m].keys() for m in self.pareto.keys()]))
-        for s in subjects:
-            self.mixed[s] = []
-            tmp = []
+        # subjects = self.pareto['fusion'].keys()
+        for s in subjects:            
+            tmp = []            
             for m in self.pareto.iterkeys():
                 if s in self.pareto[m].keys():
-                    tmp.append(np.hstack((np.ones((len(self.pareto[m][s]),1))*self.m_order.index(m), self.pareto[m][s][:,0:5])))
+                    tmp.append(np.hstack((np.ones((len(self.pareto[m][s]),1))*self.m_order.index(m), self.pareto[m][s][:,0:5])))            
             tmp = np.vstack(tmp)            
-            tmp = tmp[tmp[:,4].argsort()][::-1]
-            print s
-            self.mixed[s] = [tmp[0]]
-            for pair in tmp[1:]:
-                if pair[5] >= self.mixed[s][-1][5]:
-                    self.mixed[s].append(pair)
-            self.mixed[s] = np.array(self.mixed[s])
-            # self.mixed[s][:,4:6] = (self.mixed[s][:,4:6]-self.front_bounds[s])/(self.best-self.front_bounds[s])
+            tmp = tmp[tmp[:,4].argsort()][::-1]                        
+            if len(tmp):
+                self.mixed[s] = []
+                self.mixed[s] = [tmp[0]]
+                for pair in tmp[1:]:
+                    if pair[5] >= self.mixed[s][-1][5]:
+                        self.mixed[s].append(pair)
+                self.mixed[s] = np.array(self.mixed[s])            
 
     def removeIndivDoublons(self):
         for m in self.pareto.iterkeys():
@@ -379,7 +382,6 @@ class pareto():
         tmp = pool.map(unwrap_self_re_test, zip([self]*len(self.pareto.keys()), self.pareto.iterkeys(), [n]*len(self.pareto.keys())))
         return tmp
                                 
-
     def poolTest(self, m, n):       
         models = dict({"fusion":FSelection(self.states, self.actions, sferes = True),
                 "qlearning":QLearning(self.states, self.actions, sferes = True),
@@ -403,6 +405,7 @@ class pareto():
 
     def rankDistance(self):
         self.p_test['distance'] = dict()        
+        self.indd['distance'] = dict()
         for s in self.mixed.iterkeys():
             self.distance[s] = np.zeros((len(self.mixed[s]), 3))
             self.distance[s][:,1] = np.sqrt(np.sum(np.power(self.mixed[s][:,4:6]-np.ones(2), 2),1))
@@ -414,6 +417,7 @@ class pareto():
             self.distance[s][ind_best_point:,2] = np.arange(0, len(self.distance[s])-ind_best_point)
             # Saving best individual                        
             best_ind = self.mixed[s][ind_best_point]
+            self.indd['distance'][s] = best_ind
             m = self.m_order[int(best_ind[0])]            
             tmp = self.pareto[m][s][(self.pareto[m][s][:,0] == best_ind[1])*(self.pareto[m][s][:,2] == best_ind[3])]
             assert len(tmp) == 1
@@ -421,6 +425,7 @@ class pareto():
 
     def rankOWA(self):
         self.p_test['owa'] = dict()
+        self.indd['owa'] = dict()
         for s in self.mixed.iterkeys():
             tmp = self.mixed[s][:,4:6]
             value = np.sum(np.sort(tmp)*[0.5, 0.5], 1)
@@ -428,6 +433,7 @@ class pareto():
             ind_best_point = np.argmax(value)
             # Saving best indivudual
             best_ind = self.mixed[s][ind_best_point]
+            self.indd['owa'][s] = best_ind
             m = self.m_order[int(best_ind[0])]
             tmp = self.pareto[m][s][(self.pareto[m][s][:,0] == best_ind[1])*(self.pareto[m][s][:,2] == best_ind[3])]
             assert len(tmp) == 1
@@ -435,6 +441,7 @@ class pareto():
 
     def rankTchebytchev(self, lambdaa = 0.5, epsilon = 0.001):
         self.p_test['tche'] = dict()
+        self.indd['tche'] = dict()
         for s in self.mixed.iterkeys():
             tmp = self.mixed[s][:,4:6]
             ideal = np.max(tmp, 0)
@@ -445,6 +452,7 @@ class pareto():
             ind_best_point = np.argmin(value)
             # Saving best individual
             best_ind = self.mixed[s][ind_best_point]
+            self.indd['tche'][s] = best_ind
             m = self.m_order[int(best_ind[0])]
             tmp = self.pareto[m][s][(self.pareto[m][s][:,0] == best_ind[1])*(self.pareto[m][s][:,2] == best_ind[3])]
             assert len(tmp) == 1
@@ -458,19 +466,20 @@ class pareto():
         for m,i in zip(self.pareto.iterkeys(), xrange(len(self.pareto.keys()))):
             ax2 = fig_model.add_subplot(3,2,i+1)
             for s in self.pareto[m].iterkeys():
+                # ax2.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", alpha = 1.0, label = s)        
                 ax2.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m], alpha = 1.0)        
             ax2.set_title(m)
             ax2.set_xlim(0,1)
             ax2.set_ylim(0,1)
-        ax4 = fig_model.add_subplot(3,2,6)                                    
-        
+            ax2.legend()        
+        ax4 = fig_model.add_subplot(3,2,6)                                            
         for s in self.mixed.keys():
             for m in np.unique(self.mixed[s][:,0]):
                 ind = self.mixed[s][:,0] == m
                 ax4.plot(self.mixed[s][ind,4], self.mixed[s][ind,5], 'o-', color = self.colors_m[self.m_order[int(m)]])
-                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 20)
-                ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 20)
-                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 20)
+                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 10)
+                ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 10)
+                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 10)
 
         # fig_evo = figure(figsize = (10,6))                 
         # ax7 = fig_evo.add_subplot(1,2,1)
@@ -495,32 +504,29 @@ class pareto():
         # ax6.set_xlim(0,1)
         # ax6.set_ylim(0,1)
         
-        fig_front = figure(figsize = (12,12))
-        m = 'fusion'
-        for i in xrange(len(self.data[m].keys())):
-            s = self.data[m].keys()[i]
-            ax9 = fig_front.add_subplot(4,4,i+1)
-            color=iter(cm.rainbow(np.linspace(0,1,len(np.unique(self.data[m][s][0][:,0])))))
-            for g in np.unique(self.data[m][s][0][:,0]):
-                c = next(color)
-                ind = self.data[m][s][0][:,0] == g
-                gen = self.data[m][s][0][:,2:4][ind] - [2000.0,500.0]
-                ax9.plot(gen[:,0], gen[:,1], 'o', c = c)
-                ax9.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], '-', linewidth = 3, color='black')
-            ax9.set_xlim(self.front_bounds[s][0], self.best[0])
-            ax9.set_ylim(self.front_bounds[s][1], self.best[1])
-            # ax9.axvline(-4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2)))
-            ax9.set_title(s)
+        # fig_front = figure(figsize = (12,12))
+        # m = 'fusion'
+        # n = 1
+        # for i in xrange(len(self.data[m].keys())):
+        #     s = self.data[m].keys()[i]
+        #     ax9 = fig_front.add_subplot(4,4,i+1)
+        #     color=iter(cm.rainbow(np.linspace(0,1,len(np.unique(self.data[m][s][n][:,0])))))
+        #     for g in np.unique(self.data[m][s][n][:,0]):
+        #         c = next(color)
+        #         ind = self.data[m][s][n][:,0] == g
+        #         gen = self.data[m][s][n][:,2:4][ind] - [2000.0,500.0]
+        #         ax9.plot(gen[:,0], gen[:,1], 'o', c = c)
+        #         ax9.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], '-', linewidth = 3, color='black')
+        #     ax9.set_xlim(self.front_bounds[s][0], self.best[0])
+        #     ax9.set_ylim(self.front_bounds[s][1], self.best[1])
+        #     # ax9.axvline(-4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2)))
+        #     ax9.set_title(s)
 
-
-    def zoomBox(self, xmin, ymin):
+    def retrieveRanking(self):
+        xmin = 0.0
+        ymin = 0.0
         for s in self.mixed.iterkeys():
             self.zoom[s] = np.hstack((self.mixed[s][:,4:6], self.distance[s][:,1:2], np.vstack(self.owa[s]), np.vstack(self.tche[s]), np.vstack(self.mixed[s][:,0])))
-            if np.sum((self.zoom[s][:,0] > xmin)*(self.zoom[s][:,1] > ymin)):
-                self.zoom[s] = self.zoom[s][self.zoom[s][:,0] > xmin]
-                self.zoom[s] = self.zoom[s][self.zoom[s][:,1] > ymin]
-            else:
-                self.zoom.pop(s)       
         
     def rankIndividualStrategy(self):
         # order is distance, owa , tchenbytchev
@@ -591,6 +597,42 @@ class pareto():
                             self.obj_choice[m][s][x] = np.max(self.pareto[x][s][:,3])
                         else :
                             self.obj_choice[m][s][x] = 0.0
+
+    def timeConversion(self):
+        for o in self.p_test.iterkeys():
+            self.timing[o] = dict()
+            for s in self.p_test[o].iterkeys():
+                self.timing[o][s] = dict()
+                m = self.p_test[o][s].keys()[0]
+                parameters = self.p_test[o][s][m]
+                # MAking a sferes call to compute a time conversion
+                with open("fmri/"+s+".pickle", "rb") as f:
+                    data = pickle.load(f)
+                self.models[m].__init__(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes = True)
+                opt = EA(data, s, self.models[m])                                
+                for i in xrange(opt.n_blocs):
+                    opt.model.startBloc()
+                    for j in xrange(opt.n_trials):
+                        opt.model.computeValue(opt.state[i,j]-1, opt.action[i,j]-1, (i,j))
+                        opt.model.updateValue(opt.responses[i,j])
+                opt.fit[0] = float(np.sum(opt.model.value))
+                self.timing[o][s][m] = [np.median(opt.model.reaction)]
+                opt.model.reaction = opt.model.reaction - np.median(opt.model.reaction)
+                self.timing[o][s][m].append(np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))
+                opt.model.reaction = opt.model.reaction / (np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))        
+                self.timing[o][s][m] = np.array(self.timing[o][s][m])
+                opt.fit[1] = float(-opt.leastSquares())                                                        
+                # # Check if coherent 
+                opt.fit[0] = 2*opt.fit[0]-len(self.p_order[m])*np.log(self.N)
+                opt.fit[0] = (opt.fit[0]-self.front_bounds[s][m][1,0])/(self.front_bounds[s][m][0,0]-self.front_bounds[s][m][1,0])
+                opt.fit[1] = (opt.fit[1]-self.front_bounds[s][m][1,1])/(self.front_bounds[s][m][0,1]-self.front_bounds[s][m][1,1])
+                real = self.indd[o][s][4:]
+
+                if np.sum(np.round(real,2)==np.round(opt.fit, 2))!= 2:
+                    print o, s, m
+                    print "from test :", opt.fit
+                    print "from sferes :", real
+                    sys.exit()
 
 
 
