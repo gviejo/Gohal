@@ -32,13 +32,14 @@ class FSelection():
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
-        self.bounds = dict({"beta":[1.0, 100.0],
+        self.bounds = dict({"beta":[1.0, 100.0], # temperature for final decision
                             "alpha":[0.01, 0.99],
                             "length":[1, 10],
-                            "threshold":[1.0, 100.0], 
+                            "threshold":[1.0, 100.0], # sigmoide parameter
                             "noise":[0.0, 0.1],
-                            "gain":[1.0, 100.0],                            
-                            "sigma":[0.000001, 0.1]})                            
+                            "gain":[1.0, 100.0], # sigmoide parameter 
+                            "sigma":[0.000001, 1.0],
+                            "gamma":[1.0, 100.0]}) # temperature for entropy from qlearning soft-max                            
 
         #Probability Initialization
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -162,7 +163,7 @@ class FSelection():
         self.current_action = a
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy
-        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['beta'])
+        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['gamma'])
         self.Hf = -(self.p_a_mf*np.log2(self.p_a_mf)).sum()
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)        
@@ -200,7 +201,7 @@ class FSelection():
         self.current_state = convertStimulus(state)-1
         self.p = self.uniform[:,:,:]
         self.Hb = self.max_entropy
-        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['beta'])
+        self.p_a_mf = SoftMaxValues(self.values_mf[self.current_state], self.parameters['gamma'])
         self.Hf = -(self.p_a_mf*np.log2(self.p_a_mf)).sum()
         self.nb_inferences = 0
         self.p_a_mb = np.ones(self.n_action)*(1./self.n_action)
@@ -479,7 +480,7 @@ class KSelection():
 
         # pdf = pdf/pdf.sum()
         # self.pdf.append(pdf)
-        return self.action[-1][-1]
+        return self.actions[self.current_action]
 
     def updateValue(self, reward):
         r = int((reward==1)*1)
