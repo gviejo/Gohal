@@ -268,8 +268,7 @@ class KSelection():
         self.parameters = parameters
         self.n_action = int(len(actions))
         self.n_state = int(len(states))
-        self.bounds = dict({"gamma":[0.1, 1.0],
-                            "beta":[1.0, 100.0],
+        self.bounds = dict({"beta":[1.0, 100.0],
                             "eta":[0.00001, 0.001],
                             "length":[1, 10],
                             "threshold":[0.01, -np.log2(1./self.n_action)], 
@@ -509,7 +508,8 @@ class KSelection():
         r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
         self.computeSigmaPoints()                
         t =self.n_action*self.current_state+self.current_action
-        rewards_predicted = (self.point[:,t]-self.parameters['gamma']*np.max(self.point[:,self.n_action*self.current_state:self.n_action*self.current_state+self.n_action], 1)).reshape(len(self.point), 1)
+        # rewards_predicted = (self.point[:,t]-self.parameters['gamma']*np.max(self.point[:,self.n_action*self.current_state:self.n_action*self.current_state+self.n_action], 1)).reshape(len(self.point), 1)
+        rewards_predicted = (self.point[:,t]).reshape(len(self.point), 1)        
         reward_predicted = np.dot(rewards_predicted.flatten(), self.weights.flatten())        
         cov_values_rewards = np.sum(self.weights*(self.point-self.values_mf.flatten())*(rewards_predicted-reward_predicted), 0)
         cov_rewards = np.sum(self.weights*(rewards_predicted-reward_predicted)**2) + self.var_obs

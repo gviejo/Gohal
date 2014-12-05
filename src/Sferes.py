@@ -220,10 +220,10 @@ class pareto():
                             "selection":KSelection(self.states, self.actions),
                             "mixture":CSelection(self.states, self.actions)})
 
-        self.p_order = dict({'fusion':['alpha','beta', 'noise','length','gain','threshold', 'sigma'],                            
+        self.p_order = dict({'fusion':['alpha','beta', 'noise','length','gain','threshold', 'sigma', 'gamma'],                            
                             'qlearning':['alpha','beta','sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
-                            'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
+                            'selection':['beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
                             'mixture':['alpha', 'beta', 'noise', 'length', 'weight', 'threshold', 'sigma', 'gain']})
 
         self.m_order = ['qlearning', 'bayesian', 'selection', 'fusion', 'mixture']
@@ -343,10 +343,10 @@ class pareto():
 
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - 2000.0
                 self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0
-                self.pareto[m][s][:,3] = 2*self.pareto[m][s][:,3] - len(self.p_order[m])*np.log(self.N)
-                for i in xrange(2): 
-                    self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+i] >= self.front_bounds[s][m][1,i]]
-                    self.pareto[m][s][:,3+i] = (self.pareto[m][s][:,3+i]-self.front_bounds[s][m][1,i])/(self.front_bounds[s][m][0,i]-self.front_bounds[s][m][1,i])
+                self.pareto[m][s][:,3] = 2*self.pareto[m][s][:,3] - len(self.p_order[m])*np.log(self.N)                
+                # for i in xrange(2): 
+                #     self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+i] >= self.front_bounds[s][m][1,i]]
+                #     self.pareto[m][s][:,3+i] = (self.pareto[m][s][:,3+i]-self.front_bounds[s][m][1,i])/(self.front_bounds[s][m][0,i]-self.front_bounds[s][m][1,i])
 
     def constructMixedParetoFrontier(self):
         subjects = set.intersection(*map(set, [self.pareto[m].keys() for m in self.pareto.keys()]))
@@ -469,17 +469,19 @@ class pareto():
                 # ax2.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", alpha = 1.0, label = s)        
                 ax2.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m], alpha = 1.0)        
             ax2.set_title(m)
-            ax2.set_xlim(0,1)
-            ax2.set_ylim(0,1)
+            # ax2.set_xlim(0,1)
+            # ax2.set_ylim(0,1)
             ax2.legend()        
         ax4 = fig_model.add_subplot(3,2,6)                                            
         for s in self.mixed.keys():
             for m in np.unique(self.mixed[s][:,0]):
                 ind = self.mixed[s][:,0] == m
                 ax4.plot(self.mixed[s][ind,4], self.mixed[s][ind,5], 'o-', color = self.colors_m[self.m_order[int(m)]])
-                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 10)
-                ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 10)
-                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 10)
+                # ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 10)
+                # ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 10)
+                # ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 10)
+
+
 
         # fig_evo = figure(figsize = (10,6))                 
         # ax7 = fig_evo.add_subplot(1,2,1)
