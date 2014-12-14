@@ -60,11 +60,14 @@ class EA():
     def getFitness(self):
         np.seterr(all = 'ignore')
         #self.model.startExp()        
-        for i in xrange(self.n_blocs):
+        for i in xrange(self.n_blocs):        
             self.model.startBloc()
-            for j in xrange(self.n_trials):
+            for j in xrange(self.n_trials):            
+            # for j in xrange(7):            
+                # print (i,j)
                 self.model.computeValue(self.state[i%self.n_blocs,j]-1, self.action[i%self.n_blocs,j]-1, (i,j))
                 self.model.updateValue(self.responses[i%self.n_blocs,j])                                    
+                # print " " 
         self.fit[0] = float(np.sum(self.model.value))
         self.alignToMedian()        
         self.fit[1] = float(-self.leastSquares())                        
@@ -220,7 +223,7 @@ class pareto():
                             "selection":KSelection(self.states, self.actions),
                             "mixture":CSelection(self.states, self.actions)})
 
-        self.p_order = dict({'fusion':['alpha','beta', 'noise','length','gain','threshold', 'sigma', 'gamma'],                            
+        self.p_order = dict({'fusion':['alpha','beta', 'noise','length','threshold', 'sigma','gamma'],                                                        
                             'qlearning':['alpha','beta','sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
@@ -244,6 +247,35 @@ class pareto():
         self.loadData()
         # self.simpleLoadData()
 
+    def showBrute(self):
+        rcParams['ytick.labelsize'] = 8
+        rcParams['xtick.labelsize'] = 8        
+        fig_brute = figure(figsize = (10,10)) # for each model all subject            
+        axes = {}        
+        for s,i in zip(self.human.keys(),range(2,16)):
+            axes[s] = fig_brute.add_subplot(4,4,i)
+
+        for s in self.human.iterkeys():            
+            for m in self.data.iterkeys():
+                if s in self.data[m].keys():
+                    tmp={n:self.data[m][s][n][self.data[m][s][n][:,0]==np.max(self.data[m][s][n][:,0])] for n in self.data[m][s].iterkeys()}
+                    tmp=np.vstack([np.hstack((np.ones((len(tmp[n]),1))*n,tmp[n])) for n in tmp.iterkeys()])
+                    ind = tmp[:,3] != 0
+                    tmp = tmp[ind]
+                    tmp = tmp[tmp[:,3].argsort()][::-1]
+                    pareto_frontier = [tmp[0]]
+                    for pair in tmp[1:]:
+                        if pair[4] >= pareto_frontier[-1][4]:
+                            pareto_frontier.append(pair)
+                    pareto_frontier = np.array(pareto_frontier)
+                    pareto_frontier[:,3] -= (2000+float(len(self.p_order[m]))*np.log(156))                    
+                    pareto_frontier[:,4] -= 500
+                    axes[s].plot(pareto_frontier[:,3], pareto_frontier[:,4], "-o", color = self.colors_m[m], alpha = 1.0)        
+                    axes[s].set_title(s)
+                    # axes[s].set_ylim(-10,0.0)
+
+
+
     def bounding_fronts(self):
         #                             best BIC  | best least
         # self.front_bounds[m][s]  =  ----------------------
@@ -255,8 +287,8 @@ class pareto():
             for m in self.models.iterkeys():
                 tmp = np.zeros((2,2))
                 tmp[1,1] = -np.power(2*self.human[s]['mean'][0], 2).sum()
-                tmp[1,0] = 2*self.N*np.log(1./len(self.actions))-len(self.p_order[m])*np.log(self.N)
-                tmp[0,0] = 2*best_log-len(self.p_order[m])*np.log(self.N)
+                tmp[1,0] = self.N*np.log(1./len(self.actions))-float(len(self.p_order[m]))*np.log(self.N)
+                tmp[0,0] = best_log-float(len(self.p_order[m]))*np.log(self.N)
                 self.front_bounds[s][m] = tmp
 
     def pickling(self, direc):
@@ -343,7 +375,7 @@ class pareto():
 
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - 2000.0
                 self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0
-                self.pareto[m][s][:,3] = 2*self.pareto[m][s][:,3] - len(self.p_order[m])*np.log(self.N)                
+                self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - len(self.p_order[m])*np.log(self.N)                
                 # for i in xrange(2): 
                 #     self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+i] >= self.front_bounds[s][m][1,i]]
                 #     self.pareto[m][s][:,3+i] = (self.pareto[m][s][:,3+i]-self.front_bounds[s][m][1,i])/(self.front_bounds[s][m][0,i]-self.front_bounds[s][m][1,i])
@@ -469,8 +501,8 @@ class pareto():
                 # ax2.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", alpha = 1.0, label = s)        
                 ax2.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m], alpha = 1.0)        
             ax2.set_title(m)
-            # ax2.set_xlim(0,1)
-            # ax2.set_ylim(0,1)
+            # ax2.set_xlim(-300,0)
+            # ax2.set_ylim(-10,0)
             ax2.legend()        
         ax4 = fig_model.add_subplot(3,2,6)                                            
         for s in self.mixed.keys():
@@ -570,13 +602,18 @@ class pareto():
     def classifySubject(self):
         self.choice_only = {m:[] for m in self.pareto.keys()}
         models = self.pareto.keys()
-        subjects = self.data['fusion'].keys()
-        # subjects = self.human.keys()
+        # subjects = self.data['fusion'].keys()
+        subjects = self.human.keys()
         for s in subjects:
             value = []
-            for m in models:
+            for m in models:                
                 if len(self.pareto[m][s][:,3]):                    
-                    value.append(np.max(self.pareto[m][s][:,3]))
+                    # value.append(np.max(self.pareto[m][s][:,3]))
+                    data = self.data[m][s][0][:,2]
+                    # data = (data-2000.0)-np.log(self.N)*float(len(self.p_order[m]))
+                    # data = (data-2000.0)-2.0*float(len(self.p_order[m]))
+                    data = (data-2000.0)
+                    value.append(np.max(data))
                 else :
                     value.append(0.0)            
             m_ind = np.argmax(value)            
@@ -587,7 +624,7 @@ class pareto():
             self.extremum[s] = dict()
             for m in self.pareto.iterkeys():
                 if len(self.pareto[m][s]):
-                    self.extremum[s][m] = dict(zip(self.p_order[m],self.pareto[m][s][0,5:]))
+                    self.extremum[s][m] = dict(zip(self.p_order[m],self.data[m][s][0][0,4:]))
         self.obj_choice = dict()
         for m in self.choice_only.iterkeys():
             if len(self.choice_only[m]):
@@ -596,7 +633,11 @@ class pareto():
                     self.obj_choice[m][s] = dict()
                     for x in self.pareto.iterkeys():
                         if len(self.pareto[x][s]):
-                            self.obj_choice[m][s][x] = np.max(self.pareto[x][s][:,3])
+                            # self.obj_choice[m][s][x] = np.max(self.pareto[x][s][:,3])
+                            # data = (self.data[m][s][0][:,2]-2000.0)-np.log(self.N)*float(len(self.p_order[m]))
+                            # data = (data-2000.0)-2.0*float(len(self.p_order[m]))
+                            data = (data-2000.0)
+                            self.obj_choice[m][s][x] = np.max(data)
                         else :
                             self.obj_choice[m][s][x] = 0.0
 
@@ -607,6 +648,7 @@ class pareto():
                 self.timing[o][s] = dict()
                 m = self.p_test[o][s].keys()[0]
                 parameters = self.p_test[o][s][m]
+
                 # MAking a sferes call to compute a time conversion
                 with open("fmri/"+s+".pickle", "rb") as f:
                     data = pickle.load(f)
@@ -618,23 +660,25 @@ class pareto():
                         opt.model.computeValue(opt.state[i,j]-1, opt.action[i,j]-1, (i,j))
                         opt.model.updateValue(opt.responses[i,j])
                 opt.fit[0] = float(np.sum(opt.model.value))
+                llh = opt.fit[0]+2000.0
                 self.timing[o][s][m] = [np.median(opt.model.reaction)]
                 opt.model.reaction = opt.model.reaction - np.median(opt.model.reaction)
                 self.timing[o][s][m].append(np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))
                 opt.model.reaction = opt.model.reaction / (np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))        
                 self.timing[o][s][m] = np.array(self.timing[o][s][m])
-                opt.fit[1] = float(-opt.leastSquares())                                                        
+                opt.fit[1] = float(-opt.leastSquares())                                                                        
                 # # Check if coherent 
                 opt.fit[0] = 2*opt.fit[0]-len(self.p_order[m])*np.log(self.N)
                 opt.fit[0] = (opt.fit[0]-self.front_bounds[s][m][1,0])/(self.front_bounds[s][m][0,0]-self.front_bounds[s][m][1,0])
                 opt.fit[1] = (opt.fit[1]-self.front_bounds[s][m][1,1])/(self.front_bounds[s][m][0,1]-self.front_bounds[s][m][1,1])
                 real = self.indd[o][s][4:]
 
+
                 if np.sum(np.round(real,2)==np.round(opt.fit, 2))!= 2:
                     print o, s, m
                     print "from test :", opt.fit
                     print "from sferes :", real
-                    sys.exit()
+                    
 
 
 

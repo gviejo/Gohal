@@ -43,19 +43,18 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 front = pareto(options.input, N = 156)
 
+front.showBrute()
 front.constructParetoFrontier()
-front.removeIndivDoublons()
-# model = front.reTest(20)
+# front.removeIndivDoublons()
 front.constructMixedParetoFrontier()
 front.rankDistance()
 front.rankOWA()
 front.rankTchebytchev()
 front.retrieveRanking()
 front.timeConversion()
-# front.classifySubject()
+front.classifySubject()
 front.preview()
 # data_single, p_test_single = front.rankIndividualStrategy()
-show()
 
 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
@@ -87,31 +86,56 @@ with open("timing.pickle", 'wb') as f:
 # with open("extremum.pickle", 'wb') as f:
 # 	pickle.dump(front.extremum, f)
 
-# # value of maximum BIC normalized 
+# value of maximum BIC normalized 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:
-# 	pickle.dump(front.obj_choice, f)
+with open(os.path.expanduser("obj_choice.pickle"), 'wb') as f:
+	pickle.dump(front.obj_choice, f)
 
-# # BIC only 
-# figure()
-# s_to_plot = []
-# x_pos = []
-# tmp = 0
-# for x in front.choice_only.iterkeys():	
-# 	for s in front.choice_only[x]:
-# 		x_pos.append(len(s_to_plot)+tmp)
-# 		s_to_plot.append(s)
-# 		for m in front.pareto.iterkeys():
-# 			obj = front.pareto[m][s][:,3]
-# 			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
-# 			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
-# 	tmp+=1
+# BIC only 
+figure()
+s_to_plot = []
+x_pos = []
+tmp = 0
+for x in front.choice_only.iterkeys():	
+	for s in front.choice_only[x]:
+		x_pos.append(len(s_to_plot)+tmp)
+		s_to_plot.append(s)
+		for m in front.pareto.iterkeys():			
+			# obj = (front.data[m][s][0][:,2]-2000.0)-np.log(front.N)*float(len(front.p_order[m]))
+			# obj = (front.data[m][s][0][:,2]-2000.0)-2.0*float(len(front.p_order[m]))
+			obj = (front.data[m][s][0][:,2]-2000.0)
+			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
+			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
+	tmp+=1
 # ylim(0.55, 0.95)
-# xticks(np.array(x_pos)+1, s_to_plot)
-# show()
+xticks(np.array(x_pos)+1, s_to_plot)
+show()
 
 # front evolution
 
+show()
 
+def plotting():
+	for s in front.mixed.keys():
+		figure()
+		for m in front.pareto.keys():
+			data = front.pareto[m][s]
+			plot(data[:,3], data[:,4], 'o-', color = front.colors_m[m], label = m)
+		title(s)
+		legend()
+		show()
+
+def gen_plotting(m, s):
+	figure()
+	n = 0
+	color=iter(cm.rainbow(np.linspace(0,1,len(np.unique(front.data[m][s][n][:,0])))))
+	for g in np.unique(front.data[m][s][n][:,0]):
+		c = next(color)
+		ind = front.data[m][s][n][:,0] == g
+		gen = front.data[m][s][n][:,2:4][ind] - [2000.0,500.0]
+		plot(gen[:,0], gen[:,1], 'o', c = c)
+	plot(front.pareto[m][s][:,3] + float(len(front.p_order[m]))*np.log(front.N), front.pareto[m][s][:,4], 'o-')
+	show()
 
 
 
