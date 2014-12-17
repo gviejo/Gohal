@@ -70,7 +70,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 10
+nb_repeat = 20
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),

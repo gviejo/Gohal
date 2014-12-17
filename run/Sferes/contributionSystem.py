@@ -84,15 +84,15 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 with open("parameters.pickle", 'r') as f:
   p_test = pickle.load(f)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'r') as f:
+with open(os.path.expanduser("obj_choice.pickle"), 'r') as f:
 	best = pickle.load(f)
 
 with open("timing.pickle", 'rb') as f:
     timing = pickle.load(f)
 
-# groups = {m:[s for s in best[m].iterkeys()] for m in best.iterkeys()}
+groups = {m:[s for s in best[m].iterkeys()] for m in best.iterkeys()}
 
-groups = {'fusion':p_test['distance'].keys()}
+# groups = {'fusion':p_test['distance'].keys()}
 
 colors = {'owa':'r','distance':'b','tche':'g'}
 

@@ -43,17 +43,17 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 front = pareto(options.input, N = 156)
 
-front.showBrute()
+# front.showBrute()
 front.constructParetoFrontier()
 # front.removeIndivDoublons()
-front.constructMixedParetoFrontier()
-front.rankDistance()
-front.rankOWA()
-front.rankTchebytchev()
-front.retrieveRanking()
-front.timeConversion()
+# front.constructMixedParetoFrontier()
+# front.rankDistance()
+# front.rankOWA()
+# front.rankTchebytchev()
+# front.retrieveRanking()
+# front.timeConversion()
 front.classifySubject()
-front.preview()
+# front.preview()
 # data_single, p_test_single = front.rankIndividualStrategy()
 
 
@@ -70,11 +70,11 @@ front.preview()
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators.pickle"), 'wb') as handle:
 # 	pickle.dump(front.zoom, handle)
 
-with open("parameters.pickle", 'wb') as f:
-	pickle.dump(front.p_test, f)
+# with open("parameters.pickle", 'wb') as f:
+# 	pickle.dump(front.p_test, f)
 
-with open("timing.pickle", 'wb') as f:
-	pickle.dump(front.timing, f)
+# with open("timing.pickle", 'wb') as f:
+# 	pickle.dump(front.timing, f)
 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_single.pickle"), 'wb') as handle:
 # 	pickle.dump(data_single, handle)
@@ -83,13 +83,13 @@ with open("timing.pickle", 'wb') as f:
 # 	pickle.dump(p_test_single, f)
 
 # fit to choice extremum of the front
-# with open("extremum.pickle", 'wb') as f:
-# 	pickle.dump(front.extremum, f)
+with open("extremum.pickle", 'wb') as f:
+	pickle.dump(front.extremum, f)
 
 # value of maximum BIC normalized 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:
 with open(os.path.expanduser("obj_choice.pickle"), 'wb') as f:
-	pickle.dump(front.obj_choice, f)
+ 	pickle.dump(front.obj_choice, f)
 
 # BIC only 
 figure()
@@ -101,13 +101,13 @@ for x in front.choice_only.iterkeys():
 		x_pos.append(len(s_to_plot)+tmp)
 		s_to_plot.append(s)
 		for m in front.pareto.iterkeys():			
-			# obj = (front.data[m][s][0][:,2]-2000.0)-np.log(front.N)*float(len(front.p_order[m]))
-			# obj = (front.data[m][s][0][:,2]-2000.0)-2.0*float(len(front.p_order[m]))
-			obj = (front.data[m][s][0][:,2]-2000.0)
+			obj = front.data[m][s][0][:,2]-2000.0
+			obj = -2*obj+float(len(front.p_order[m]))*np.log(front.N)
+			#obj = 1.0-obj/(156*np.log(0.2))
 			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
 			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
 	tmp+=1
-# ylim(0.55, 0.95)
+# ylim(0.0, 1.0)
 xticks(np.array(x_pos)+1, s_to_plot)
 show()
 

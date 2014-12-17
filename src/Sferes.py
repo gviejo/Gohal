@@ -223,11 +223,12 @@ class pareto():
                             "selection":KSelection(self.states, self.actions),
                             "mixture":CSelection(self.states, self.actions)})
 
-        self.p_order = dict({'fusion':['alpha','beta', 'noise','length','threshold', 'sigma','gamma'],                                                        
+        self.p_order = dict({#'fusion':['alpha','beta', 'noise','length','gain', 'threshold', 'sigma','gamma'],                                                                                    
+                            'fusion':['alpha','beta', 'noise','length', 'gain', 'threshold', 'sigma', 'gamma'], 
                             'qlearning':['alpha','beta','sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
-                            'mixture':['alpha', 'beta', 'noise', 'length', 'weight', 'threshold', 'sigma', 'gain']})
+                            'mixture':['alpha', 'beta', 'noise', 'length', 'weight', 'threshold', 'sigma']})
 
         self.m_order = ['qlearning', 'bayesian', 'selection', 'fusion', 'mixture']
         self.colors_m = dict({'fusion':'r', 'bayesian':'g', 'qlearning':'grey', 'selection':'b', 'mixture':'y'})
@@ -273,8 +274,6 @@ class pareto():
                     axes[s].plot(pareto_frontier[:,3], pareto_frontier[:,4], "-o", color = self.colors_m[m], alpha = 1.0)        
                     axes[s].set_title(s)
                     # axes[s].set_ylim(-10,0.0)
-
-
 
     def bounding_fronts(self):
         #                             best BIC  | best least
@@ -610,13 +609,16 @@ class pareto():
                 if len(self.pareto[m][s][:,3]):                    
                     # value.append(np.max(self.pareto[m][s][:,3]))
                     data = self.data[m][s][0][:,2]
+                    data = data-2000.0
+                    # data = 1.0-data/(156*np.log(0.2))
                     # data = (data-2000.0)-np.log(self.N)*float(len(self.p_order[m]))
-                    # data = (data-2000.0)-2.0*float(len(self.p_order[m]))
-                    data = (data-2000.0)
-                    value.append(np.max(data))
+                    data = -2*data+float(len(self.p_order[m]))*np.log(self.N)
+                    # data = (data-2000.0)
+                    # data = 1.0-(156*np.log(0.2))/(data-2000.0)
+                    value.append(np.min(data))
                 else :
                     value.append(0.0)            
-            m_ind = np.argmax(value)            
+            m_ind = np.argmin(value)            
             self.choice_only[models[m_ind]].append(s)
         # parameters from max fit to choice only
         self.extremum = dict()
@@ -625,6 +627,17 @@ class pareto():
             for m in self.pareto.iterkeys():
                 if len(self.pareto[m][s]):
                     self.extremum[s][m] = dict(zip(self.p_order[m],self.data[m][s][0][0,4:]))
+        # writing parameters because fuck you that's why
+        with open("parameters.txt", 'w') as f:
+            # for m in models:
+            for s in subjects:
+                # f.write(m+"\n")                
+                f.write(s+"\n")
+                # for s in subjects:
+                for m in models:
+                    line=m+"\t"+" \t".join([k+"="+str(np.round(self.extremum[s][m][k],4)) for k in self.p_order[m]])+"\tloglikelihood = "+str(self.data[m][s][0][0,2]-2000)+"\n"      
+                    f.write(line)                
+                f.write("\n")
         self.obj_choice = dict()
         for m in self.choice_only.iterkeys():
             if len(self.choice_only[m]):
@@ -632,7 +645,8 @@ class pareto():
                 for s in self.choice_only[m]:
                     self.obj_choice[m][s] = dict()
                     for x in self.pareto.iterkeys():
-                        if len(self.pareto[x][s]):
+                        if len(self.data[x][s][0][:,2]):
+                            data = self.data[m][s][0][:,2]
                             # self.obj_choice[m][s][x] = np.max(self.pareto[x][s][:,3])
                             # data = (self.data[m][s][0][:,2]-2000.0)-np.log(self.N)*float(len(self.p_order[m]))
                             # data = (data-2000.0)-2.0*float(len(self.p_order[m]))

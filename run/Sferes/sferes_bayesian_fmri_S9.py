@@ -15,23 +15,28 @@ from pylab import *
 
 p_order = ['length', 'noise', 'threshold', 'sigma']
 
-parameters = {'length':9,
-			'noise':0.001,
-			'threshold':1.0, 
-			'sigma':0.1}
+# parameters = {'length':10.0,
+# 			'noise':0.0,
+# 			'threshold':0.01, 
+# 			'sigma':0.282}
 
-with open("fmri/S9.pickle", "rb") as f:
+parameters = {'noise':0.116,
+			'length':10.0,			
+			'threshold':0.045,
+			'sigma':100.0}
+			
+
+with open("fmri/S15.pickle", "rb") as f:
    data = pickle.load(f)
-model = BayesianWorkingMemory(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'])
-
 
 model = BayesianWorkingMemory(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes=True)
 
-opt = EA(data, 'S9', model)
+opt = EA(data, 'S15', model)
 
 llh, lrs = opt.getFitness()
 
-print llh, lrs
+# print llh, lrs
+print float(llh)-2000.0
 
 
 

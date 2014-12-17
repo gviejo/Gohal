@@ -41,22 +41,6 @@ from scipy.optimize import leastsq
 def _convertStimulus(s):
         return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
 
-fitfunc = lambda p, x: p[0] + p[1] * x
-errfunc = lambda p, x, y : (y - fitfunc(p, x))
-
-def leastSquares(x, y):
-    for i in xrange(len(x)):
-        pinit = [1.0, -1.0]
-        p = leastsq(errfunc, pinit, args = (x[i], y[i]), full_output = False)
-        x[i] = fitfunc(p[0], x[i])
-    return x    
-
-def center(x):
-    #x = x-np.mean(x)
-    #x = x/np.std(x)
-    x = x-np.median(x)
-    x = x/(np.percentile(x, 75)-np.percentile(x, 25))
-    return x
 
 # -----------------------------------
 
@@ -72,7 +56,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 5
+nb_repeat = 10
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -86,7 +70,7 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 with open("extremum.pickle", 'r') as f:
     p_test = pickle.load(f)
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'r') as f:
+# with open(os.path.expanduser("obj_choice.pickle"), 'r') as f:
 #     best = pickle.load(f)
 
 colors_m = dict({'fusion':'#F1433F',
@@ -100,7 +84,7 @@ entropy = {'Hb':{},'Hf':{}}
 pcrm = dict({'s':[], 'a':[], 'r':[]})
 
 # for m in best.iterkeys():
-for m in ['fusion']:
+for m in ['qlearning']:
     # for s in best[m].iterkeys():                
     for s in p_test.keys():
         print "Testing "+s+" with "+m
