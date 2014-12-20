@@ -19,6 +19,9 @@ parameters = {}
 for p,i in zip(p_order, tmp):
     parameters[p] = model1.bounds[p][0]+i*(model1.bounds[p][1]-model1.bounds[p][0])
 
+parameters = {'alpha':0.771,
+			'beta':3.46438,
+			'sigma':1.0}
 
 
 model = QLearning(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes = True)
@@ -26,12 +29,12 @@ model = QLearning(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'
 with open("fmri/S5.pickle", "rb") as f:
    data = pickle.load(f)
 
-opt = EA(data, 'S9', model)
+opt = EA(data, 'S5', model)
 
 print model.parameters
 
 llh, lrs = opt.getFitness()
 
-print llh, lrs
+print float(llh)
 
 

@@ -223,9 +223,8 @@ class pareto():
                             "selection":KSelection(self.states, self.actions),
                             "mixture":CSelection(self.states, self.actions)})
 
-        self.p_order = dict({#'fusion':['alpha','beta', 'noise','length','gain', 'threshold', 'sigma','gamma'],                                                                                    
-                            'fusion':['alpha','beta', 'noise','length', 'gain', 'threshold', 'sigma', 'gamma'], 
-                            'qlearning':['alpha','beta','sigma'],
+        self.p_order = dict({'fusion':['alpha','beta', 'noise','length', 'gain', 'threshold', 'gamma', 'sigma'], 
+                            'qlearning':['alpha','beta', 'sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
                             'selection':['beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
                             'mixture':['alpha', 'beta', 'noise', 'length', 'weight', 'threshold', 'sigma']})
@@ -314,6 +313,7 @@ class pareto():
             lrun = os.listdir(self.directory+"/"+m)
             order = self.p_order[m.split("_")[0]]
             scale = self.models[m.split("_")[0]].bounds
+
             for r in lrun:
                 s = r.split("_")[3]                
                 n = int(r.split("_")[4].split(".")[0])
@@ -374,10 +374,9 @@ class pareto():
 
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - 2000.0
                 self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0
-                self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - len(self.p_order[m])*np.log(self.N)                
-                # for i in xrange(2): 
-                #     self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+i] >= self.front_bounds[s][m][1,i]]
-                #     self.pareto[m][s][:,3+i] = (self.pareto[m][s][:,3+i]-self.front_bounds[s][m][1,i])/(self.front_bounds[s][m][0,i]-self.front_bounds[s][m][1,i])
+                
+                self.pareto[m][s][:,3] = 1.0 - (self.pareto[m][s][:,3]/(self.N*np.log(0.2)))
+                self.pareto[m][s][:,4] = (self.pareto[m][s][:,4]-self.front_bounds[s][m][1,1])/(self.front_bounds[s][m][0,1]-self.front_bounds[s][m][1,1])
 
     def constructMixedParetoFrontier(self):
         subjects = set.intersection(*map(set, [self.pareto[m].keys() for m in self.pareto.keys()]))
@@ -500,8 +499,8 @@ class pareto():
                 # ax2.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", alpha = 1.0, label = s)        
                 ax2.plot(self.pareto[m][s][:,3], self.pareto[m][s][:,4], "-o", color = self.colors_m[m], alpha = 1.0)        
             ax2.set_title(m)
-            # ax2.set_xlim(-300,0)
-            # ax2.set_ylim(-10,0)
+            ax2.set_xlim(0,1)
+            ax2.set_ylim(0,1)
             ax2.legend()        
         ax4 = fig_model.add_subplot(3,2,6)                                            
         for s in self.mixed.keys():
@@ -511,7 +510,8 @@ class pareto():
                 # ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 10)
                 # ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 10)
                 # ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 10)
-
+        ax4.set_xlim(0,1)
+        ax4.set_ylim(0,1)
 
 
         # fig_evo = figure(figsize = (10,6))                 
@@ -599,33 +599,37 @@ class pareto():
         return data, p_test
             
     def classifySubject(self):
-        self.choice_only = {m:[] for m in self.pareto.keys()}
-        models = self.pareto.keys()
+        models = self.data.keys()
+        self.choice_only = {m:[] for m in models}        
         # subjects = self.data['fusion'].keys()
         subjects = self.human.keys()
+        values = dict()
         for s in subjects:
             value = []
+            values[s] = dict()
             for m in models:                
-                if len(self.pareto[m][s][:,3]):                    
+                if len(self.data[m][s][0][:,2]):                    
                     # value.append(np.max(self.pareto[m][s][:,3]))
                     data = self.data[m][s][0][:,2]
                     data = data-2000.0
-                    # data = 1.0-data/(156*np.log(0.2))
-                    # data = (data-2000.0)-np.log(self.N)*float(len(self.p_order[m]))
-                    data = -2*data+float(len(self.p_order[m]))*np.log(self.N)
-                    # data = (data-2000.0)
-                    # data = 1.0-(156*np.log(0.2))/(data-2000.0)
-                    value.append(np.min(data))
+
+                    # data = 2*data-float(len(self.p_order[m]))*np.log(self.N) # BIC                    
+                    # data = 2*data-2.0*float(len(self.p_order[m])) # AIC 
+                    data = 1.0-(data)/(156*np.log(0.2)) # r2
+                    values[s][m] = data[0]
+                    value.append(data[0])
                 else :
-                    value.append(0.0)            
-            m_ind = np.argmin(value)            
+                    value.append(-1000.0)            
+            print models
+            print value
+            m_ind = np.argmax(value)            
             self.choice_only[models[m_ind]].append(s)
         # parameters from max fit to choice only
         self.extremum = dict()
         for s in subjects:
             self.extremum[s] = dict()
-            for m in self.pareto.iterkeys():
-                if len(self.pareto[m][s]):
+            for m in self.data.iterkeys():
+                if len(self.data[m][s][0]):
                     self.extremum[s][m] = dict(zip(self.p_order[m],self.data[m][s][0][0,4:]))
         # writing parameters because fuck you that's why
         with open("parameters.txt", 'w') as f:
@@ -638,22 +642,37 @@ class pareto():
                     line=m+"\t"+" \t".join([k+"="+str(np.round(self.extremum[s][m][k],4)) for k in self.p_order[m]])+"\tloglikelihood = "+str(self.data[m][s][0][0,2]-2000)+"\n"      
                     f.write(line)                
                 f.write("\n")
+
+        with open("values.txt", 'w') as f:
+            # for s in subjects:
+            #     f.write(s+"\n")
+            #     for m in ['bayesian', 'fusion', 'selection', 'mixture', 'qlearning']:
+            #         f.write(str(np.round(values[s][m],2))+"\n")
+            #     f.write("\n")
+            for m in ['bayesian', 'fusion', 'selection', 'mixture', 'qlearning']:
+                f.write(m+",")
+                line = ",".join(str(np.round(values[s][m],2)) for s in subjects)
+                # for s in subjects:
+                    # f.write(str(np.round(values[s][m],2))+" ")
+                f.write(line+"\n")
+                
+
         self.obj_choice = dict()
-        for m in self.choice_only.iterkeys():
-            if len(self.choice_only[m]):
-                self.obj_choice[m] = dict()
-                for s in self.choice_only[m]:
-                    self.obj_choice[m][s] = dict()
-                    for x in self.pareto.iterkeys():
-                        if len(self.data[x][s][0][:,2]):
-                            data = self.data[m][s][0][:,2]
-                            # self.obj_choice[m][s][x] = np.max(self.pareto[x][s][:,3])
-                            # data = (self.data[m][s][0][:,2]-2000.0)-np.log(self.N)*float(len(self.p_order[m]))
-                            # data = (data-2000.0)-2.0*float(len(self.p_order[m]))
-                            data = (data-2000.0)
-                            self.obj_choice[m][s][x] = np.max(data)
-                        else :
-                            self.obj_choice[m][s][x] = 0.0
+        # for m in self.choice_only.iterkeys():
+        #     if len(self.choice_only[m]):
+        #         self.obj_choice[m] = dict()
+        #         for s in self.choice_only[m]:
+        #             self.obj_choice[m][s] = dict()
+        #             for x in self.pareto.iterkeys():
+        #                 if len(self.data[x][s][0][:,2]):
+        #                     data = self.data[m][s][0][:,2]
+        #                     # self.obj_choice[m][s][x] = np.max(self.pareto[x][s][:,3])
+        #                     # data = (self.data[m][s][0][:,2]-2000.0)-np.log(self.N)*float(len(self.p_order[m]))
+        #                     # data = (data-2000.0)-2.0*float(len(self.p_order[m]))
+        #                     data = (data-2000.0)
+        #                     self.obj_choice[m][s][x] = np.max(data)
+        #                 else :
+        #                     self.obj_choice[m][s][x] = 0.0
 
     def timeConversion(self):
         for o in self.p_test.iterkeys():
@@ -674,7 +693,6 @@ class pareto():
                         opt.model.computeValue(opt.state[i,j]-1, opt.action[i,j]-1, (i,j))
                         opt.model.updateValue(opt.responses[i,j])
                 opt.fit[0] = float(np.sum(opt.model.value))
-                llh = opt.fit[0]+2000.0
                 self.timing[o][s][m] = [np.median(opt.model.reaction)]
                 opt.model.reaction = opt.model.reaction - np.median(opt.model.reaction)
                 self.timing[o][s][m].append(np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))
@@ -682,8 +700,9 @@ class pareto():
                 self.timing[o][s][m] = np.array(self.timing[o][s][m])
                 opt.fit[1] = float(-opt.leastSquares())                                                                        
                 # # Check if coherent 
-                opt.fit[0] = 2*opt.fit[0]-len(self.p_order[m])*np.log(self.N)
-                opt.fit[0] = (opt.fit[0]-self.front_bounds[s][m][1,0])/(self.front_bounds[s][m][0,0]-self.front_bounds[s][m][1,0])
+                # opt.fit[0] = 2*opt.fit[0]-len(self.p_order[m])*np.log(self.N)
+                # opt.fit[0] = (opt.fit[0]-self.front_bounds[s][m][1,0])/(self.front_bounds[s][m][0,0]-self.front_bounds[s][m][1,0])
+                opt.fit[0] = 1.0 - (opt.fit[0]/(self.N*np.log(0.2)))                
                 opt.fit[1] = (opt.fit[1]-self.front_bounds[s][m][1,1])/(self.front_bounds[s][m][0,1]-self.front_bounds[s][m][1,1])
                 real = self.indd[o][s][4:]
 

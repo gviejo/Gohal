@@ -20,26 +20,33 @@ import cPickle as pickle
 #     parameters[p] = model1.bounds[p][0]+i*(model1.bounds[p][1]-model1.bounds[p][0])
 
 
-parameters = {'alpha':0.0,
-			'beta':94.953,
-			'noise':0.116,
-			'length':10.0,
-			'weight':0.821,
-			# 'weight':1.0,
-			'threshold':0.045,
-			'sigma':100.0,
-			'gain':3.758}
+# parameters = {'alpha':0.0,
+# 			'beta':94.953,
+# 			'noise':0.116,
+# 			'length':10.0,
+# 			'weight':0.821,
+# 			# 'weight':1.0,
+# 			'threshold':0.045,
+# 			'sigma':100.0,
+# 			'gain':3.758}
 
+parameters = {'alpha': 0.98999999999999999,
+ 'beta': 4.0883544999999994,
+ 'length': 10.0,
+ 'noise': 0.42176178000000003,
+ 'sigma': 0.0,
+ 'threshold': 2.3163563481786835,
+ 'weight': 0.10000000000000001}
 
-with open("fmri/S15.pickle", "rb") as f:
+with open("fmri/S9.pickle", "rb") as f:
    data = pickle.load(f)
 
 
 model1 = CSelection(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes = True)
-opt = EA(data, 'S15', model1)
+opt = EA(data, 'S9', model1)
 llh, lrs = opt.getFitness()                                                                                      
-# print llh, lrs
+print llh, lrs
 
-print float(llh)-2000.0
+# print float(llh)-2000.0
 
 

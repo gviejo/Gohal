@@ -46,16 +46,16 @@ front = pareto(options.input, N = 156)
 # front.showBrute()
 front.constructParetoFrontier()
 # front.removeIndivDoublons()
-# front.constructMixedParetoFrontier()
-# front.rankDistance()
-# front.rankOWA()
-# front.rankTchebytchev()
-# front.retrieveRanking()
-# front.timeConversion()
-front.classifySubject()
-# front.preview()
+front.constructMixedParetoFrontier()
+front.rankDistance()
+front.rankOWA()
+front.rankTchebytchev()
+front.retrieveRanking()
+front.timeConversion()
+# front.classifySubject()
+front.preview()
 # data_single, p_test_single = front.rankIndividualStrategy()
-
+show()
 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
 #     pickle.dump(front.pareto, handle)
@@ -70,11 +70,11 @@ front.classifySubject()
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators.pickle"), 'wb') as handle:
 # 	pickle.dump(front.zoom, handle)
 
-# with open("parameters.pickle", 'wb') as f:
-# 	pickle.dump(front.p_test, f)
+with open("parameters.pickle", 'wb') as f:
+	pickle.dump(front.p_test, f)
 
-# with open("timing.pickle", 'wb') as f:
-# 	pickle.dump(front.timing, f)
+with open("timing.pickle", 'wb') as f:
+	pickle.dump(front.timing, f)
 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_single.pickle"), 'wb') as handle:
 # 	pickle.dump(data_single, handle)
@@ -83,14 +83,15 @@ front.classifySubject()
 # 	pickle.dump(p_test_single, f)
 
 # fit to choice extremum of the front
-with open("extremum.pickle", 'wb') as f:
-	pickle.dump(front.extremum, f)
+# with open("extremum.pickle", 'wb') as f:
+# 	pickle.dump(front.extremum, f)
 
 # value of maximum BIC normalized 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:
-with open(os.path.expanduser("obj_choice.pickle"), 'wb') as f:
- 	pickle.dump(front.obj_choice, f)
+# with open(os.path.expanduser("choice_only.pickle"), 'wb') as f:
+#  	pickle.dump(front.choice_only, f)
 
+sys.exit()
 # BIC only 
 figure()
 s_to_plot = []
@@ -100,9 +101,9 @@ for x in front.choice_only.iterkeys():
 	for s in front.choice_only[x]:
 		x_pos.append(len(s_to_plot)+tmp)
 		s_to_plot.append(s)
-		for m in front.pareto.iterkeys():			
+		for m in front.data.iterkeys():			
 			obj = front.data[m][s][0][:,2]-2000.0
-			obj = -2*obj+float(len(front.p_order[m]))*np.log(front.N)
+			# obj = -2*obj+float(len(front.p_order[m]))*np.log(front.N)
 			#obj = 1.0-obj/(156*np.log(0.2))
 			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
 			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
