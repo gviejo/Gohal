@@ -33,8 +33,8 @@ class QLearning():
         self.parameters = parameters
         self.n_action=len(actions)
         self.n_state=len(states)
-        self.bounds = dict({"beta":[1.0, 1000.0],
-                            "alpha":[0.0, 0.99],
+        self.bounds = dict({"beta":[1.0, 100.0],
+                            "alpha":[0.0, 0.999999],
                             "sigma":[0.0, 1.0]})
         
         
@@ -286,7 +286,7 @@ class BayesianWorkingMemory():
         self.bounds = dict({"length":[1, 10], 
                             "threshold":[0.01, self.initial_entropy], 
                             "noise":[0.0, 0.99],
-                            "sigma":[0.001, 1.0]})
+                            "sigma":[0.0, 1.0]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.values = np.ones(self.n_action)*(1./self.n_action)    

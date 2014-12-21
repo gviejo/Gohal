@@ -242,13 +242,10 @@ class pareto():
         self.indd = dict()
         self.zoom = dict()
         self.timing = dict()
-        self.bounding_fronts()
 
         self.loadData()
         # self.simpleLoadData()
 
-<<<<<<< HEAD
-=======
     def showBrute(self):
         rcParams['ytick.labelsize'] = 8
         rcParams['xtick.labelsize'] = 8        
@@ -275,21 +272,6 @@ class pareto():
                     axes[s].plot(pareto_frontier[:,3], pareto_frontier[:,4], "-o", color = self.colors_m[m], alpha = 1.0)        
                     axes[s].set_title(s)
                     # axes[s].set_ylim(-10,0.0)
-
-    def bounding_fronts(self):
-        #                             best BIC  | best least
-        # self.front_bounds[m][s]  =  ----------------------
-        #                             worst BIC | worst least
-        best_log = -4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2))
-        self.front_bounds = {}
-        for s in self.human.keys():        
-            self.front_bounds[s] = dict()            
-            for m in self.models.iterkeys():
-                tmp = np.zeros((2,2))
-                tmp[1,1] = -np.power(2*self.human[s]['mean'][0], 2).sum()
-                tmp[1,0] = self.N*np.log(1./len(self.actions))-float(len(self.p_order[m]))*np.log(self.N)
-                tmp[0,0] = best_log-float(len(self.p_order[m]))*np.log(self.N)
-                self.front_bounds[s][m] = tmp
 
     def pickling(self, direc):
         with open(direc, "rb") as f:
@@ -357,7 +339,10 @@ class pareto():
                         break
             return fm[i+1 if i else 0:].splitlines()
 
-    def constructParetoFrontier(self):
+
+    def constructParetoFrontier(self, case = 'r2'):
+        best_log = -4*(3*np.log(5)+2*np.log(4)+2*np.log(3)+np.log(2))
+        worst_log = self.N*np.log(0.2)
         for m in self.data.iterkeys():
             self.pareto[m] = dict()
             for s in self.data[m].iterkeys():
@@ -375,9 +360,22 @@ class pareto():
                 self.pareto[m][s] = np.array(pareto_frontier)
 
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - 2000.0
-                self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0                
-                self.pareto[m][s][:,3] = 1.0 - (self.pareto[m][s][:,3]/(self.N*np.log(0.2)))
-                self.pareto[m][s][:,4] = (self.pareto[m][s][:,4]-self.front_bounds[s][m][1,1])/(self.front_bounds[s][m][0,1]-self.front_bounds[s][m][1,1])
+                self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0
+                if case == 'r2':
+                    self.pareto[m][s][:,3] = 1.0 - (self.pareto[m][s][:,3]/(self.N*np.log(0.2)))
+                elif case == 'log':
+                    self.pareto[m][s][:,3] = (best_log-self.pareto[m][s][:,3])/(best_log-worst_log)
+                elif case == 'bic':
+                    self.pareto[m][s][:,3] = 2*self.pareto[m][s][:,3] - float(len(self.p_order[m]))*np.log(self.N)
+                    best_bic = 2*best_log - float(len(self.p_order[m]))*np.log(self.N)
+                    worst_bic = 2*worst_log - float(len(self.p_order[m]))*np.log(self.N)
+                    self.pareto[m][s][:,3] = (best_bic-self.pareto[m][s][:,3])/(best_bic-worst_bic)
+                elif case == 'aic':
+                    self.pareto[m][s][:,3] = 2*self.pareto[m][s][:,3] - 2.0*float(len(self.p_order[m]))
+                    best_aic = 2*best_log - float(len(self.p_order[m]))*2.0
+                    worst_aic = 2*worst_log - float(len(self.p_order[m]))*2.0
+                    self.pareto[m][s][:,3] = (best_bic-self.pareto[m][s][:,3])/(best_aic - worst_aic)
+                self.pareto[m][s][:,4] = 1.0 - (-self.pareto[m][s][:,4])/(np.power(2*self.human[s]['mean'][0], 2).sum())
 
 
     def constructMixedParetoFrontier(self):
@@ -694,244 +692,19 @@ class pareto():
                     for j in xrange(opt.n_trials):
                         opt.model.computeValue(opt.state[i,j]-1, opt.action[i,j]-1, (i,j))
                         opt.model.updateValue(opt.responses[i,j])
-                opt.fit[0] = float(np.sum(opt.model.value))
+                opt.fit[0] = float(np.sum(opt.model.value)) + 2000.0
                 self.timing[o][s][m] = [np.median(opt.model.reaction)]
                 opt.model.reaction = opt.model.reaction - np.median(opt.model.reaction)
                 self.timing[o][s][m].append(np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))
                 opt.model.reaction = opt.model.reaction / (np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))        
                 self.timing[o][s][m] = np.array(self.timing[o][s][m])
-                opt.fit[1] = float(-opt.leastSquares())                                                                        
-                # # Check if coherent 
-                # opt.fit[0] = 2*opt.fit[0]-len(self.p_order[m])*np.log(self.N)
-                # opt.fit[0] = (opt.fit[0]-self.front_bounds[s][m][1,0])/(self.front_bounds[s][m][0,0]-self.front_bounds[s][m][1,0])
-                opt.fit[0] = 1.0 - (opt.fit[0]/(self.N*np.log(0.2)))                
-                opt.fit[1] = (opt.fit[1]-self.front_bounds[s][m][1,1])/(self.front_bounds[s][m][0,1]-self.front_bounds[s][m][1,1])
-                real = self.indd[o][s][4:]
-
-
+                opt.fit[1] = float(-opt.leastSquares()) + 500.0
+                # # Check if coherent                 
+                ind = self.indd[o][s]
+                m = self.m_order[int(ind[0])]
+                real = self.data[m][s][int(ind[1])][ind[3]][2:4]
+                
                 if np.sum(np.round(real,2)==np.round(opt.fit, 2))!= 2:
                     print o, s, m
                     print "from test :", opt.fit
                     print "from sferes :", real
-                    
-
-    def timeConversion(self):
-        for o in self.p_test.iterkeys():
-            self.timing[o] = dict()
-            for s in self.p_test[o].iterkeys():
-                self.timing[o][s] = dict()
-                m = self.p_test[o][s].keys()[0]
-                parameters = self.p_test[o][s][m]
-                # MAking a sferes call to compute a time conversion
-                with open("fmri/"+s+".pickle", "rb") as f:
-                    data = pickle.load(f)
-                self.models[m].__init__(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes = True)
-                opt = EA(data, s, self.models[m])                                
-                for i in xrange(opt.n_blocs):
-                    opt.model.startBloc()
-                    for j in xrange(opt.n_trials):
-                        opt.model.computeValue(opt.state[i,j]-1, opt.action[i,j]-1, (i,j))
-                        opt.model.updateValue(opt.responses[i,j])
-                opt.fit[0] = float(np.sum(opt.model.value))
-                self.timing[o][s][m] = [np.median(opt.model.reaction)]
-                opt.model.reaction = opt.model.reaction - np.median(opt.model.reaction)
-                self.timing[o][s][m].append(np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))
-                opt.model.reaction = opt.model.reaction / (np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))        
-                self.timing[o][s][m] = np.array(self.timing[o][s][m])
-                opt.fit[1] = float(-opt.leastSquares())                                                        
-                # # Check if coherent 
-                opt.fit[0] = 2*opt.fit[0]-len(self.p_order[m])*np.log(self.N)
-                opt.fit[0] = (opt.fit[0]-self.front_bounds[s][m][1,0])/(self.front_bounds[s][m][0,0]-self.front_bounds[s][m][1,0])
-                opt.fit[1] = (opt.fit[1]-self.front_bounds[s][m][1,1])/(self.front_bounds[s][m][0,1]-self.front_bounds[s][m][1,1])
-                real = self.indd[o][s][4:]
-
-                if np.sum(np.round(real,2)==np.round(opt.fit, 2))!= 2:
-                    print o, s, m
-                    print "from test :", opt.fit
-                    print "from sferes :", real
-                    sys.exit()
-
-
-
-    # def rankMixedFront(self, w):    
-    #     for s in self.mixed.iterkeys():
-    #         # self.distance[s] = self.OWA((self.mixed[s][:,4:]), w)            
-    #         if s in w.keys():
-    #             self.distance[s] = self.Tchebychev(self.mixed[s][:,4:], w[s], 0.01)
-    #         else:
-    #             self.distance[s] = self.Tchebychev(self.mixed[s][:,4:], [0.5,0.5], 0.01)
-    #         # i = np.argmax(self.distance[s])
-    #         i = np.argmin(self.distance[s])
-    #         m = self.m_order[int(self.mixed[s][i,0])]
-    #         ind = self.pareto[m][s][(self.pareto[m][s][:,0] == self.mixed[s][i][1])*(self.pareto[m][s][:,1] == self.mixed[s][i][2])*(self.pareto[m][s][:,2] == self.mixed[s][i][3])][0]
-    #         self.indd[s] = ind            
-    #         self.p_test[s] = {m:{}}
-    #         for p in self.p_order[m.split("_")[0]]:
-    #             self.p_test[s][m][p] = ind[self.p_order[m].index(p)+5]
-
-    # def OWA(self, value, w):
-    #     m,n=value.shape
-    #     #assert m>=n
-    #     assert len(w) == n
-    #     assert np.sum(w) == 1
-    #     return np.sum(np.sort(value)*w,1)
-
-    # def Tchebychev(self, value, lambdaa, epsilon):
-    #     m,n = value.shape
-    #     #assert m>=n
-    #     assert len(lambdaa) == n
-    #     assert np.sum(lambdaa) == 1
-    #     assert epsilon < 1.0
-    
-
-    # def _convertStimulus(self, s):
-    #     return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
-
-    # # def alignToMedian(self, m, s, n_blocs, n_trials):
-    # #     x = np.array(self.models[m].reaction).flatten()
-    # #     y = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                
-    # #     Ex = np.percentile(x, 75) - np.percentile(x, 25)        
-    # #     Ey = np.percentile(y, 75) - np.percentile(y, 25)
-    # #     if Ex == 0.0: Ex = 1.0
-    # #     x = x*(Ey/Ex)
-    # #     x = x-(np.median(x)-np.median(y))
-    # #     self.models[m].reaction = x.reshape(n_blocs, n_trials)
-
-    # def alignToMedian(self, m, s, n_blocs, n_trials):
-    #     p = np.sum(np.array(self.models[m].pdf), 0)
-    #     p = p/p.sum()        
-    #     wp = []
-    #     tmp = np.cumsum(p)
-    #     f = lambda x: (x-np.sum(tmp<x)*tmp[np.sum(tmp<x)-1]+(np.sum(tmp<x)-1.0)*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-    #     for i in [0.25, 0.75]:
-    #         if np.min(tmp)>i:
-    #             wp.append(0.0)
-    #         else:
-    #             wp.append(f(i))              
-    #     yy = np.array([self.human.subject['fmri'][s][i]['rt'][:,0][0:n_trials] for i in xrange(1, n_blocs+1)])                                
-    #     xx = np.array(self.models[m].reaction).flatten()
-    #     b = np.arange(int(self.models[m].parameters['length'])+1)
-    #     wh = [np.percentile(yy, i) for i in [25, 75]]
-    #     if (wp[1]-wp[0]):
-    #         xx = xx*((wh[1]-wh[0])/(wp[1]-wp[0]))
-    #         b = b*((wh[1]-wh[0])/(wp[1]-wp[0]))
-    #     f = lambda x: (x*(b[np.sum(tmp<x)]-b[np.sum(tmp<x)-1])-b[np.sum(tmp<x)]*tmp[np.sum(tmp<x)-1]+b[np.sum(tmp<x)-1]*tmp[np.sum(tmp<x)])/(tmp[np.sum(tmp<x)]-tmp[np.sum(tmp<x)-1])
-    #     half = f(0.5) if np.min(tmp)<0.5 else 0.0        
-        
-    #     xx = xx-(half-np.median(yy))
-    #     self.models[m].reaction = xx.reshape(n_blocs, n_trials)
-
-    # def learnRBM(self, m, s, n_blocs, n_trials):
-    #     x = np.array([self.human.subject['fmri'][s][i]['rt'][0:n_trials,0] for i in range(1,n_blocs+1)]).flatten()
-    #     #x = 1./x
-    #     x_bin_size = 2*(np.percentile(x, 75)-np.percentile(x, 25))*np.power(len(x), -(1/3.))
-    #     px, xedges = np.histogram(x, bins=np.arange(x.min(), x.max()+ x_bin_size, x_bin_size))
-    #     px = px/float(px.sum())
-    #     xposition = np.digitize(x, xedges)-1
-
-    #     y = self.models[m].reaction.flatten()
-    #     y_bin_size = 2*(np.percentile(y, 75)-np.percentile(y, 25))*np.power(len(y), -(1/3.))
-    #     py, yedges = np.histogram(y, bins=np.arange(y.min(), y.max()+y_bin_size, y_bin_size))
-    #     py = py/float(py.sum())
-    #     yposition = np.digitize(y, yedges)-1
-
-    #     f = lambda i, x1, x2, y1, y2: (i*(y2-y1)-y2*x1+y1*x2)/(x2-x1)
-    #     xdata = np.zeros((x.shape[0], xposition.max()+1))
-    #     for i in xrange(xposition.shape[0]): xdata[i,xposition[i]] = 1.0
-    #     ydata = np.zeros((y.shape[0], yposition.max()+1))
-    #     for i in xrange(yposition.shape[0]): ydata[i,yposition[i]] = 1.0
-
-    #     rbm = RBM(xdata, ydata, nh = 10, nbiter = 1000)
-    #     rbm.train()
-                
-    #     Y = rbm.getInputfromOutput(ydata)
-
-    #     tirage = np.argmax(Y, 1)
-        
-    #     center = xedges[1:]-(x_bin_size/2.)
-                
-    #     self.models[m].reaction = np.reshape(center[tirage], (n_blocs, n_trials))        
-
-    # def leastSquares(self, m, s, n_blocs, n_trials):
-    #     rt = np.array([self.human.subject['fmri'][s][i]['rt'][0:n_trials,0] for i in range(1,n_blocs+1)]).flatten()
-    #     rtm = self.models[m].reaction.flatten()
-    #     state = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,0] for i in range(1,n_blocs+1)])
-    #     action = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,1] for i in range(1,n_blocs+1)])
-    #     responses = np.array([self.human.subject['fmri'][s][i]['sar'][0:n_trials,2] for i in range(1,n_blocs+1)])
-    #     pinit = [1.0, -1.0]
-    #     fitfunc = lambda p, x: p[0] + p[1] * x
-    #     errfunc = lambda p, x, y : (y - fitfunc(p, x))
-    #     mean = []
-    #     for i in [rt,rtm]:
-    #         tmp = i.reshape(n_blocs, n_trials)
-    #         step, indice = getRepresentativeSteps(tmp, state, action, responses)
-    #         mean.append(computeMeanRepresentativeSteps(step))
-    #     mean = np.array(mean)
-    #     p = leastsq(errfunc, pinit, args = (mean[1][0], mean[0][0]), full_output = False)        
-    #     #self.models[m].reaction = fitfunc(p[0], mean[1][0])
-    #     self.models[m].reaction = mean[1][0]
-    #     ###
-    #     self.hrt.append(mean[0][0])
-    #     ###
-
-    # def run(self, plot=True):
-    #     nb_blocs = 4
-    #     nb_trials = self.human.responses['fmri'].shape[1]
-    #     cats = CATS(nb_trials)
-    #     ###
-    #     self.hrt = []
-    #     ###
-    #     for s in self.p_test.iterkeys():             
-    #         m = self.p_test[s].keys()[0]
-    #         print "Testing "+s+" with "+m            
-    #         self.models[m].setAllParameters(self.p_test[s][m])
-    #         self.models[m].startExp()
-    #         for i in xrange(nb_blocs):
-    #             cats.reinitialize()
-    #             cats.stimuli = np.array(map(self._convertStimulus, self.human.subject['fmri'][s][i+1]['sar'][:,0]))
-    #             self.models[m].startBloc()                
-    #             for j in xrange(nb_trials):
-    #                 state = cats.getStimulus(j)
-    #                 action = self.models[m].chooseAction(state)
-    #                 reward = cats.getOutcome(state, action)
-    #                 self.models[m].updateValue(reward)            
-    #         self.models[m].reaction = np.array(self.models[m].reaction)
-            
-    #         #self.learnRBM(m, s, nb_blocs, nb_trials)
-    #         #sys.exit()
-    #         #self.alignToMedian(m, s, nb_blocs, nb_trials)
-    #         self.leastSquares(m, s, nb_blocs, nb_trials)
-
-    #         self.beh['reaction'].append(self.models[m].reaction)
-    #         for i in xrange(nb_blocs):
-    #             self.beh['state'].append(self.models[m].state[i])
-    #             self.beh['action'].append(self.models[m].action[i])
-    #             self.beh['responses'].append(self.models[m].responses[i])
-
-    #     self.hrt = np.array(self.hrt)
-    #     for k in self.beh.iterkeys():
-    #         self.beh[k] = np.array(self.beh[k])
-    #     self.beh['state'] = convertStimulus(self.beh['state'])
-    #     self.beh['action'] = convertAction(self.beh['action'])
-         
-    
-    #     if plot:                                                            
-    #         pcr = extractStimulusPresentation(self.beh['responses'], self.beh['state'], self.beh['action'], self.beh['responses'])
-    #         pcr_human = extractStimulusPresentation(self.human.responses['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])            
-                                                            
-    #         #step, indice = getRepresentativeSteps(self.beh['reaction'], self.beh['state'], self.beh['action'], self.beh['responses'])
-    #         #rt = computeMeanRepresentativeSteps(step)
-    #         step, indice = getRepresentativeSteps(self.human.reaction['fmri'], self.human.stimulus['fmri'], self.human.action['fmri'], self.human.responses['fmri'])
-    #         rt_human = computeMeanRepresentativeSteps(step) 
-    #         rt = (np.mean(self.beh['reaction'], 0), np.var(self.beh['reaction'], 0))
-
-    #         colors = ['blue', 'red', 'green']
-    #         self.fig_quick = figure(figsize=(10,5))
-    #         ax1 = self.fig_quick.add_subplot(1,2,1)
-    #         [ax1.errorbar(range(1, len(pcr['mean'][t])+1), pcr['mean'][t], pcr['sem'][t], linewidth = 1.5, elinewidth = 1.5, capsize = 0.8, linestyle = '-', alpha = 1, color = colors[t]) for t in xrange(3)]
-    #         [ax1.errorbar(range(1, len(pcr_human['mean'][t])+1), pcr_human['mean'][t], pcr_human['sem'][t], linewidth = 2.5, elinewidth = 1.5, capsize = 0.8, linestyle = '--', alpha = 0.7,color = colors[t]) for t in xrange(3)]    
-    #         ax2 = self.fig_quick.add_subplot(1,2,2)
-    #         ax2.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2.0, elinewidth = 1.5, capsize = 1.0, linestyle = '-', color = 'black', alpha = 1.0)        
-    #         #ax3 = ax2.twinx()
-    #         ax2.errorbar(range(1, len(rt_human[0])+1), rt_human[0], rt_human[1], linewidth = 2.5, elinewidth = 2.5, capsize = 1.0, linestyle = '--', color = 'grey', alpha = 0.7)
-    #         show()

@@ -44,8 +44,8 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 front = pareto(options.input, N = 156)
 
 # front.showBrute()
-front.constructParetoFrontier()
-# front.removeIndivDoublons()
+front.constructParetoFrontier('r2') # 'r2', 'bic', 'aic' , 'log'
+front.removeIndivDoublons()
 front.constructMixedParetoFrontier()
 front.rankDistance()
 front.rankOWA()
@@ -56,7 +56,7 @@ front.timeConversion()
 front.preview()
 # data_single, p_test_single = front.rankIndividualStrategy()
 show()
-
+sys.exit()
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
 #     pickle.dump(front.pareto, handle)
 

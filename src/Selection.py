@@ -558,7 +558,6 @@ class CSelection():
                             "noise":[0.0, 0.99],
                             "alpha":[0.0, 0.999999],
                             "beta":[1.0, 100.0], # QLEARNING
-                            "gamma":[0.0, 0.99],                            
                             "sigma":[0.0, 1.0], 
                             "weight":[0.01, 0.99]})
                             
