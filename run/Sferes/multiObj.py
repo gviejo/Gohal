@@ -43,21 +43,9 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 front = pareto(options.input, N = 156)
 
+# front.showBrute()
 front.constructParetoFrontier()
-front.removeIndivDoublons()
-# model = front.reTest(20)
-# m = 'fusion'
-# fig = figure()
-# i = 1
-# for s in front.pareto[m].keys():	
-# 	subplot(3,2,i); i+=1
-# 	plot(front.pareto[m][s][:,3], front.pareto[m][s][:,4], 'o-')
-# 	axvline(front.front_bounds[s][m][0,0])
-# 	axvline(front.front_bounds[s][m][1,0])
-# 	axhline(front.front_bounds[s][m][0,1])
-# 	axhline(front.front_bounds[s][m][1,1])
-# show()
-# sys.exit()
+# front.removeIndivDoublons()
 front.constructMixedParetoFrontier()
 front.rankDistance()
 front.rankOWA()
@@ -68,7 +56,6 @@ front.timeConversion()
 front.preview()
 # data_single, p_test_single = front.rankIndividualStrategy()
 show()
-
 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
 #     pickle.dump(front.pareto, handle)
@@ -99,30 +86,59 @@ with open("timing.pickle", 'wb') as f:
 # with open("extremum.pickle", 'wb') as f:
 # 	pickle.dump(front.extremum, f)
 
-# # value of maximum BIC normalized 
+# value of maximum BIC normalized 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:
-# 	pickle.dump(front.obj_choice, f)
+# with open(os.path.expanduser("choice_only.pickle"), 'wb') as f:
+#  	pickle.dump(front.choice_only, f)
 
-# # BIC only 
-# figure()
-# s_to_plot = []
-# x_pos = []
-# tmp = 0
-# for x in front.choice_only.iterkeys():	
-# 	for s in front.choice_only[x]:
-# 		x_pos.append(len(s_to_plot)+tmp)
-# 		s_to_plot.append(s)
-# 		for m in front.pareto.iterkeys():
-# 			obj = front.pareto[m][s][:,3]
-# 			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
-# 			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
-# 	tmp+=1
-# ylim(0.55, 0.95)
-# xticks(np.array(x_pos)+1, s_to_plot)
-# show()
+
+sys.exit()
+# BIC only 
+figure()
+s_to_plot = []
+x_pos = []
+tmp = 0
+for x in front.choice_only.iterkeys():	
+	for s in front.choice_only[x]:
+		x_pos.append(len(s_to_plot)+tmp)
+		s_to_plot.append(s)
+		for m in front.data.iterkeys():			
+			obj = front.data[m][s][0][:,2]-2000.0
+			# obj = -2*obj+float(len(front.p_order[m]))*np.log(front.N)
+			#obj = 1.0-obj/(156*np.log(0.2))
+			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
+			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
+	tmp+=1
+# ylim(0.0, 1.0)
+xticks(np.array(x_pos)+1, s_to_plot)
+show()
+
 
 # front evolution
 
+show()
+
+def plotting():
+	for s in front.mixed.keys():
+		figure()
+		for m in front.pareto.keys():
+			data = front.pareto[m][s]
+			plot(data[:,3], data[:,4], 'o-', color = front.colors_m[m], label = m)
+		title(s)
+		legend()
+		show()
+
+def gen_plotting(m, s):
+	figure()
+	n = 0
+	color=iter(cm.rainbow(np.linspace(0,1,len(np.unique(front.data[m][s][n][:,0])))))
+	for g in np.unique(front.data[m][s][n][:,0]):
+		c = next(color)
+		ind = front.data[m][s][n][:,0] == g
+		gen = front.data[m][s][n][:,2:4][ind] - [2000.0,500.0]
+		plot(gen[:,0], gen[:,1], 'o', c = c)
+	plot(front.pareto[m][s][:,3] + float(len(front.p_order[m]))*np.log(front.N), front.pareto[m][s][:,4], 'o-')
+	show()
 
 
 

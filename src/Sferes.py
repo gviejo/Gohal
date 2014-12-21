@@ -60,11 +60,14 @@ class EA():
     def getFitness(self):
         np.seterr(all = 'ignore')
         #self.model.startExp()        
-        for i in xrange(self.n_blocs):
+        for i in xrange(self.n_blocs):        
             self.model.startBloc()
-            for j in xrange(self.n_trials):
+            for j in xrange(self.n_trials):            
+            # for j in xrange(7):            
+                # print (i,j)
                 self.model.computeValue(self.state[i%self.n_blocs,j]-1, self.action[i%self.n_blocs,j]-1, (i,j))
                 self.model.updateValue(self.responses[i%self.n_blocs,j])                                    
+                # print " " 
         self.fit[0] = float(np.sum(self.model.value))
         self.alignToMedian()        
         self.fit[1] = float(-self.leastSquares())                        
@@ -220,11 +223,11 @@ class pareto():
                             "selection":KSelection(self.states, self.actions),
                             "mixture":CSelection(self.states, self.actions)})
 
-        self.p_order = dict({'fusion':['alpha','beta', 'noise','length','gain','threshold', 'sigma'],                            
-                            'qlearning':['alpha','beta','sigma'],
+        self.p_order = dict({'fusion':['alpha','beta', 'noise','length', 'gain', 'threshold', 'gamma', 'sigma'], 
+                            'qlearning':['alpha','beta', 'sigma'],
                             'bayesian':['length','noise','threshold', 'sigma'],
-                            'selection':['gamma','beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
-                            'mixture':['alpha', 'beta', 'noise', 'length', 'weight', 'threshold', 'sigma', 'gain']})
+                            'selection':['beta','eta','length','threshold','noise','sigma', 'sigma_rt'],
+                            'mixture':['alpha', 'beta', 'noise', 'length', 'weight', 'threshold', 'sigma']})
 
         self.m_order = ['qlearning', 'bayesian', 'selection', 'fusion', 'mixture']
         self.colors_m = dict({'fusion':'r', 'bayesian':'g', 'qlearning':'grey', 'selection':'b', 'mixture':'y'})
@@ -244,6 +247,35 @@ class pareto():
         self.loadData()
         # self.simpleLoadData()
 
+<<<<<<< HEAD
+=======
+    def showBrute(self):
+        rcParams['ytick.labelsize'] = 8
+        rcParams['xtick.labelsize'] = 8        
+        fig_brute = figure(figsize = (10,10)) # for each model all subject            
+        axes = {}        
+        for s,i in zip(self.human.keys(),range(2,16)):
+            axes[s] = fig_brute.add_subplot(4,4,i)
+
+        for s in self.human.iterkeys():            
+            for m in self.data.iterkeys():
+                if s in self.data[m].keys():
+                    tmp={n:self.data[m][s][n][self.data[m][s][n][:,0]==np.max(self.data[m][s][n][:,0])] for n in self.data[m][s].iterkeys()}
+                    tmp=np.vstack([np.hstack((np.ones((len(tmp[n]),1))*n,tmp[n])) for n in tmp.iterkeys()])
+                    ind = tmp[:,3] != 0
+                    tmp = tmp[ind]
+                    tmp = tmp[tmp[:,3].argsort()][::-1]
+                    pareto_frontier = [tmp[0]]
+                    for pair in tmp[1:]:
+                        if pair[4] >= pareto_frontier[-1][4]:
+                            pareto_frontier.append(pair)
+                    pareto_frontier = np.array(pareto_frontier)
+                    pareto_frontier[:,3] -= (2000+float(len(self.p_order[m]))*np.log(156))                    
+                    pareto_frontier[:,4] -= 500
+                    axes[s].plot(pareto_frontier[:,3], pareto_frontier[:,4], "-o", color = self.colors_m[m], alpha = 1.0)        
+                    axes[s].set_title(s)
+                    # axes[s].set_ylim(-10,0.0)
+
     def bounding_fronts(self):
         #                             best BIC  | best least
         # self.front_bounds[m][s]  =  ----------------------
@@ -255,8 +287,8 @@ class pareto():
             for m in self.models.iterkeys():
                 tmp = np.zeros((2,2))
                 tmp[1,1] = -np.power(2*self.human[s]['mean'][0], 2).sum()
-                tmp[1,0] = 2*self.N*np.log(1./len(self.actions))-len(self.p_order[m])*np.log(self.N)
-                tmp[0,0] = 2*best_log-len(self.p_order[m])*np.log(self.N)
+                tmp[1,0] = self.N*np.log(1./len(self.actions))-float(len(self.p_order[m]))*np.log(self.N)
+                tmp[0,0] = best_log-float(len(self.p_order[m]))*np.log(self.N)
                 self.front_bounds[s][m] = tmp
 
     def pickling(self, direc):
@@ -283,6 +315,7 @@ class pareto():
             lrun = os.listdir(self.directory+"/"+m)
             order = self.p_order[m.split("_")[0]]
             scale = self.models[m.split("_")[0]].bounds
+
             for r in lrun:
                 s = r.split("_")[3]                
                 n = int(r.split("_")[4].split(".")[0])
@@ -342,30 +375,28 @@ class pareto():
                 self.pareto[m][s] = np.array(pareto_frontier)
 
                 self.pareto[m][s][:,3] = self.pareto[m][s][:,3] - 2000.0
-                self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0
-                self.pareto[m][s][:,3] = 2*self.pareto[m][s][:,3] - len(self.p_order[m])*np.log(self.N)
-                
-                for i in xrange(2): 
-                    self.pareto[m][s] = self.pareto[m][s][self.pareto[m][s][:,3+i] >= self.front_bounds[s][m][1,i]]
-                    self.pareto[m][s][:,3+i] = (self.pareto[m][s][:,3+i]-self.front_bounds[s][m][1,i])/(self.front_bounds[s][m][0,i]-self.front_bounds[s][m][1,i])
+                self.pareto[m][s][:,4] = self.pareto[m][s][:,4] - 500.0                
+                self.pareto[m][s][:,3] = 1.0 - (self.pareto[m][s][:,3]/(self.N*np.log(0.2)))
+                self.pareto[m][s][:,4] = (self.pareto[m][s][:,4]-self.front_bounds[s][m][1,1])/(self.front_bounds[s][m][0,1]-self.front_bounds[s][m][1,1])
+
 
     def constructMixedParetoFrontier(self):
         subjects = set.intersection(*map(set, [self.pareto[m].keys() for m in self.pareto.keys()]))
         # subjects = self.pareto['fusion'].keys()
-        for s in subjects:
-
-            self.mixed[s] = []
+        for s in subjects:            
             tmp = []            
             for m in self.pareto.iterkeys():
                 if s in self.pareto[m].keys():
                     tmp.append(np.hstack((np.ones((len(self.pareto[m][s]),1))*self.m_order.index(m), self.pareto[m][s][:,0:5])))            
             tmp = np.vstack(tmp)            
-            tmp = tmp[tmp[:,4].argsort()][::-1]            
-            self.mixed[s] = [tmp[0]]
-            for pair in tmp[1:]:
-                if pair[5] >= self.mixed[s][-1][5]:
-                    self.mixed[s].append(pair)
-            self.mixed[s] = np.array(self.mixed[s])            
+            tmp = tmp[tmp[:,4].argsort()][::-1]                        
+            if len(tmp):
+                self.mixed[s] = []
+                self.mixed[s] = [tmp[0]]
+                for pair in tmp[1:]:
+                    if pair[5] >= self.mixed[s][-1][5]:
+                        self.mixed[s].append(pair)
+                self.mixed[s] = np.array(self.mixed[s])            
 
     def removeIndivDoublons(self):
         for m in self.pareto.iterkeys():
@@ -478,11 +509,14 @@ class pareto():
             for m in np.unique(self.mixed[s][:,0]):
                 ind = self.mixed[s][:,0] == m
                 ax4.plot(self.mixed[s][ind,4], self.mixed[s][ind,5], 'o-', color = self.colors_m[self.m_order[int(m)]])
-                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 10)
-                ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 10)
-                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 10)
+                # ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 10)
+                # ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 10)
+                # ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 10)
+        ax4.set_xlim(0,1)
+        ax4.set_ylim(0,1)
 
-        # fig_evo = figure(figsize = (10,6))                 
+
+        #  = figure(figsize = (10,6))                 
         # ax7 = fig_evo.add_subplot(1,2,1)
         # ax8 = fig_evo.add_subplot(1,2,2)
         # for m in self.data.iterkeys():
@@ -567,37 +601,119 @@ class pareto():
         return data, p_test
             
     def classifySubject(self):
-        self.choice_only = {m:[] for m in self.pareto.keys()}
-        models = self.pareto.keys()
-        subjects = self.data['fusion'].keys()
-        # subjects = self.human.keys()
+        models = self.data.keys()
+        self.choice_only = {m:[] for m in models}        
+        # subjects = self.data['fusion'].keys()
+        subjects = self.human.keys()
+        values = dict()
         for s in subjects:
             value = []
-            for m in models:
-                if len(self.pareto[m][s][:,3]):                    
-                    value.append(np.max(self.pareto[m][s][:,3]))
+            values[s] = dict()
+            for m in models:                
+                if len(self.data[m][s][0][:,2]):                    
+                    # value.append(np.max(self.pareto[m][s][:,3]))
+                    data = self.data[m][s][0][:,2]
+                    data = data-2000.0
+
+                    # data = 2*data-float(len(self.p_order[m]))*np.log(self.N) # BIC                    
+                    # data = 2*data-2.0*float(len(self.p_order[m])) # AIC 
+                    data = 1.0-(data)/(156*np.log(0.2)) # r2
+                    values[s][m] = data[0]
+                    value.append(data[0])
                 else :
-                    value.append(0.0)            
+                    value.append(-1000.0)            
+            print models
+            print value
             m_ind = np.argmax(value)            
             self.choice_only[models[m_ind]].append(s)
         # parameters from max fit to choice only
         self.extremum = dict()
         for s in subjects:
             self.extremum[s] = dict()
-            for m in self.pareto.iterkeys():
-                if len(self.pareto[m][s]):
-                    self.extremum[s][m] = dict(zip(self.p_order[m],self.pareto[m][s][0,5:]))
+            for m in self.data.iterkeys():
+                if len(self.data[m][s][0]):
+                    self.extremum[s][m] = dict(zip(self.p_order[m],self.data[m][s][0][0,4:]))
+        # writing parameters because fuck you that's why
+        with open("parameters.txt", 'w') as f:
+            # for m in models:
+            for s in subjects:
+                # f.write(m+"\n")                
+                f.write(s+"\n")
+                # for s in subjects:
+                for m in models:
+                    line=m+"\t"+" \t".join([k+"="+str(np.round(self.extremum[s][m][k],4)) for k in self.p_order[m]])+"\tloglikelihood = "+str(self.data[m][s][0][0,2]-2000)+"\n"      
+                    f.write(line)                
+                f.write("\n")
+
+        with open("values.txt", 'w') as f:
+            # for s in subjects:
+            #     f.write(s+"\n")
+            #     for m in ['bayesian', 'fusion', 'selection', 'mixture', 'qlearning']:
+            #         f.write(str(np.round(values[s][m],2))+"\n")
+            #     f.write("\n")
+            for m in ['bayesian', 'fusion', 'selection', 'mixture', 'qlearning']:
+                f.write(m+",")
+                line = ",".join(str(np.round(values[s][m],2)) for s in subjects)
+                # for s in subjects:
+                    # f.write(str(np.round(values[s][m],2))+" ")
+                f.write(line+"\n")
+                
+
         self.obj_choice = dict()
-        for m in self.choice_only.iterkeys():
-            if len(self.choice_only[m]):
-                self.obj_choice[m] = dict()
-                for s in self.choice_only[m]:
-                    self.obj_choice[m][s] = dict()
-                    for x in self.pareto.iterkeys():
-                        if len(self.pareto[x][s]):
-                            self.obj_choice[m][s][x] = np.max(self.pareto[x][s][:,3])
-                        else :
-                            self.obj_choice[m][s][x] = 0.0
+        # for m in self.choice_only.iterkeys():
+        #     if len(self.choice_only[m]):
+        #         self.obj_choice[m] = dict()
+        #         for s in self.choice_only[m]:
+        #             self.obj_choice[m][s] = dict()
+        #             for x in self.pareto.iterkeys():
+        #                 if len(self.data[x][s][0][:,2]):
+        #                     data = self.data[m][s][0][:,2]
+        #                     # self.obj_choice[m][s][x] = np.max(self.pareto[x][s][:,3])
+        #                     # data = (self.data[m][s][0][:,2]-2000.0)-np.log(self.N)*float(len(self.p_order[m]))
+        #                     # data = (data-2000.0)-2.0*float(len(self.p_order[m]))
+        #                     data = (data-2000.0)
+        #                     self.obj_choice[m][s][x] = np.max(data)
+        #                 else :
+        #                     self.obj_choice[m][s][x] = 0.0
+
+    def timeConversion(self):
+        for o in self.p_test.iterkeys():
+            self.timing[o] = dict()
+            for s in self.p_test[o].iterkeys():
+                self.timing[o][s] = dict()
+                m = self.p_test[o][s].keys()[0]
+                parameters = self.p_test[o][s][m]
+
+                # MAking a sferes call to compute a time conversion
+                with open("fmri/"+s+".pickle", "rb") as f:
+                    data = pickle.load(f)
+                self.models[m].__init__(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes = True)
+                opt = EA(data, s, self.models[m])                                
+                for i in xrange(opt.n_blocs):
+                    opt.model.startBloc()
+                    for j in xrange(opt.n_trials):
+                        opt.model.computeValue(opt.state[i,j]-1, opt.action[i,j]-1, (i,j))
+                        opt.model.updateValue(opt.responses[i,j])
+                opt.fit[0] = float(np.sum(opt.model.value))
+                self.timing[o][s][m] = [np.median(opt.model.reaction)]
+                opt.model.reaction = opt.model.reaction - np.median(opt.model.reaction)
+                self.timing[o][s][m].append(np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))
+                opt.model.reaction = opt.model.reaction / (np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))        
+                self.timing[o][s][m] = np.array(self.timing[o][s][m])
+                opt.fit[1] = float(-opt.leastSquares())                                                                        
+                # # Check if coherent 
+                # opt.fit[0] = 2*opt.fit[0]-len(self.p_order[m])*np.log(self.N)
+                # opt.fit[0] = (opt.fit[0]-self.front_bounds[s][m][1,0])/(self.front_bounds[s][m][0,0]-self.front_bounds[s][m][1,0])
+                opt.fit[0] = 1.0 - (opt.fit[0]/(self.N*np.log(0.2)))                
+                opt.fit[1] = (opt.fit[1]-self.front_bounds[s][m][1,1])/(self.front_bounds[s][m][0,1]-self.front_bounds[s][m][1,1])
+                real = self.indd[o][s][4:]
+
+
+                if np.sum(np.round(real,2)==np.round(opt.fit, 2))!= 2:
+                    print o, s, m
+                    print "from test :", opt.fit
+                    print "from sferes :", real
+                    
 
     def timeConversion(self):
         for o in self.p_test.iterkeys():

@@ -51,12 +51,10 @@ def leastSquares(x, y):
 		x[i] = fitfunc(p[0], x[i])
 	return x    
 
-def center(x):
-	#x = x-np.mean(x)
-	#x = x/np.std(x)
-	x = x-np.median(x)
-	x = x/(np.percentile(x, 75)-np.percentile(x, 25))
-	return x
+def center(x, o, s, m):    
+    x = x-timing[o][s][m][0]
+    x = x/timing[o][s][m][1]
+    return x
 
 # -----------------------------------
 
@@ -72,7 +70,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 2
+nb_repeat = 10
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
 				"qlearning":QLearning(cats.states, cats.actions),
@@ -86,12 +84,15 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 with open("parameters.pickle", 'r') as f:
   p_test = pickle.load(f)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'r') as f:
+with open(os.path.expanduser("obj_choice.pickle"), 'r') as f:
 	best = pickle.load(f)
 
-# groups = {m:[s for s in best[m].iterkeys()] for m in best.iterkeys()}
+with open("timing.pickle", 'rb') as f:
+    timing = pickle.load(f)
 
-groups = {'fusion':p_test['distance'].keys()}
+groups = {m:[s for s in best[m].iterkeys()] for m in best.iterkeys()}
+
+# groups = {'fusion':p_test['distance'].keys()}
 
 colors = {'owa':'r','distance':'b','tche':'g'}
 
@@ -125,6 +126,15 @@ for o in ['owa', 'distance', 'tche']:
 						action = models[m].chooseAction(state)
 						reward = cats.getOutcome(state, action, case='fmri')
 						models[m].updateValue(reward)                                    
+			# rtm = np.array(models[m].reaction).reshape(nb_repeat, nb_blocs, nb_trials)                        
+			# state = convertStimulus(np.array(models[m].state)).reshape(nb_repeat, nb_blocs, nb_trials)
+	  #       action = np.array(models[m].action).reshape(nb_repeat, nb_blocs, nb_trials)
+	  #       responses = np.array(models[m].responses).reshape(nb_repeat, nb_blocs, nb_trials)
+	  #       tmp = np.zeros((nb_repeat, 15))
+	  #       for i in xrange(nb_repeat):
+	  #           rtm[i] = center(rtm[i], o, s, m)
+   #  	        step, indice = getRepresentativeSteps(rtm[i], state[i], action[i], responses[i])
+   #      	    tmp[i] = computeMeanRepresentativeSteps(step)[0]        			
 			state = convertStimulus(np.array(models[m].state))
 			action = np.array(models[m].action)
 			responses = np.array(models[m].responses)        
@@ -152,9 +162,9 @@ for o in ['owa', 'distance', 'tche']:
 					axes[h][i].plot(x, y, linewidth = 2, label = s)
 					axes[h][i].fill_between(x, y-e, y+e, facecolor = colors_m[g], alpha = 0.1)
 					axes[h][i].set_ylim(0,np.log2(5))
-					if h == 'Hb':
-						ax2 = axes[h][i].twinx()
-						ax2.plot(x, entropy[g]['N'][s]['mean'][i], '--', color = colors_m[g], linewidth = 3)
+					# if h == 'Hb':
+					# 	ax2 = axes[h][i].twinx()
+					# 	ax2.plot(x, entropy[g]['N'][s]['mean'][i], '--', color = colors_m[g], linewidth = 3)
 	legend()
 	show()
 		# meanHall = dict()

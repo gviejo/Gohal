@@ -70,7 +70,8 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 10
+nb_repeat = 20
+
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -99,6 +100,7 @@ for o in p_test.iterkeys():
     rtm_all = []
     super_rt[o] = dict({'model':[]})
     for s in p_test[o].iterkeys():
+    # for s in ['S14']:
         with open("fmri/"+s+".pickle", "rb") as f:
             data = pickle.load(f)          
         m = p_test[o][s].keys()[0]
@@ -125,7 +127,11 @@ for o in p_test.iterkeys():
         for i in xrange(nb_repeat):
             rtm[i] = center(rtm[i], o, s, m)
             step, indice = getRepresentativeSteps(rtm[i], state[i], action[i], responses[i])
-            tmp[i] = computeMeanRepresentativeSteps(step)[0]        
+            tmp[i] = computeMeanRepresentativeSteps(step)[0]
+
+        if s == 'S14':
+            tmp = np.zeros((nb_repeat, 15))
+
         pcrm['s'].append(state.reshape(nb_repeat*nb_blocs, nb_trials))
         pcrm['a'].append(action.reshape(nb_repeat*nb_blocs, nb_trials))
         pcrm['r'].append(responses.reshape(nb_repeat*nb_blocs, nb_trials))

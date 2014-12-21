@@ -33,9 +33,10 @@ class QLearning():
         self.parameters = parameters
         self.n_action=len(actions)
         self.n_state=len(states)
-        self.bounds = dict({"beta":[1.0, 100.0],
+        self.bounds = dict({"beta":[1.0, 1000.0],
                             "alpha":[0.0, 0.99],
-                            "sigma":[0.0001, 1.0]})
+                            "sigma":[0.0, 1.0]})
+        
         
         #Values Initialization
         self.values = np.zeros((self.n_state, self.n_action))        
@@ -89,10 +90,20 @@ class QLearning():
         self.Hf = list()
         self.Hall = list()
 
+    def softMax(self, values):
+        tmp = np.exp(values*float(self.parameters['beta']))
+        if np.isinf(tmp).sum():
+            self.p_a = np.isinf(self.p_a)*0.9999995+0.0000001            
+        else :
+            self.p_a = tmp/np.sum(tmp)           
+        return tmp/float(np.sum(tmp))
 
     def sampleSoftMax(self, values):
         tmp = np.exp(values*float(self.parameters['beta']))
-        tmp = tmp/float(np.sum(tmp))
+        if np.isinf(tmp).sum():
+            tmp = np.isinf(self.p_a)*0.9999995+0.0000001
+        else :
+            tmp = tmp/float(np.sum(tmp))
         tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
         return np.sum(np.array(tmp) < np.random.rand())-1        
 
@@ -100,15 +111,15 @@ class QLearning():
         self.current_state = s
         self.current_action = a
 
-        value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
+        value = self.softMax(self.values[self.current_state])
         
-        if np.isnan(value).sum():
-            value = np.isnan(value)*0.9995+0.0001
+        # if np.isnan(value).sum():
+        #     value = np.isnan(value)*0.9995+0.0001
 
         self.value[ind] = float(np.log(value[self.current_action]))
         
         H = -(value*np.log2(value)).sum()       
-        if np.isnan(H): H = 0.005
+        # if np.isnan(H): H = 0.005
 
         self.reaction[ind] = float(self.parameters['sigma']*H)
         #self.pdf.append(np.ones(1))
@@ -134,7 +145,11 @@ class QLearning():
         # delta = r+self.parameters['gamma']*np.max(self.values[self.current_state])-self.values[self.current_state, self.current_action]        
         delta = r-self.values[self.current_state, self.current_action]        
         self.values[self.current_state, self.current_action] = self.values[self.current_state, self.current_action]+self.parameters['alpha']*delta
-    
+        # if r>0:        
+        #     self.values[self.current_state, self.current_action] = self.values[self.current_state, self.current_action]+self.parameters['alpha']*delta
+        # elif r<=0:
+        #     self.values[self.current_state, self.current_action] = self.values[self.current_state, self.current_action]+self.parameters['gamma']*delta                    
+
 
 class KalmanQLearning():
     """ Class that implement a KalmanQLearning : 
@@ -270,7 +285,7 @@ class BayesianWorkingMemory():
         self.initial_entropy = -np.log2(1./self.n_action)
         self.bounds = dict({"length":[1, 10], 
                             "threshold":[0.01, self.initial_entropy], 
-                            "noise":[0.0, 0.1],
+                            "noise":[0.0, 0.99],
                             "sigma":[0.001, 1.0]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
@@ -363,6 +378,7 @@ class BayesianWorkingMemory():
         p_r_s = np.sum(p_ra_s, axis = 0)
         p_a_rs = p_ra_s/p_r_s
         self.values = p_a_rs[:,1]/p_a_rs[:,0]
+
         self.values = self.values/np.sum(self.values)
         self.entropy = -np.sum(self.values*np.log2(self.values))
 
@@ -377,11 +393,11 @@ class BayesianWorkingMemory():
             self.inferenceModule()
             self.evaluationModule()                    
 
-        if np.isnan(self.values).sum(): self.p_a = np.isnan(self.values)*0.9995+0.0001
+        # if np.isnan(self.values).sum(): self.p_a = np.isnan(self.values)*0.9995+0.0001
             
         H = -(self.values*np.log2(self.values)).sum()
         N = float(self.nb_inferences+1)
-        if np.isnan(H): H = 0.005
+        # if np.isnan(H): H = 0.005
 
         self.value[ind] = float(np.log(self.values[self.current_action]))
         self.reaction[ind] = float(H*self.parameters['sigma']+np.log2(N))
@@ -559,3 +575,122 @@ class BayesianWorkingMemory():
 #                 if type(ptr_tree[k]) == dict and len(ptr_tree[k].values()) > 0:
 #                     self.addNoise(ptr_tree[k])
 
+class QLearning2():
+    """Class that implement a Qlearning
+    """
+    
+    def __init__(self, states, actions, parameters={'length':0}, sferes = False):
+        # State action space
+        self.states=states
+        self.actions=actions
+        #Parameters
+        self.sferes = sferes
+        self.parameters = parameters
+        self.n_action=len(actions)
+        self.n_state=len(states)
+        self.bounds = dict({"beta":[1.0, 100.0],
+                            "alpha":[0.0, 0.99],
+                            "sigma":[0.0001, 1.0],
+                            "gamma":[0.0, 0.99]})
+        
+        #Values Initialization
+        self.values = np.zeros((self.n_state, self.n_action))        
+        #Various Init
+        self.current_state = None
+        self.current_action = None
+        # List Init
+        if self.sferes:
+            self.value = np.zeros((n_blocs, n_trials))
+            self.reaction = np.zeros((n_blocs, n_trials))
+        else:
+            self.state = list()
+            self.action = list()
+            self.responses = list()
+            self.reaction = list()
+            self.value = list()            
+            self.pdf = list()
+
+    def setParameters(self, name, value):            
+        if value < self.bounds[name][0]:
+            self.parameters[name] = self.bounds[name][0]
+        elif value > self.bounds[name][1]:
+            self.parameters[name] = self.bounds[name][1]
+        else:
+            self.parameters[name] = value                
+
+    def setAllParameters(self, parameters):
+        for i in parameters.iterkeys():
+            if i in self.bounds.keys():
+                self.setParameters(i, parameters[i])
+
+    def startBloc(self):
+        if not self.sferes:
+            self.responses.append([])
+            self.action.append([])
+            self.state.append([])
+            self.reaction.append([])
+            self.Hf.append([])
+            self.Hall.append([])
+        self.values = np.zeros((self.n_state, self.n_action))
+
+    def startExp(self):
+        self.values = np.zeros((self.n_state, self.n_action))
+        self.responses = list()
+        self.action = list()
+        self.state = list()
+        self.reaction = list()
+        self.value = list()
+        #self.sigma = list()      
+        self.pdf = list()
+        self.Hf = list()
+        self.Hall = list()
+
+
+    def sampleSoftMax(self, values):
+        tmp = np.exp(values*float(self.parameters['beta']))
+        tmp = tmp/float(np.sum(tmp))
+        tmp = [np.sum(tmp[0:i]) for i in range(len(tmp))]
+        return np.sum(np.array(tmp) < np.random.rand())-1        
+
+    def computeValue(self, s, a, ind):
+        self.current_state = s
+        self.current_action = a
+
+        value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
+        
+        if np.isnan(value).sum():
+            value = np.isnan(value)*0.9995+0.0001
+
+        self.value[ind] = float(np.log(value[self.current_action]))
+        
+        H = -(value*np.log2(value)).sum()       
+        if np.isnan(H): H = 0.005
+        # print H
+        self.reaction[ind] = float(self.parameters['sigma']*H)
+        #self.pdf.append(np.ones(1))
+        #self.sigma.append([self.parameters['sigma']])
+        
+    def chooseAction(self, state):        
+        self.state[-1].append(state)
+        self.current_state = convertStimulus(state)-1
+        self.current_action = self.sampleSoftMax(self.values[self.current_state])
+        value = SoftMaxValues(self.values[self.current_state], self.parameters['beta'])
+        # self.value.append(float(self.values[self.current_action]))
+        self.action[-1].append(self.current_action)        
+        H = -(value*np.log2(value)).sum()        
+        self.reaction[-1].append(float(self.parameters['sigma']*H))
+        self.Hf[-1].append(H)
+        self.Hall[-1].append([0.0, float(H)])
+
+        return self.actions[self.current_action]
+    
+    def updateValue(self, reward):
+        if not self.sferes:
+            self.responses[-1].append(int((reward==1)*1))
+        r = (reward==0)*-1.0+(reward==1)*1.0+(reward==-1)*-1.0        
+        # delta = r+self.parameters['gamma']*np.max(self.values[self.current_state])-self.values[self.current_state, self.current_action]        
+        delta = r-self.values[self.current_state, self.current_action]        
+        if r>0:        
+            self.values[self.current_state, self.current_action] = self.values[self.current_state, self.current_action]+self.parameters['alpha']*delta
+        elif r<=0:
+            self.values[self.current_state, self.current_action] = self.values[self.current_state, self.current_action]+self.parameters['gamma']*delta                    
