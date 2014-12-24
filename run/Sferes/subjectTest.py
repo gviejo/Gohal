@@ -50,6 +50,10 @@ def leastSquares(x, y):
         x[i] = fitfunc(p[0], x[i])
     return x    
 
+# def center(x, o, s, m):
+#     x = x-np.median(x)
+#     x = x/(np.percentile(x, 75)-np.percentile(x, 25))
+#     return x
 def center(x, o, s, m):    
     x = x-timing[o][s][m][0]
     x = x/timing[o][s][m][1]
@@ -70,7 +74,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 20
+nb_repeat = 10
 
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
@@ -99,8 +103,7 @@ for o in p_test.iterkeys():
     rt_all = []
     rtm_all = []
     super_rt[o] = dict({'model':[]})
-    for s in p_test[o].iterkeys():
-    # for s in ['S14']:
+    for s in p_test[o].iterkeys():        
         with open("fmri/"+s+".pickle", "rb") as f:
             data = pickle.load(f)          
         m = p_test[o][s].keys()[0]
@@ -129,14 +132,13 @@ for o in p_test.iterkeys():
             step, indice = getRepresentativeSteps(rtm[i], state[i], action[i], responses[i])
             tmp[i] = computeMeanRepresentativeSteps(step)[0]
 
-        if s == 'S14':
-            tmp = np.zeros((nb_repeat, 15))
 
         pcrm['s'].append(state.reshape(nb_repeat*nb_blocs, nb_trials))
         pcrm['a'].append(action.reshape(nb_repeat*nb_blocs, nb_trials))
         pcrm['r'].append(responses.reshape(nb_repeat*nb_blocs, nb_trials))
-        pcrm['t'].append(tmp)        
+        
 
+        pcrm['t'].append(tmp)        
         hrtm.append(np.mean(tmp,0))
         hrt.append(data['mean'][0])
         

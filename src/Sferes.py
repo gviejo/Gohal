@@ -58,18 +58,15 @@ class EA():
         self.n_blocs = self.state.shape[0]
 
     def getFitness(self):
-        np.seterr(all = 'ignore')
-        #self.model.startExp()        
+        np.seterr(all = 'ignore')        
         for i in xrange(self.n_blocs):        
             self.model.startBloc()
             for j in xrange(self.n_trials):            
-            # for j in xrange(7):            
-                # print (i,j)
                 self.model.computeValue(self.state[i%self.n_blocs,j]-1, self.action[i%self.n_blocs,j]-1, (i,j))
                 self.model.updateValue(self.responses[i%self.n_blocs,j])                                    
-                # print " " 
+                
         self.fit[0] = float(np.sum(self.model.value))
-        self.alignToMedian()        
+        # self.alignToMedian()        
         self.fit[1] = float(-self.leastSquares())                        
         self.fit[np.isnan(self.fit)] = -1000000.0
         self.fit[np.isinf(self.fit)] = -1000000.0                
@@ -364,17 +361,17 @@ class pareto():
                 if case == 'r2':
                     self.pareto[m][s][:,3] = 1.0 - (self.pareto[m][s][:,3]/(self.N*np.log(0.2)))
                 elif case == 'log':
-                    self.pareto[m][s][:,3] = (best_log-self.pareto[m][s][:,3])/(best_log-worst_log)
+                    self.pareto[m][s][:,3] = (self.pareto[m][s][:,3]-worst_log)/(best_log-worst_log)
                 elif case == 'bic':
                     self.pareto[m][s][:,3] = 2*self.pareto[m][s][:,3] - float(len(self.p_order[m]))*np.log(self.N)
                     best_bic = 2*best_log - float(len(self.p_order[m]))*np.log(self.N)
                     worst_bic = 2*worst_log - float(len(self.p_order[m]))*np.log(self.N)
-                    self.pareto[m][s][:,3] = (best_bic-self.pareto[m][s][:,3])/(best_bic-worst_bic)
+                    self.pareto[m][s][:,3] = (self.pareto[m][s][:,3]-worst_bic)/(best_bic-worst_bic)
                 elif case == 'aic':
                     self.pareto[m][s][:,3] = 2*self.pareto[m][s][:,3] - 2.0*float(len(self.p_order[m]))
                     best_aic = 2*best_log - float(len(self.p_order[m]))*2.0
                     worst_aic = 2*worst_log - float(len(self.p_order[m]))*2.0
-                    self.pareto[m][s][:,3] = (best_bic-self.pareto[m][s][:,3])/(best_aic - worst_aic)
+                    self.pareto[m][s][:,3] = (self.pareto[m][s][:,3]-worst_aic)/(best_aic - worst_aic)
                 self.pareto[m][s][:,4] = 1.0 - (-self.pareto[m][s][:,4])/(np.power(2*self.human[s]['mean'][0], 2).sum())
 
 
@@ -488,6 +485,19 @@ class pareto():
             assert len(tmp) == 1
             self.p_test['tche'][s] = dict({m:dict(zip(self.p_order[m],tmp[0,5:]))})                        
 
+    def writeParameters(self, filename):
+        with open(filename, 'w') as f:
+            for o in self.p_test.keys():
+                f.write(o+"\n")
+                for s in self.p_test[o].iterkeys():
+                    # f.write(m+"\n")                
+                    f.write(s+"\n")
+                    # for s in subjects:
+                    m = self.p_test[o][s].keys()[0]
+                    line=m+"\t"+" \t".join([k+"="+str(np.round(self.p_test[o][s][m][k],4)) for k in self.p_order[m]])+"\tloglikelihood = "+str(self.indd[o][s][4])+"\n"      
+                    f.write(line)                
+                    f.write("\n")
+
     def preview(self):
         rcParams['ytick.labelsize'] = 8
         rcParams['xtick.labelsize'] = 8        
@@ -507,9 +517,9 @@ class pareto():
             for m in np.unique(self.mixed[s][:,0]):
                 ind = self.mixed[s][:,0] == m
                 ax4.plot(self.mixed[s][ind,4], self.mixed[s][ind,5], 'o-', color = self.colors_m[self.m_order[int(m)]])
-                # ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 10)
-                # ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 10)
-                # ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 10)
+                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 10)
+                ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 10)
+                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 10)
         ax4.set_xlim(0,1)
         ax4.set_ylim(0,1)
 

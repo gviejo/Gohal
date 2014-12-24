@@ -84,15 +84,19 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 with open("parameters.pickle", 'r') as f:
   p_test = pickle.load(f)
 
-with open(os.path.expanduser("obj_choice.pickle"), 'r') as f:
-	best = pickle.load(f)
-
 with open("timing.pickle", 'rb') as f:
     timing = pickle.load(f)
 
-groups = {m:[s for s in best[m].iterkeys()] for m in best.iterkeys()}
 
-# groups = {'fusion':p_test['distance'].keys()}
+groups = {}
+for o in p_test.iterkeys():
+	groups[o] = dict()
+	for s in p_test[o].iterkeys():
+		m = p_test[o][s].keys()[0]
+		if m in groups[o].keys():
+			groups[o][m].append(s)
+		else:
+			groups[o][m] = [s]
 
 colors = {'owa':'r','distance':'b','tche':'g'}
 
@@ -106,12 +110,12 @@ colors_m = dict({'fusion':'#F1433F',
 data = {}
 
 
-for o in ['owa', 'distance', 'tche']:
+for o in p_test.iterkeys():
 	data[o] = {'Hb':{},'Hf':{}}
 	entropy = dict()
-	for g in groups.iterkeys():
+	for g in groups[o].iterkeys():
 		entropy[g] = dict({'Hb':{}, 'Hf':{}, 'N':{}})			
-		for s in groups[g]:			
+		for s in groups[o][g]:			
 			m = p_test[o][s].keys()[0]
 			print "Testing "+s+" with "+m+" selected by "+o+" in group "+g
 			models[m].setAllParameters(p_test[o][s][m])	        
@@ -159,7 +163,7 @@ for o in ['owa', 'distance', 'tche']:
 					y = entropy[g][h][s]['mean'][i]
 					x = range(1, len(y)+1)
 					e = entropy[g][h][s]['sem'][i]
-					axes[h][i].plot(x, y, linewidth = 2, label = s)
+					axes[h][i].plot(x, y, linewidth = 2, label = s, color = colors_m[g]) 
 					axes[h][i].fill_between(x, y-e, y+e, facecolor = colors_m[g], alpha = 0.1)
 					axes[h][i].set_ylim(0,np.log2(5))
 					# if h == 'Hb':

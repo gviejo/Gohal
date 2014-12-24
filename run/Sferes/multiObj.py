@@ -52,11 +52,12 @@ front.rankOWA()
 front.rankTchebytchev()
 front.retrieveRanking()
 front.timeConversion()
+front.writeParameters("parameters_2criterion.txt")
 # front.classifySubject()
 front.preview()
 # data_single, p_test_single = front.rankIndividualStrategy()
 show()
-sys.exit()
+
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
 #     pickle.dump(front.pareto, handle)
 
@@ -105,7 +106,7 @@ for x in front.choice_only.iterkeys():
 		for m in front.data.iterkeys():			
 			obj = front.data[m][s][0][:,2]-2000.0
 			# obj = -2*obj+float(len(front.p_order[m]))*np.log(front.N)
-			#obj = 1.0-obj/(156*np.log(0.2))
+			# obj = 1.0-obj/(156*np.log(0.2))
 			ind = np.ones(len(obj))*(len(s_to_plot)+tmp+0.1*float(front.choice_only.keys().index(m)))
 			plot(ind, obj, 'o', color = front.colors_m[m], markersize = 10, alpha = 0.8)
 	tmp+=1

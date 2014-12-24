@@ -50,8 +50,7 @@ def testModel():
                 reward = cats.getOutcome(state, action, case = 'fmri')
                 model.updateValue(reward)
         reaction = np.array(model.reaction[-4:])
-        reaction = reaction - 0.23355812
-        reaction = reaction / 0.32967988
+        # reaction = center(reaction)
         state = convertStimulus(np.array(model.state[-4:]))
         action = np.array(model.action[-4:])
         responses = np.array(model.responses[-4:])
@@ -67,7 +66,7 @@ def testModel():
 # -----------------------------------
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 # -----------------------------------
-s = 'S9'
+s = 'S8'
 
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
@@ -80,17 +79,18 @@ s = 'S9'
 #                 'sigma': 0.0,
 #                 'threshold': 0.0001}
 
-parameters = {'alpha': 0.61835852000000002,
-               'beta': 4.2165891999999996,
-               'gain': 2.7591210999999998,
-               'length': 1.0,
-               'noise': 0.10000000000000001,
-               'sigma': 0.092075579245000011,
-               'threshold': 1.0}
+parameters = {'alpha':0.1121,
+        'beta':12.65,
+        'noise':0.0,
+        'length':3.0,
+        'gain':9759.0,
+        'threshold':3.7,
+        'sigma':3.0,
+        'gamma':0.05}
 
 
 nb_trials = 39
-nb_blocs = 100
+nb_blocs = 1
 cats = CATS(nb_trials)
 
 model = FSelection(cats.states, cats.actions, parameters)
@@ -105,20 +105,21 @@ rt = testModel()
 # -----------------------------------
 #order data
 # -----------------------------------
-model.reaction = np.array(model.reaction).reshape(nb_blocs, 4*nb_trials)
+# model.reaction = np.array(model.reaction).reshape(nb_blocs, 4*nb_trials)
+model.reaction = np.array(model.reaction)
 # model.reaction = np.array(map(center, list(model.reaction)))
 # plot(np.mean(model.reaction, 0), 'o-')
 
-plot(np.mean(rt, 0))
+# plot(np.mean(rt, 0))
 
-show()
-sys.exit()
+# show()
+# sys.exit()
 
 # tirage = model.reaction.flatten()
 
-# plot(model.reaction.flatten(), 'o-')
-# show()
-
+plot(model.reaction.flatten(), 'o-')
+show()
+sys.exit()
 
 
 

@@ -49,11 +49,11 @@ def testModel():
     model.reaction = np.array(model.reaction)
     model.reaction = center(model.reaction)
 
-    model.weights = np.array(model.weights)
-    model.p_wm =np.array(model.p_wm)
-    model.p_rl =np.array(model.p_rl)
+#     model.weights = np.array(model.weights)
+#     model.p_wm =np.array(model.p_wm)
+#     model.p_rl =np.array(model.p_rl)
 
-# -----------------------------------
+# # -----------------------------------
 
 # -----------------------------------
 # HUMAN LEARNING
@@ -65,28 +65,23 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
-very_good_parameters = dict({'noise':0.0001,
+parameters = dict({'noise':0.0001,
                     'length':10,
                     'alpha':0.8,
                     'beta':3.0,
-                    'gamma':0.4,
+                    'gamma':0.5,                    
                     'threshold':4.0,
+                    'sigma':0.5,
                     'gain':2.0})
 
-parameters = dict({ 'length':8,
-                    'alpha':0.9,
-                    'threshold':1.5,
-                    'noise':0.15,
-                    'beta':4.0,
-                    'gain':5.0,
-                    'gamma':0.5,                    
-                    'sigma':0.24,
-                    'weight':0.5})
+
+
+
                     
                             
 
 nb_trials = 39
-nb_blocs = 29
+nb_blocs = 4
 cats = CATS(nb_trials)
 
 model = CSelection(cats.states, cats.actions, parameters)
@@ -99,7 +94,7 @@ model = CSelection(cats.states, cats.actions, parameters)
 t1 = time()
 testModel()
 t2 = time()
-
+# sys.exit()
 print "\n"
 print t2-t1
 # -----------------------------------
@@ -111,9 +106,9 @@ print t2-t1
 pcr = extractStimulusPresentation(model.responses, model.state, model.action, model.responses)
 pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
 
-w = extractStimulusPresentation(model.weights, model.state, model.action, model.responses)
-wm = extractStimulusPresentation(model.p_wm, model.state, model.action, model.responses)
-rl = extractStimulusPresentation(model.p_rl, model.state, model.action, model.responses)
+# w = extractStimulusPresentation(model.weights, model.state, model.action, model.responses)
+# wm = extractStimulusPresentation(model.p_wm, model.state, model.action, model.responses)
+# rl = extractStimulusPresentation(model.p_rl, model.state, model.action, model.responses)
 
 human.reaction['fmri'] = center(human.reaction['fmri'])
 

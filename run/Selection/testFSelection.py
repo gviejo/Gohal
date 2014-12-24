@@ -25,23 +25,41 @@ from scipy.optimize import leastsq
 # -----------------------------------
 # FONCTIONS
 # -----------------------------------
+
+def _convertStimulus(s):
+        return (s == 1)*'s1'+(s == 2)*'s2' + (s == 3)*'s3'
+
+def center(x):    
+    x = x-np.median(x)
+    x = x/(np.percentile(x,75)-np.percentile(x,25))
+    return x
+
 def testModel():
     model.startExp()
-    for i in xrange(nb_blocs):
-        cats.reinitialize()
-        model.startBloc()
-        for j in xrange(nb_trials):
-            sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
-            state = cats.getStimulus(j)
-            action = model.chooseAction(state)
-            reward = cats.getOutcome(state, action)
-            model.updateValue(reward)
-
+    for k in xrange(nb_repeat):
+        for i in xrange(nb_blocs):
+            cats.reinitialize()
+            cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri']['S14'][i+1]['sar'][:,0]))
+            model.startBloc()
+            for j in xrange(nb_trials):
+                sys.stdout.write("\r Bloc : %s | Trial : %i" % (i,j)); sys.stdout.flush()                    
+                state = cats.getStimulus(j)
+                action = model.chooseAction(state)
+                reward = cats.getOutcome(state, action, case='fmri')
+                model.updateValue(reward)
+    
+    rtm = np.array(model.reaction).reshape(nb_repeat, nb_blocs, nb_trials)                        
+    state = convertStimulus(np.array(model.state)).reshape(nb_repeat, nb_blocs, nb_trials)
+    action = np.array(model.action).reshape(nb_repeat, nb_blocs, nb_trials)
+    responses = np.array(model.responses).reshape(nb_repeat, nb_blocs, nb_trials)
+    for i in xrange(nb_repeat):
+        rtm[i] = center(rtm[i])
+        step, indice = getRepresentativeSteps(rtm[i], state[i], action[i], responses[i])
+        rt[i] = computeMeanRepresentativeSteps(step)[0]
     model.state = convertStimulus(np.array(model.state))
     model.action = np.array(model.action)
     model.responses = np.array(model.responses)
     model.reaction = np.array(model.reaction)
-    
 
 
 # -----------------------------------
@@ -64,22 +82,25 @@ very_good_parameters = dict({'noise':0.0001,
                     'threshold':4.0,
                     'gain':2.0})
 
-parameters = dict({'noise':0.2,
-                    'length':7,
-                    'alpha':0.9,
+parameters = dict({'noise':0.06,
+                    'length':10,
+                    'alpha':1.0,
                     'beta':3.5,
-                    'gamma':0.1,
-                    'gain':0.6,
-                    'threshold':1.5,
-                    'sigma':0.1})
-                            
+                    'gamma':0.6,
+                    'gain':2055.86,
+                    'threshold':271.5,
+                    'sigma':1.05})
+
+with open("../Sferes/fmri/S14.pickle", "rb") as f:
+    data = pickle.load(f)                      
 
 nb_trials = 39
-nb_blocs = 50
+nb_blocs = 4
+nb_repeat = 10
 cats = CATS(nb_trials)
 
 model = FSelection(cats.states, cats.actions, parameters)
-
+rt = np.zeros((nb_repeat, 15))
 # -----------------------------------
 
 # -----------------------------------
@@ -106,16 +127,8 @@ pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus[
 step, indice = getRepresentativeSteps(human.reaction['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
 rt_fmri = computeMeanRepresentativeSteps(step) 
 
-step, indice = getRepresentativeSteps(model.reaction, model.state, model.action, model.responses)
-rt = computeMeanRepresentativeSteps(step)
 
-rt = np.array(rt)
 
-fitfunc = lambda p, x: p[0] + p[1] * x
-errfunc = lambda p, x, y : (y - fitfunc(p, x))
-p = leastsq(errfunc, [1.0, -1.0], args = (rt[0], rt_fmri[0]), full_output = False)
-rt[0] = fitfunc(p[0], rt[0])
-#rt[1] = fitfunc(p[0], rt[1])
 # -----------------------------------
 
 
@@ -150,12 +163,12 @@ for i in xrange(3):
 
 
 ax1 = plt.subplot(2,2,2)
-ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
-ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
-
-#ax2 = ax1.twinx()
-ax1.plot(range(1, len(rt[0])+1), rt[0], linewidth = 2, linestyle = '-', color = 'black')
-#ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
+# ax1.plot(range(1, len(rt_fmri[0])+1), rt_fmri[0], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+# ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, linestyle = ':', color = 'grey', alpha = 0.9)
+ax1.plot(data['mean'][0], linewidth=2, linestyle='--', color='grey', alpha=0.9)
+# ax2 = ax1.twinx()
+ax1.plot(np.mean(rt,0), linewidth = 2, linestyle = '-', color = 'black')
+# ax2.errorbar(range(1,len(rt[0])+1), rt[0], rt[1], linewidth = 2, linestyle = '-', color = 'black')
 #ax2.set_ylabel("Inference Level")
 #x2.set_ylim(-5, 15)
 ax1.grid()
