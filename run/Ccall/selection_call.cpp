@@ -159,7 +159,7 @@ void sigmapoint(double (*point) [15], double *weight, double (*values) [5], doub
 	}
 }
 // void sferes_call(double * fit, const char* data_dir, double beta_, double eta_, double length_, double threshold_, double noise_, double sigma_, doubl)
-void sferes_call(double * fit, const char* data_dir, double beta_, double eta_, double length_, double threshold_, double noise_, double sigma_, double sigma_rt_)
+void sferes_call(double * fit, const int N, const char* data_dir, double beta_, double eta_, double length_, double threshold_, double noise_, double sigma_, double sigma_rt_)
 {
 	///////////////////
 	double max_entropy = -log2(0.2);
@@ -170,7 +170,8 @@ void sferes_call(double * fit, const char* data_dir, double beta_, double eta_, 
 	int length=1+(10-1)*length_;	
 	double threshold=0.01+(max_entropy-0.01)*threshold_;
 	double sigma=0.0+(1.0-0.0)*sigma_;	
-	double sigma_rt=0.0+(10.0-0.0)*sigma_rt_;	
+	double sigma_rt=0.0+(20.0-0.0)*sigma_rt_;	
+	
 	double init_cov = 10.0;
 	double kappa = 0.1;
 	double var_obs = 0.05;
@@ -369,9 +370,7 @@ void sferes_call(double * fit, const char* data_dir, double beta_, double eta_, 
 			// if (isnan(H)) H = 0.005;
 			
 			values[j+i*39] = log(p_a[a]);
-
-			// rt[j+i*39] = H*sigma_rt+log2(N);
-			rt[j+i*39] =  pow(N, sigma_rt)+H;
+			rt[j+i*39] =  pow(log2(N), sigma_rt)+H;
 
 			// UPDATE MEMORY 						
 			for (int k=length-1;k>0;k--) {

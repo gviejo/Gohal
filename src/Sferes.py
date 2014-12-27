@@ -66,7 +66,7 @@ class EA():
                 self.model.updateValue(self.responses[i%self.n_blocs,j])                                    
                 
         self.fit[0] = float(np.sum(self.model.value))
-        # self.alignToMedian()        
+        self.alignToMedian()        
         self.fit[1] = float(-self.leastSquares())                        
         self.fit[np.isnan(self.fit)] = -1000000.0
         self.fit[np.isinf(self.fit)] = -1000000.0                

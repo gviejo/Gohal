@@ -35,7 +35,7 @@ class QLearning():
         self.n_state=len(states)
         self.bounds = dict({"beta":[1.0, 100.0],
                             "alpha":[0.0, 0.999999],
-                            "sigma":[0.0, 1.0]})
+                            "sigma":[0.0, 20.0]})
                             # "omega":[0.0, 0.999999]})
         
         
@@ -122,7 +122,7 @@ class QLearning():
         H = -(value*np.log2(value)).sum()       
         # if np.isnan(H): H = 0.005
 
-        self.reaction[ind] = float(self.parameters['sigma']*H)
+        self.reaction[ind] = float(H)
         #self.pdf.append(np.ones(1))
         #self.sigma.append([self.parameters['sigma']])
         
@@ -134,7 +134,7 @@ class QLearning():
         # self.value.append(float(self.values[self.current_action]))
         self.action[-1].append(self.current_action)        
         H = -(value*np.log2(value)).sum()        
-        self.reaction[-1].append(float(self.parameters['sigma']*H))
+        self.reaction[-1].append(float(H))
         self.Hf[-1].append(H)
         self.Hall[-1].append([0.0, float(H)])
         return self.actions[self.current_action]
@@ -287,7 +287,7 @@ class BayesianWorkingMemory():
         self.bounds = dict({"length":[1, 10], 
                             "threshold":[0.01, self.initial_entropy], 
                             "noise":[0.0, 0.1],
-                            "sigma":[0.0, 1.0]})
+                            "sigma":[0.0, 20.0]})
         # Probability Initialization        
         self.uniform = np.ones((self.n_state, self.n_action, 2))*(1./(self.n_state*self.n_action*2))
         self.values = np.ones(self.n_action)*(1./self.n_action)    
@@ -401,7 +401,7 @@ class BayesianWorkingMemory():
         # if np.isnan(H): H = 0.005
 
         self.value[ind] = float(np.log(self.values[self.current_action]))
-        self.reaction[ind] = float(H*self.parameters['sigma']+np.log2(N))
+        self.reaction[ind] = float(np.log2(N)**self.parameters['sigma'] + H)
 
     def chooseAction(self, state):
         self.state[-1].append(state)
@@ -417,7 +417,7 @@ class BayesianWorkingMemory():
         self.action[-1].append(self.current_action)
         H = -(self.values*np.log2(self.values)).sum()
         N = float(self.nb_inferences+1)
-        self.reaction[-1].append(H*self.parameters['sigma']+np.log2(N))
+        self.reaction[-1].append(float(np.log2(N)**self.parameters['sigma'] + H))
         self.pdf[-1].append(N)
         self.Hb[-1].append(self.entropy)
         self.Hall[-1].append([float(self.entropy), 0.0])

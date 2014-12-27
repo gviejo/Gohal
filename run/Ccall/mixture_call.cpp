@@ -51,7 +51,7 @@ double entropy(double *p) {
 	return -tmp;
 }
 // void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_, double noise_, double length_, double weight_, double threshold_)
-void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_, double noise_, double length_, double weight_, double threshold_, double sigma_)
+void sferes_call(double * fit, const int N, const char* data_dir, double alpha_, double beta_, double noise_, double length_, double weight_, double threshold_, double sigma_)
 {
 	///////////////////
 	double max_entropy = -log2(0.2);
@@ -61,21 +61,20 @@ void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_
 	double noise=0.0+noise_*(0.1-0.0);
 	int length=1+(10-1)*length_;	
 	double threshold=0.01+(max_entropy-0.01)*threshold_;
-	double sigma=0.0+(10.0-0.0)*sigma_;
+	double sigma=0.0+(20.0-0.0)*sigma_;
 	// double sigma = 1.0;
 	double weight=0.0+(1.0-0.0)*weight_;	
-	
 	
 
 	int n_state = 3;
 	int n_action = 5;
 	int n_r = 2;	
 	///////////////////
-	int sari [156][4];	
+	int sari [N][4];	
 	double mean_rt [15];
 	double mean_model [15];	
-	double values [156]; // action probabilities according to subject
-	double rt [156]; // rt du model	
+	double values [N]; // action probabilities according to subject
+	double rt [N]; // rt du model	
 	double p_a_mf [n_action];
 	double p_a_mb [n_action];	
 
@@ -88,7 +87,7 @@ void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_
 	string line;
 	if (data_file1.is_open())
 	{ 
-		for (int i=0;i<156;i++) 
+		for (int i=0;i<N;i++) 
 		{  
 			getline (data_file1,line);			
 			stringstream stream(line);
@@ -247,12 +246,8 @@ void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_
 			// if (isnan(H)) H = 0.005;
 			values[j+i*39] = log(p_a[a]);
 			// std::cout << log(p_a[a]) << std::endl;
-			// rt[j+i*39] = H*sigma+log2(N);
-			// rt[j+i*39] = N-pow(j+1.0, sigma);
-			// rt[j+i*39] = pow(H, sigma)+log2(N);
-			rt[j+i*39] = pow(N, sigma)+H;
-			// std::cout << H*sigma+log2(N) << std::endl;
-			// std::cout << H << " " << sigma << " " << log2(N) << " " <<  i << " " << j << std::endl;			
+			rt[j+i*39] = pow(log2(N), sigma) + H;
+			
 			// UPDATE WEIGHT
 			double p_wmc;
 			double p_rl;
@@ -315,15 +310,15 @@ void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_
 	}	
 	
 	// ALIGN TO MEDIAN
-	alignToMedian(rt, 156);	
-	// for (int i=0;i<156;i++) std::cout << rt[i] << std::endl;
+	alignToMedian(rt, N);	
+	// for (int i=0;i<N;i++) std::cout << rt[i] << std::endl;
 	double tmp2[15];
 	for (int i=0;i<15;i++) {
 		mean_model[i] = 0.0;
 		tmp2[i] = 0.0;
 	}
 
-	for (int i=0;i<156;i++) {
+	for (int i=0;i<N;i++) {
 		mean_model[sari[i][3]-1]+=rt[i];
 		tmp2[sari[i][3]-1]+=1.0;				
 	}	
@@ -332,7 +327,7 @@ void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_
 		mean_model[i]/=tmp2[i];
 		error+=pow(mean_rt[i]-mean_model[i],2.0);				
 	}	
-	for (int i=0;i<156;i++) fit[0]+=values[i];	
+	for (int i=0;i<N;i++) fit[0]+=values[i];	
 	fit[1] = -error;
 	
 	if (isnan(fit[0]) || isinf(fit[0]) || isinf(fit[1]) || isnan(fit[1]) || fit[0]<-10000 || fit[1]<-10000) {

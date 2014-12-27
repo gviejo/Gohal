@@ -110,7 +110,7 @@ void fusion(double *p_a, double *mb, double *mf, double beta) {
 		if (p_a[i] == 0) {
 			sum = 0.0;
 			for (int i=0;i<5;i++) {
-				p_a[i]+=1e-4;
+				p_a[i]+=1e-8;
 				sum+=p_a[i];
 			}
 			for (int i=0;i<5;i++) {
@@ -133,21 +133,19 @@ double sum_prod(double *a, double *b, int n) {
 	return tmp;
 }
 // void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_, double noise_, double length_, double gain_, double threshold_, double gamma_)
-void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_, double noise_, double length_, double gain_, double threshold_, double gamma_, double sigma_)
+void sferes_call(double * fit, const int N, const char* data_dir, double alpha_, double beta_, double noise_, double length_, double gain_, double threshold_, double gamma_, double sigma_)
 {
 	///////////////////
 	// parameters
-	// double alpha=0.0+alpha_*(0.999999-0.0);
 	double alpha=0.0+alpha_*(1.0-0.0);
 	double beta=0.0+beta_*(100.0-0.0);
 	double noise=0.0+noise_*(0.1-0.0);
 	int length=1+(10-1)*length_;
 	double gain=0.00001+(10000.0-0.00001)*gain_;
 	double threshold=0.00001+(1000.0-0.00001)*threshold_;
-	double sigma=0.0+(10.0-0.0)*sigma_;	
+	double sigma=0.0+(20.0-0.0)*sigma_;	
 	double gamma=0.0+(100.0-0.0)*gamma_;
-	// double omega=0.0+omega_*(0.999999-0.0);
-	// double epsilon=0.0+epsilon_*(0.99-0.01);			
+
 	// sstd::cout << noise << " " << length << " " << beta << " " << gain << " " << threshold << " " << alpha << " " << sigma << " " << gamma << std::endl;
 	
 	int n_state = 3;
@@ -155,11 +153,11 @@ void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_
 	int n_r = 2;
 	double max_entropy = -log2(0.2);
 	///////////////////
-	int sari [156][4];	
+	int sari [N][4];	
 	double mean_rt [15];
 	double mean_model [15];	
-	double values [156]; // action probabilities according to subject
-	double rt [156]; // rt du model	
+	double values [N]; // action probabilities according to subject
+	double rt [N]; // rt du model	
 	double p_a_mf [n_action];
 	double p_a_mb [n_action];
 	
@@ -172,7 +170,7 @@ void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_
 	string line;
 	if (data_file1.is_open())
 	{ 
-		for (int i=0;i<156;i++) 
+		for (int i=0;i<N;i++) 
 		{  
 			getline (data_file1,line);			
 			stringstream stream(line);
@@ -250,11 +248,7 @@ void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_
 			p_retrieval[0] = 1.0-p_decision[0];
 			fusion(p_a, values_mb, values_mf[s], beta);
 			p_ak[0] = p_a[a];
-			// reaction[0] = entropy(p_a)*sigma+log2(1.0);	
-			// reaction[0] = -pow(j+1, sigma);
-			// reaction[0] = log(1.0)+log(1.0+(sigma/(j+1)));
-			// reaction[0] = pow(entropy(p_a),sigma)+log2(1.0);	
-			reaction[0] = pow(1.0, sigma)+entropy(p_a);
+			reaction[0] = entropy(p_a);
 			
 			for (int k=0;k<n_element;k++) {
 				// INFERENCE				
@@ -304,13 +298,8 @@ void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_
 				// FUSION
 				fusion(p_a, values_mb, values_mf[s], beta);
 				p_ak[k+1] = p_a[a];
-				// reaction[k+1] = entropy(p_a)*sigma + log2(k+2);
-				// reaction[k+1] = -pow(j, sigma) + k+1;
-				// reaction[k+1] = log(k+2)+log(1.0+(sigma/(j+1)));
-				// reaction[k+1] = k+2-pow(j+1,sigma);
-				// reaction[k+1] = pow(entropy(p_a),sigma) + log2(k+2);
 				double N = k+2.0;
-				reaction[k+1] = pow(N, sigma)+entropy(p_a);
+				reaction[k+1] = pow(log2(N), sigma) + entropy(p_a);
 				
 				// SIGMOIDE
 				double pA = sigmoide(Hb, Hf, n_element, nb_inferences, threshold, gain);				
@@ -374,15 +363,15 @@ void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_
 		}
 	}
 	// ALIGN TO MEDIAN
-	alignToMedian(rt, 156);	
-	// for (int i=0;i<156;i++) std::cout << rt[i] << std::endl;
+	alignToMedian(rt, N);	
+	// for (int i=0;i<N;i++) std::cout << rt[i] << std::endl;
 	double tmp2[15];
 	for (int i=0;i<15;i++) {
 		mean_model[i] = 0.0;
 		tmp2[i] = 0.0;
 	}
 
-	for (int i=0;i<156;i++) {
+	for (int i=0;i<N;i++) {
 		mean_model[sari[i][3]-1]+=rt[i];
 		tmp2[sari[i][3]-1]+=1.0;				
 	}	
@@ -391,7 +380,7 @@ void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_
 		mean_model[i]/=tmp2[i];
 		error+=pow(mean_rt[i]-mean_model[i],2.0);		
 	}	
-	for (int i=0;i<156;i++) fit[0]+=values[i];	
+	for (int i=0;i<N;i++) fit[0]+=values[i];	
 	fit[1] = -error;
 	
 	if (isnan(fit[0]) || isinf(fit[0]) || isinf(fit[1]) || isnan(fit[1]) || fit[0]<-10000 || fit[1]<-10000) {

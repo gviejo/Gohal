@@ -51,7 +51,7 @@ double entropy(double *p) {
 	return -tmp;
 }
 // void sferes_call(double * fit, const char* data_dir, double length_, double noise_, double threshold_)
-void sferes_call(double * fit, const char* data_dir, double length_, double noise_, double threshold_, double sigma_)
+void sferes_call(double * fit, const int N, const char* data_dir, double length_, double noise_, double threshold_, double sigma_)
 {
 	///////////////////
 	double max_entropy = -log2(0.2);
@@ -59,7 +59,7 @@ void sferes_call(double * fit, const char* data_dir, double length_, double nois
 	double noise=0.0+noise_*(0.1-0.0);
 	int length=1+(10-1)*length_;
 	double threshold=0.01+(max_entropy-0.01)*threshold_;
-	double sigma=0.0+(10.0-0.0)*sigma_;
+	double sigma=0.0+(20.0-0.0)*sigma_;
 	// double sigma = 1.0;
 
 	int n_state = 3;
@@ -209,8 +209,8 @@ void sferes_call(double * fit, const char* data_dir, double length_, double nois
 			float N = nb_inferences+1.0;
 			// if (isnan(H)) H = 0.005;
 			values[j+i*39] = log(p_a_mb[a]);			
-			// rt[j+i*39] = H*sigma+log2(N);
-			rt[j+i*39] =  pow(N, sigma)+H;
+
+			rt[j+i*39] =  pow(log2(N), sigma)+H;
 
 			// UPDATE MEMORY 						
 			for (int k=length-1;k>0;k--) {
