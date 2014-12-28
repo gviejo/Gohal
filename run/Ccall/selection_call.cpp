@@ -175,6 +175,8 @@ void sferes_call(double * fit, const int N, const char* data_dir, double beta_, 
 	double init_cov = 10.0;
 	double kappa = 0.1;
 	double var_obs = 0.05;
+	int nb_trials = N/4;
+	
 	const int n_state = 3;
 	const int n_action = 5;
 	const int n_r = 2;	
@@ -265,12 +267,12 @@ void sferes_call(double * fit, const int N, const char* data_dir, double beta_, 
 			
 		}
 		// START TRIAL //		
-		for (int j=0;j<39;j++) 				
+		for (int j=0;j<nb_trials;j++) 				
 		{				
 			
-			s = sari[j+i*39][0]-1;
-			a = sari[j+i*39][1]-1;
-			r = sari[j+i*39][2];										
+			s = sari[j+i*nb_trials][0]-1;
+			a = sari[j+i*nb_trials][1]-1;
+			r = sari[j+i*nb_trials][2];										
 			//PREDICTION STEP
 			for (int n=0;n<15;n++) {
 				for (int m=0;m<15;m++) {
@@ -369,8 +371,8 @@ void sferes_call(double * fit, const int N, const char* data_dir, double beta_, 
 
 			// if (isnan(H)) H = 0.005;
 			
-			values[j+i*39] = log(p_a[a]);
-			rt[j+i*39] =  pow(log2(N), sigma_rt)+H;
+			values[j+i*nb_trials] = log(p_a[a]);
+			rt[j+i*nb_trials] =  pow(log2(N), sigma_rt)+H;
 
 			// UPDATE MEMORY 						
 			for (int k=length-1;k>0;k--) {

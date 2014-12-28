@@ -189,7 +189,7 @@ class FSelection():
         H = -(self.p_a*np.log2(self.p_a)).sum()
         # reaction[0] = float((1.0**self.parameters['sigma'])+H)
         # reaction[0] = float((H)**self.parameters['sigma'])
-        reaction[0] = float(H)
+        reaction[0] = float(H)**self.parameters['sigma']
         # reaction[0] = float(H)
         for i in xrange(self.n_element):
             self.inferenceModule()
@@ -205,7 +205,9 @@ class FSelection():
             # reaction[i+1] = float((N**self.parameters['sigma'])+H)
             # reaction[i+1] = float(self.parameters['sigma']*np.log2(N)+H)
             # reaction[i+1] = float((np.log2(N)+H)**self.parameters['sigma'])
-            reaction[i+1] = float(((np.log2(N))**self.parameters['sigma'])+H)
+            # reaction[i+1] = float(((np.log2(N))**self.parameters['sigma'])+H)
+            # reaction[i+1] = float(np.log2(N)+(H**self.parameters['sigma']))
+            reaction[i+1] = float(H**(self.parameters['sigma']*N))
             self.sigmoideModule()
             p_decision[i+1] = self.pA*p_retrieval[i]
             p_retrieval[i+1] = (1.0-self.pA)*p_retrieval[i]
@@ -253,7 +255,9 @@ class FSelection():
         # self.reaction[-1].append(float((N**self.parameters['sigma'])+H))
         # self.reaction[-1].append(float(self.parameters['sigma']*np.log2(N)+H))
         # self.reaction[-1].append(float((np.log2(N)+H)**self.parameters['sigma']))
-        self.reaction[-1].append(float(((np.log2(N))**self.parameters['sigma'])+H))
+        # self.reaction[-1].append(float(((np.log2(N))**self.parameters['sigma'])+H))
+        # self.reaction[-1].append(float(np.log2(N)+(H**self.parameters['sigma'])))
+        self.reaction[-1].append(float(H**(self.parameters['sigma']*N)))
         self.pdf[-1].append(N)
 
         # self.reaction[-1].append(N-1)
@@ -750,7 +754,8 @@ class CSelection():
         # if np.isnan(H): H = 0.005
 
         self.value[ind] = float(np.log(self.p_a[self.current_action]))
-        self.reaction[ind] = float((np.log2(N)**self.parameters['sigma'])+H)
+        # self.reaction[ind] = float((np.log2(N)**self.parameters['sigma'])+H)
+        self.reaction[ind] = float(H**(self.parameters['sigma']*N))
         self.count+=1.0
 
     def chooseAction(self, state):
@@ -772,7 +777,8 @@ class CSelection():
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
         
-        self.reaction[-1].append(float((np.log2(N)**self.parameters['sigma'])+H))
+        # self.reaction[-1].append(float((np.log2(N)**self.parameters['sigma'])+H))
+        self.reaction[-1].append(float(H**(self.parameters['sigma']*N)))
         self.count+=1.0
         self.Hall[-1].append([float(self.entropy), float(self.Hf)])
         self.pdf[-1].append(N)

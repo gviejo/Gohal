@@ -65,7 +65,7 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 	// double sigma = 1.0;
 	double weight=0.0+(1.0-0.0)*weight_;	
 	
-
+	int nb_trials = N/4;
 	int n_state = 3;
 	int n_action = 5;
 	int n_r = 2;	
@@ -138,13 +138,13 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 			}
 		}		
 		// START TRIAL //
-		for (int j=0;j<39;j++) 		
+		for (int j=0;j<nb_trials;j++) 		
 		{				
 			// std::cout << i << " " << j << std::endl;
 			// COMPUTE VALUE
-			s = sari[j+i*39][0]-1;
-			a = sari[j+i*39][1]-1;
-			r = sari[j+i*39][2];							
+			s = sari[j+i*nb_trials][0]-1;
+			a = sari[j+i*nb_trials][1]-1;
+			r = sari[j+i*nb_trials][2];							
 			for (int n=0;n<n_state;n++){
 				for (int m=0;m<n_action;m++) {
 					p[n][m][0] = 1./30; p[n][m][1] = 1./30; 
@@ -244,9 +244,9 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 			double H = entropy(p_a);
 			double N = nb_inferences+1.0;
 			// if (isnan(H)) H = 0.005;
-			values[j+i*39] = log(p_a[a]);
+			values[j+i*nb_trials] = log(p_a[a]);
 			// std::cout << log(p_a[a]) << std::endl;
-			rt[j+i*39] = pow(log2(N), sigma) + H;
+			rt[j+i*nb_trials] = pow(log2(N), sigma) + H;
 			
 			// UPDATE WEIGHT
 			double p_wmc;

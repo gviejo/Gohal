@@ -70,6 +70,7 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 	double sigma=0.0+(20.0-0.0)*sigma_;
 	// double omega=0.0+omega_*(0.999999-0.0);
 	
+	int nb_trials = N/4;
 	int n_state = 3;
 	int n_action = 5;
 	int n_r = 2;	
@@ -127,12 +128,12 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 			}
 		}		
 		// START TRIAL //
-		for (int j=0;j<39;j++) 		
+		for (int j=0;j<nb_trials;j++) 		
 		{							
 			// COMPUTE VALUE
-			s = sari[j+i*39][0]-1;
-			a = sari[j+i*39][1]-1;
-			r = sari[j+i*39][2];							
+			s = sari[j+i*nb_trials][0]-1;
+			a = sari[j+i*nb_trials][1]-1;
+			r = sari[j+i*nb_trials][2];							
 			softmax(p_a_mf, values_mf[s], beta);
 			double Hf = entropy(p_a_mf);
 
@@ -151,8 +152,8 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 			// p_a_mf[ind] = 0.9996;						
 			// if (isnan(Hf)) Hf = 0.005;
 			
-			values[j+i*39] = log(p_a_mf[a]);						
-			rt[j+i*39] =  Hf;
+			values[j+i*nb_trials] = log(p_a_mf[a]);						
+			rt[j+i*nb_trials] =  Hf;
 			// MODEL FREE	
 			double reward;
 			if (r == 0) {reward = -1.0;} else {reward = 1.0;}

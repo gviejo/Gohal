@@ -50,14 +50,14 @@ def leastSquares(x, y):
         x[i] = fitfunc(p[0], x[i])
     return x    
 
-# def center(x, o, s, m):
-#     x = x-np.median(x)
-#     x = x/(np.percentile(x, 75)-np.percentile(x, 25))
-#     return x
-def center(x, o, s, m):    
-    x = x-timing[o][s][m][0]
-    x = x/timing[o][s][m][1]
+def center(x, o, s, m):
+    x = x-np.median(x)
+    x = x/(np.percentile(x, 75)-np.percentile(x, 25))
     return x
+# def center(x, o, s, m):    
+#     x = x-timing[o][s][m][0]
+#     x = x/timing[o][s][m][1]
+#     return x
 
 # -----------------------------------
 
@@ -74,7 +74,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 30
+nb_repeat = 40
 
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),

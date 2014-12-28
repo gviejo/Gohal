@@ -298,6 +298,7 @@ class pareto():
             for r in lrun:
                 s = r.split("_")[3]                
                 n = int(r.split("_")[4].split(".")[0])
+                # print m, s, n
                 if s in self.data[m].keys():
                     self.data[m][s][n] = np.genfromtxt(self.directory+"/"+m+"/"+r)
                 else :

@@ -62,6 +62,7 @@ void sferes_call(double * fit, const int N, const char* data_dir, double length_
 	double sigma=0.0+(20.0-0.0)*sigma_;
 	// double sigma = 1.0;
 
+	int nb_trials = N/4;
 	int n_state = 3;
 	int n_action = 5;
 	int n_r = 2;	
@@ -125,12 +126,12 @@ void sferes_call(double * fit, const int N, const char* data_dir, double length_
 		int s, a, r;		
 
 		// START TRIAL //
-		for (int j=0;j<39;j++) 		
+		for (int j=0;j<nb_trials;j++) 		
 		{				
 			// COMPUTE VALUE
-			s = sari[j+i*39][0]-1;
-			a = sari[j+i*39][1]-1;
-			r = sari[j+i*39][2];							
+			s = sari[j+i*nb_trials][0]-1;
+			a = sari[j+i*nb_trials][1]-1;
+			r = sari[j+i*nb_trials][2];							
 			for (int n=0;n<n_state;n++){
 				for (int m=0;m<n_action;m++) {
 					p[n][m][0] = 1./30; p[n][m][1] = 1./30; 
@@ -208,9 +209,9 @@ void sferes_call(double * fit, const int N, const char* data_dir, double length_
 			double H = entropy(p_a_mb);
 			float N = nb_inferences+1.0;
 			// if (isnan(H)) H = 0.005;
-			values[j+i*39] = log(p_a_mb[a]);			
+			values[j+i*nb_trials] = log(p_a_mb[a]);			
 
-			rt[j+i*39] =  pow(log2(N), sigma)+H;
+			rt[j+i*nb_trials] =  pow(log2(N), sigma)+H;
 
 			// UPDATE MEMORY 						
 			for (int k=length-1;k>0;k--) {
