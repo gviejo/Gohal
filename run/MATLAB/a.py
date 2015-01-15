@@ -12,7 +12,7 @@ from HumanLearning import HLearning
 
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
 
-ss = human.subject['fmri'].keys()
+ss = human.subject['meg'].keys()
 
 for s in ss:
 	os.system("mkdir "+s)

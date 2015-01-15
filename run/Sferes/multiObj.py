@@ -41,7 +41,7 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-front = pareto(options.input, N = 156)
+front = pareto(options.input, case = 'meg')
 
 # front.showBrute()
 front.constructParetoFrontier('r2') # 'r2', 'bic', 'aic' , 'log'

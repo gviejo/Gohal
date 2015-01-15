@@ -206,11 +206,17 @@ class pareto():
     """
     Explore Pareto Front from Sferes Optimization
     """
-    def __init__(self, directory, N = 156.):
+    def __init__(self, directory, case = 'fmri'):
         self.directory = directory        
-        self.N = N        
-        # loading pre-treated data for fmri
-        self.human = dict({s_dir.split(".")[0]:self.pickling("fmri/"+s_dir) for s_dir in os.listdir("fmri/")})        
+        self.case = case
+        if case == 'fmri':
+            self.N = 156
+            self.human = dict({s_dir.split(".")[0]:self.pickling("fmri/"+s_dir) for s_dir in os.listdir("fmri/")})        
+        elif case == 'meg':
+            self.N = 192
+            self.human = dict({s_dir.split(".")[0]:self.pickling("meg/"+s_dir) for s_dir in os.listdir("meg/")})        
+        # loading pre-treated data for fmri or meg        
+        
         self.data = dict()
         self.states = ['s1', 's2', 's3']
         self.actions = ['thumb', 'fore', 'midd', 'ring', 'little']
@@ -298,7 +304,7 @@ class pareto():
             for r in lrun:
                 s = r.split("_")[3]                
                 n = int(r.split("_")[4].split(".")[0])
-                # print m, s, n
+                print m, s, n
                 if s in self.data[m].keys():
                     self.data[m][s][n] = np.genfromtxt(self.directory+"/"+m+"/"+r)
                 else :
@@ -374,6 +380,8 @@ class pareto():
                     worst_aic = 2*worst_log - float(len(self.p_order[m]))*2.0
                     self.pareto[m][s][:,3] = (self.pareto[m][s][:,3]-worst_aic)/(best_aic - worst_aic)
                 self.pareto[m][s][:,4] = 1.0 - (-self.pareto[m][s][:,4])/(np.power(2*self.human[s]['mean'][0], 2).sum())
+                # on enleve les points negatifs
+                self.pareto[m][s] = self.pareto[m][s][(self.pareto[m][s][:,3:5]>0).prod(1)==1]
 
 
     def constructMixedParetoFrontier(self):
@@ -423,7 +431,7 @@ class pareto():
                     model.setAllParameters(parameters)
                     model.value = np.zeros((4*n,39))
                     model.reaction = np.zeros((4*n,39))
-                    with open("fmri/"+s+".pickle", "rb") as f:
+                    with open(self.case+"/"+s+".pickle", "rb") as f:
                         data = pickle.load(f)
                     opt = EA(data, s, model)
                     opt.n_repets = n
@@ -692,9 +700,8 @@ class pareto():
                 self.timing[o][s] = dict()
                 m = self.p_test[o][s].keys()[0]
                 parameters = self.p_test[o][s][m]
-
                 # MAking a sferes call to compute a time conversion
-                with open("fmri/"+s+".pickle", "rb") as f:
+                with open(self.case+"/"+s+".pickle", "rb") as f:
                     data = pickle.load(f)
                 self.models[m].__init__(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes = True)
                 opt = EA(data, s, self.models[m])                                

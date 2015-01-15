@@ -249,8 +249,7 @@ def getRepresentativeSteps(data, stimulus, action, responses, case = 'fmri', pas
     m, n = data.shape
     bad_trials = 0
     incorrect_trials = 0
-    assert(data.shape == stimulus.shape == responses.shape)
-
+    assert(data.shape == stimulus.shape == responses.shape)    
     indice = np.zeros((m,n))
     if case == 'meg':
         for i in xrange(m):
@@ -318,7 +317,7 @@ def getRepresentativeSteps(data, stimulus, action, responses, case = 'fmri', pas
                     for j in np.where((stimulus[i] == third) & (indice[i] == 0))[0]:
                         indice[i,j] = tmp; tmp += 1
     elif case == 'fmri':
-        for i in xrange(m):
+        for i in xrange(m):            
             first, second, third = (1,2,3)
             # first
             if len(np.where((stimulus[i] == first) & (responses[i] == 1))[0]):
