@@ -385,8 +385,8 @@ class pareto():
 
 
     def constructMixedParetoFrontier(self):
-        subjects = set.intersection(*map(set, [self.pareto[m].keys() for m in self.pareto.keys()]))
-        # subjects = self.pareto['fusion'].keys()
+        # subjects = set.intersection(*map(set, [self.pareto[m].keys() for m in self.pareto.keys()]))
+        subjects = self.pareto['fusion'].keys()
         for s in subjects:            
             tmp = []            
             for m in self.pareto.iterkeys():

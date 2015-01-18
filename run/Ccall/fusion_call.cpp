@@ -146,7 +146,7 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 	double sigma=0.0+(20.0-0.0)*sigma_;	
 	double gamma=0.0+(100.0-0.0)*gamma_;
 
-	// sstd::cout << noise << " " << length << " " << beta << " " << gain << " " << threshold << " " << alpha << " " << sigma << " " << gamma << std::endl;
+	// std::cout << noise << " " << length << " " << beta << " " << gain << " " << threshold << " " << alpha << " " << sigma << " " << gamma << std::endl;
 	int nb_trials = N/4;
 	int n_state = 3;
 	int n_action = 5;
@@ -195,6 +195,7 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 		}
 	data_file2.close();	
 	}	
+
 	for (int i=0;i<4;i++)	
 	// for (int i=0;i<1;i++)	
 	{
@@ -311,10 +312,14 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 			// std::cout << "mb = "; for (int k=0;k<5;k++) std::cout << values_mb[k] << " "; std::cout << std::endl;			
 			// std::cout << "mf = "; for (int k=0;k<5;k++) std::cout << values_mf[s][k] << " "; std::cout << std::endl;			
 			// std::cout << "p_ak = "; for (int k=0;k<n_element+1;k++) std::cout << p_ak[k] << " "; std::cout << std::endl;
-			// std::cout << "p_de = "; for (int k=0;k<n_element+1;k++) std::cout << p_decision[k] << " "; std::cout << std::endl;
+			std::cout << "p_de = "; for (int k=0;k<n_element+1;k++) std::cout << p_decision[k] << " "; std::cout << std::endl;
+			std::cout << "rt = "; for (int k=0;k<n_element+1;k++) std::cout << reaction[k] << " "; std::cout << std::endl;						 
+			
 			values[j+i*nb_trials] = log(sum_prod(p_ak, p_decision, n_element+1));
 			double val = sum_prod(p_ak, p_decision, n_element+1);						
+			
 			rt[j+i*nb_trials] = sum_prod(reaction, p_decision, n_element+1);			
+			std::cout << rt[j+i*nb_trials] << std::endl;
 			// std::cout << val << std::endl;
 			// std::cout << std::endl;
 			// UPDATE MEMORY 						

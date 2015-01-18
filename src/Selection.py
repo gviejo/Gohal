@@ -15,8 +15,8 @@ from Models import *
 
 # Parameters for sferes optimization 
 # To speed up the process and avoid list
-# n_trials = 39
-n_trials = 48
+n_trials = 39
+# n_trials = 48
 n_blocs = 4
 
 class FSelection():
@@ -110,8 +110,7 @@ class FSelection():
         self.current_state = None
         self.current_action = None
         self.Hb = self.max_entropy
-        self.Hf = self.max_entropy
-        self.count = 1.0
+        self.Hf = self.max_entropy    
 
     def startExp(self):        
         self.state = list()
@@ -203,12 +202,13 @@ class FSelection():
             self.sigmoideModule()
             p_decision[i+1,0] = self.pA*p_retrieval[i]
             p_retrieval[i+1,0] = (1.0-self.pA)*p_retrieval[i]
-
+        print "p_de = ", np.round(p_decision.flatten(),3)
+        print "rt = ", reaction
         self.p_a = (p_decision*p_a).sum(0)
         self.q_values = (p_decision*q_values).sum(0)
-        self.value[ind] = float(np.log(self.p_a[self.current_action]))
+        self.value[ind] = float(np.log(self.p_a[self.current_action]))        
         self.reaction[ind] = float(np.sum(reaction*np.round(p_decision,3)))
-        self.count+=1.0
+        print self.reaction[ind]
         # print np.sum(p_a*p_decision)
         # self.reaction_predicted[ind] = float(np.mean(np.random.choice(reaction, 5000, p = p_decision)))                
             
@@ -235,9 +235,6 @@ class FSelection():
         # if np.isnan(H): H = 0.005                        
         N = float(self.nb_inferences+1)        
         # self.reaction[-1].append(float(H*self.parameters['sigma']+np.log2(N)))                
-        # self.reaction[-1].append(N-(self.count**self.parameters['sigma']))        
-        # self.reaction[-1].append(np.log(N+1)+np.log(1+(self.parameters['sigma']/self.count)))
-        # self.reaction[-1].append(self.nb_inferences+1-self.count**self.parameters['sigma'])
         # self.reaction[-1].append(float((N**self.parameters['sigma'])+H))
         # self.reaction[-1].append(float(self.parameters['sigma']*np.log2(N)+H))
         # self.reaction[-1].append(float((np.log2(N)+H)**self.parameters['sigma']))
@@ -769,8 +766,7 @@ class CSelection():
         H = -(self.p_a*np.log2(self.p_a)).sum()
         N = float(self.nb_inferences+1)
         
-        self.reaction[-1].append(float((np.log2(N)**self.parameters['sigma'])+H))
-        self.count+=1.0
+        self.reaction[-1].append(float((np.log2(N)**self.parameters['sigma'])+H))        
         self.Hall[-1].append([float(self.Hb), float(self.Hf)])
         self.pdf[-1].append(N)
         return self.actions[self.current_action]

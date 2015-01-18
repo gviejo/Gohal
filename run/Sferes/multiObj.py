@@ -41,7 +41,7 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-front = pareto(options.input, case = 'meg')
+front = pareto(options.input, case = 'fmri')
 
 # front.showBrute()
 front.constructParetoFrontier('r2') # 'r2', 'bic', 'aic' , 'log'
@@ -58,18 +58,17 @@ front.preview()
 # data_single, p_test_single = front.rankIndividualStrategy()
 show()
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
-#     pickle.dump(front.pareto, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
+    pickle.dump(front.pareto, handle)
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
-#     pickle.dump(front.mixed, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
+    pickle.dump(front.mixed, handle)
 
-# # # useless
-# # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_distance.pickle"), 'wb') as handle:
-# # 	pickle.dump(front.distance, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators.pickle"), 'wb') as handle:
+	pickle.dump(front.zoom, handle)
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators.pickle"), 'wb') as handle:
-# 	pickle.dump(front.zoom, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/parameters.pickle"), 'wb') as handle:
+	pickle.dump(front.p_test, handle)
 
 with open("parameters.pickle", 'wb') as f:
 	pickle.dump(front.p_test, f)

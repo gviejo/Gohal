@@ -73,9 +73,9 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
 nb_blocs = 4
-nb_trials = 48
-nb_repeat = 50
-case = 'meg'
+nb_trials = 39
+nb_repeat = 20
+case = 'fmri'
 
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
@@ -105,11 +105,10 @@ for o in ['tche']:
     rtm_all = []
     super_rt[o] = dict({'model':[]})
     for s in p_test[o].iterkeys():        
-        # with open("fmri/"+s+".pickle", "rb") as f:
-        #     data = pickle.load(f)
-        #case = 'fmri'          
-        with open("meg/"+s+".pickle", "rb") as f:
-             data = pickle.load(f)                          
+        with open("fmri/"+s+".pickle", "rb") as f:
+            data = pickle.load(f)
+        # with open("meg/"+s+".pickle", "rb") as f:
+        #      data = pickle.load(f)                          
         m = p_test[o][s].keys()[0]
         print "Testing "+s+" with "+m+" selected by "+o        
         models[m].setAllParameters(p_test[o][s][m])
@@ -185,11 +184,11 @@ for o in ['tche']:
     # step, indice = getRepresentativeSteps(ht, human.stimulus[case], human.action[case], human.responses[case])
     # rt_fmri = computeMeanRepresentativeSteps(step) 
 
-    ht = np.reshape(human.reaction[case], (12, 4*48))
+    ht = np.reshape(human.reaction[case], (len(human.subject[case]), 4*nb_trials))
     for i in xrange(len(ht)):
         ht[i] = ht[i]-np.median(ht[i])
         ht[i] = ht[i]/(np.percentile(ht[i], 75)-np.percentile(ht[i], 25))
-    ht = ht.reshape(12*4, 48)    
+    ht = ht.reshape(len(human.subject[case])*4, nb_trials)    
     step, indice = getRepresentativeSteps(ht, human.stimulus[case], human.action[case], human.responses[case], case)
     rt_meg = computeMeanRepresentativeSteps(step) 
 
