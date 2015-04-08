@@ -13,7 +13,7 @@ run subjectTestExtremum.py
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
-import sys
+import sys,os
 
 from optparse import OptionParser
 import numpy as np
@@ -24,10 +24,10 @@ from ColorAssociationTasks import CATS
 from HumanLearning import HLearning
 from Models import *
 from Selection import *
-from matplotlib import *
-from pylab import *
+# from matplotlib import *
+# from pylab import *
 import pickle
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from time import time
 from scipy.optimize import leastsq
 # -----------------------------------
@@ -56,7 +56,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 50
+nb_repeat = 100
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -70,8 +70,6 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 with open("extremum.pickle", 'r') as f:
     p_test = pickle.load(f)
 
-with open(os.path.expanduser("choice_only.pickle"), 'r') as f:
-    best = pickle.load(f)
 
 colors_m = dict({'fusion':'#F1433F',
                 'bayesian': '#D5A253',
@@ -79,112 +77,79 @@ colors_m = dict({'fusion':'#F1433F',
                 'selection':'#70B7BA',
                 'mixture':'#3D4C53'})
 
-entropy = {'Hb':{},'Hf':{}}
+# entropy = {'Hb':{},'Hf':{}}
 
-pcrm = dict({'s':[], 'a':[], 'r':[]})
+# pcrm = 
+pcrm = dict()
+pcr = dict()
+choice_only_all_data = dict()
 
-for m in best.iterkeys():
-# for m in ['bayesian']:
-    if len(best[m]):
-        for s in best[m]:
-        # for s in p_test.keys():
-            print "Testing "+s+" with "+m
-            models[m].setAllParameters(p_test[s][m])
-            models[m].startExp()
-            for k in xrange(nb_repeat):
-                for i in xrange(nb_blocs):
-                    cats.reinitialize()
-                    cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))                    
-                    models[m].startBloc()
-                    for j in xrange(nb_trials):
-                        state = cats.getStimulus(j)
-                        action = models[m].chooseAction(state)
-                        reward = cats.getOutcome(state, action)                    
-                        models[m].updateValue(reward)            
-                        # print state, action, reward
-                        # print cats.incorrect
-                        # sys.stdin.readline()        
-                    # if s == 'S2':
-                    #     sys.exit()
-            state = convertStimulus(np.array(models[m].state))
-            action = np.array(models[m].action)
-            responses = np.array(models[m].responses)                    
-            pcrm['s'].append(state)
-            pcrm['a'].append(action)
-            pcrm['r'].append(responses)               
-            # hall = np.array(models[m].Hall)
-            # if hall[:,:,0].sum():
-            #     entropy['Hb'][s] = {m:extractStimulusPresentation(hall[:,:,0], state, action, responses)}
+# for o in p_test.iterkeys():
+for o in ['r2', 'bic']:
+    pcrm[o] = dict({'s':[], 'a':[], 'r':[]})
+    choice_only_all_data[o] = dict()
+    for s in p_test[o].iterkeys():
+        m = p_test[o][s].keys()[0]
+        print "Testing "+s+" with "+m+" selected by "+o
+        models[m].setAllParameters(p_test[o][s][m])
+        # on ajoute sigma pour eviter de bugger sur les temps de réaction
+        if m == 'selection': 
+            models[m].parameters.update({'sigma_rt':1.0})
+        else:
+            models[m].parameters.update({'sigma':1.0})
+        models[m].startExp()
+        for k in xrange(nb_repeat):
+            for i in xrange(nb_blocs):
+                cats.reinitialize()
+                cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))                    
+                models[m].startBloc()
+                for j in xrange(nb_trials):
+                    state = cats.getStimulus(j)
+                    action = models[m].chooseAction(state)
+		    reward = cats.getOutcome(state, action)                    
+                    models[m].updateValue(reward)            
 
-            # if hall[:,:,1].sum():
-            #     entropy['Hf'][s] = {m:extractStimulusPresentation(hall[:,:,1], state, action, responses)}
-            
-            
+        state = convertStimulus(np.array(models[m].state))
+        action = np.array(models[m].action)
+        responses = np.array(models[m].responses)                    
+        pcrm[o]['s'].append(state)
+        pcrm[o]['a'].append(action)
+        pcrm[o]['r'].append(responses)
+	choice_only_all_data[o][s] = dict({'s':state,'a':action,'r':responses})
+        # hall = np.array(models[m].Hall)
+        # if hall[:,:,0].sum():
+        #     entropy['Hb'][s] = {m:extractStimulusPresentation(hall[:,:,0], state, action, responses)}
+
+        # if hall[:,:,1].sum():
+        #     entropy['Hf'][s] = {m:extractStimulusPresentation(hall[:,:,1], state, action, responses)}
+    for i in pcrm[o].iterkeys():    
+        pcrm[o][i] = np.array(pcrm[o][i])
+        pcrm[o][i] = np.reshape(pcrm[o][i], (pcrm[o][i].shape[0]*pcrm[o][i].shape[1], pcrm[o][i].shape[2]))
+    pcr[o] = extractStimulusPresentation(pcrm[o]['r'], pcrm[o]['s'], pcrm[o]['a'], pcrm[o]['r'])
+    choice_only_all_data[o]['pcrm'] = pcrm[o]
+    
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/choice_only_all_data.pickle"), 'wb') as handle:
+	pickle.dump(choice_only_all_data, handle)
         
 pcr_human = extractStimulusPresentation(human.responses['fmri'], human.stimulus['fmri'], human.action['fmri'], human.responses['fmri'])
-for i in pcrm.iterkeys():    
-    pcrm[i] = np.array(pcrm[i])
-    pcrm[i] = np.reshape(pcrm[i], (pcrm[i].shape[0]*pcrm[i].shape[1], pcrm[i].shape[2]))
-pcr = extractStimulusPresentation(pcrm['r'], pcrm['s'], pcrm['a'], pcrm['r'])    
 
+pcr['fmri'] = pcr_human
 
-meanHall = dict()
-for h in entropy.keys():
-    meanHall[h] = dict()
-    model = np.unique([entropy[h][s].keys()[0] for s in entropy[h].iterkeys()])
-    for m in model:
-        subject = [s for s in entropy[h].keys() if entropy[h][s].keys()[0] == m]
-        if len(subject) == 1:
-            meanHall[h][m] = entropy[h][subject[0]][m]
-        else:
-            tmp = np.array([entropy[h][s][m]['mean'] for s in subject])
-            meanHall[h][m] = {'mean':np.mean(tmp,0), 'sem':sem(tmp,0)}
-
-
-#SAVING DATA
-data = dict()
-data['pcr'] = dict({'model':pcr,'fmri':pcr_human})    
-data['Hb'] = meanHall['Hb']
-data['Hf'] = meanHall['Hf']
-
-fig = figure(figsize = (9,5))
 # fig = figure()
-colors = ['blue', 'red', 'green']
-# ax1 = fig.add_subplot(1,3,1)
-ax1 = fig.add_subplot(1,1,1)
-for i in xrange(3):
-    plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
-    errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
-    plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
-    #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
-
-# ax2 = fig.add_subplot(1,3,2)
-# # for s in entropy['Hb'].iterkeys():
-#     # m = entropy['Hb'][s].keys()[0]
-#     # tmp = entropy['Hb'][s][m]
-# for m in meanHall['Hb'].iterkeys():
-#     tmp = meanHall['Hb'][m]    
+# colors = ['blue', 'red', 'green']
+# # ax1 = fig.add_subplot(1,3,1)
+# for j,o in zip([1,2], ['r2', 'bic']):
+#     ax1 = fig.add_subplot(1,2,j)
 #     for i in xrange(3):
-#         x = range(1, len(tmp['mean'][i])+1)
-#         y = tmp['mean'][i]
-#         ax2.plot(x, y, linewidth=1.5, color = colors_m[m])        
-#         ax2.fill_between(x, y-tmp['sem'][i], y+tmp['sem'][i], facecolor = colors_m[m], alpha = 0.5)
-# ax3 = fig.add_subplot(1,3,3)
-# # for s in entropy['Hf'].iterkeys():
-# #     m = entropy['Hf'][s].keys()[0]
-# #     tmp = entropy['Hf'][s][m]
-# for m in meanHall['Hf'].iterkeys():
-#     tmp = meanHall['Hf'][m]
-#     for i in xrange(3):
-#         x = range(1, len(tmp['mean'][i])+1)
-#         y = tmp['mean'][i]
-#         ax3.plot(x, y, linewidth=1.5, color = colors_m[m])        
-#         ax3.fill_between(x, y-tmp['sem'][i], y+tmp['sem'][i], facecolor = colors_m[m], alpha = 0.5)
+#         plot(range(1, len(pcr[o]['mean'][i])+1), pcr[o]['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+#         errorbar(range(1, len(pcr[o]['mean'][i])+1), pcr[o]['mean'][i], pcr[o]['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+#         plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
+#         #errorbar(range(1, len(pcr[o]_human['mean'][i])+1), pcr[o]_human['mean'][i], pcr[o]_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
+#     ax1.set_title(o)
+#     ax1.set_xlabel("Trials")
+#     ax1.set_ylabel("Performance")
 
-ax1.set_xlabel("Trials")
-ax1.set_ylabel("Performance")
-fig.savefig("fig_choice_only_bic.pdf")
-show()
+# show()
 
-# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_choice_only.pickle") , 'wb') as handle:    
-#      pickle.dump(data, handle)
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_choice_only.pickle") , 'wb') as handle:    
+     pickle.dump(pcr, handle)

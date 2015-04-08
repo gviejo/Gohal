@@ -63,14 +63,16 @@ front = pareto(options.input, case = 'meg')
 front.constructParetoFrontier('r2') # 'r2', 'bic', 'aic' , 'log'
 front.removeIndivDoublons()
 models = front.pareto.keys()
+
 for s in human.subject['meg'].keys():
-	for m in models:
+	for m in models:	
+		print s, m
 		data = np.zeros(4, dtype = {'names':variables[m], 'formats':['O']*len(variables[m])})				
 		value = rankTchebytchebv(front.pareto[m][s][:,3:5])
 		parameters = dict({front.p_order[m][i]:front.pareto[m][s][np.argmin(value),5:][i] for i in xrange(len(front.p_order[m]))})
 		front.models[m].__init__(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes = True)		
 		front.models[m].value = np.zeros((4,60))
-		front.models[m].reaction = np.zeros((4,60))		
+		front.models[m].reaction = np.zeros((4,60))				
 		for i in xrange(4):
 			front.models[m].startBloc()
 			nb_trials = human.subject['meg'][s][i+1]['sar'].shape[0]
@@ -95,9 +97,9 @@ for s in human.subject['meg'].keys():
 					data[i]['w'].append(front.models[m].w[front.models[m].current_state])
 		for i in xrange(4):
 			for v in variables[m]:
-				data[i][v] = np.array(data[i][v])
+				data[i][v] = np.array(data[i][v])		
 		# SAVING
 		# sio.savemat("../MATLAB/"+s+"/"+m+".mat", {m : data}, oned_as='column')	
-		sio.savemat("/home/guillaume/Dropbox/PEPS_GoHaL/Beh_Model/"+s+"/"+m+".mat", {m : data}, oned_as='column')	
+		sio.savemat(os.path.expanduser("~/Dropbox/PEPS_GoHaL/Beh_Model/"+s+"/"+m+".mat"), {m : data}, oned_as='column')
 
 

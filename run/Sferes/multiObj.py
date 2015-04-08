@@ -55,20 +55,20 @@ front.timeConversion()
 front.writeParameters("parameters_2criterion.txt")
 # front.classifySubject()
 front.preview()
-# data_single, p_test_single = front.rankIndividualStrategy()
+data_single, p_test_single = front.rankIndividualStrategy()
 show()
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
-    pickle.dump(front.pareto, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
+#     pickle.dump(front.pareto, handle)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
-    pickle.dump(front.mixed, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/mixed_pareto_front.pickle"), 'wb') as handle:    
+#     pickle.dump(front.mixed, handle)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators.pickle"), 'wb') as handle:
-	pickle.dump(front.zoom, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_all_operators.pickle"), 'wb') as handle:
+# 	pickle.dump(front.zoom, handle)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/parameters.pickle"), 'wb') as handle:
-	pickle.dump(front.p_test, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/parameters.pickle"), 'wb') as handle:
+# 	pickle.dump(front.p_test, handle)
 
 with open("parameters.pickle", 'wb') as f:
 	pickle.dump(front.p_test, f)
@@ -82,14 +82,13 @@ with open("timing.pickle", 'wb') as f:
 # with open("parameters_single.pickle", 'wb') as f:
 # 	pickle.dump(p_test_single, f)
 
-# fit to choice extremum of the front
+# # fit to choice extremum of the front
 # with open("extremum.pickle", 'wb') as f:
 # 	pickle.dump(front.extremum, f)
 
 # value of maximum BIC normalized 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:
-# with open(os.path.expanduser("choice_only.pickle"), 'wb') as f:
-#  	pickle.dump(front.choice_only, f)
+#   	pickle.dump(front.choice_only, f)
 
 
 sys.exit()

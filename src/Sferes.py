@@ -59,12 +59,11 @@ class EA():
 
     def getFitness(self):
         np.seterr(all = 'ignore')        
-        for i in xrange(self.n_blocs):        
+        for i in xrange(self.n_blocs):
             self.model.startBloc()
             for j in xrange(self.n_trials):            
                 self.model.computeValue(self.state[i%self.n_blocs,j]-1, self.action[i%self.n_blocs,j]-1, (i,j))
                 self.model.updateValue(self.responses[i%self.n_blocs,j])                                    
-                
         self.fit[0] = float(np.sum(self.model.value))
         self.alignToMedian()        
         self.fit[1] = float(-self.leastSquares())                        
@@ -245,9 +244,13 @@ class pareto():
         self.indd = dict()
         self.zoom = dict()
         self.timing = dict()
-
-        self.loadData()
-        # self.simpleLoadData()
+        if 'one' in self.directory:
+            self.simpleLoadData()
+        elif 'two' in self.directory:
+            self.loadData()
+        else:
+            print "Speficify one or two objectifs."
+        
 
     def showBrute(self):
         rcParams['ytick.labelsize'] = 8
@@ -298,13 +301,12 @@ class pareto():
         for m in model_in_folders:
             self.data[m] = dict()
             lrun = os.listdir(self.directory+"/"+m)
-            order = self.p_order[m.split("_")[0]]
+            order = self.p_order[m.split("_")[0]][0:-1]
             scale = self.models[m.split("_")[0]].bounds
 
             for r in lrun:
                 s = r.split("_")[3]                
-                n = int(r.split("_")[4].split(".")[0])
-                print m, s, n
+                n = int(r.split("_")[4].split(".")[0])                
                 if s in self.data[m].keys():
                     self.data[m][s][n] = np.genfromtxt(self.directory+"/"+m+"/"+r)
                 else :
@@ -619,64 +621,76 @@ class pareto():
             
     def classifySubject(self):
         models = self.data.keys()
-        self.choice_only = {m:[] for m in models}        
+        # self.choice_only = {o:{m:[] for m in models} for o in ['r2', 'bic']}
+        self.choice_only = {'r2':{m:[] for m in models},'bic':{m:[] for m in models},'log':{m:[] for m in models}}
         # subjects = self.data['fusion'].keys()
         subjects = self.human.keys()
-        values = dict()
-        for s in subjects:
-            value = []
-            values[s] = dict()
-            for m in models:                
-                if len(self.data[m][s][0][:,2]):                    
-                    # value.append(np.max(self.pareto[m][s][:,3]))
-                    data = self.data[m][s][0][:,2]
-                    data = data-2000.0
+        self.values = dict()
+        self.extremum = dict()        
 
-                    # data = 2*data-float(len(self.p_order[m]))*np.log(self.N) # BIC                    
-                    # data = 2*data-2.0*float(len(self.p_order[m])) # AIC 
-                    data = 1.0-(data)/(156*np.log(0.2)) # r2
-                    values[s][m] = data[0]
-                    value.append(data[0])
-                else :
-                    value.append(-1000.0)            
-            print models
-            print value
-            m_ind = np.argmax(value)            
-            self.choice_only[models[m_ind]].append(s)
-        # parameters from max fit to choice only
-        self.extremum = dict()
-        for s in subjects:
-            self.extremum[s] = dict()
-            for m in self.data.iterkeys():
-                if len(self.data[m][s][0]):
-                    self.extremum[s][m] = dict(zip(self.p_order[m],self.data[m][s][0][0,4:]))
-        # writing parameters because fuck you that's why
-        with open("parameters.txt", 'w') as f:
-            # for m in models:
+        for o in self.choice_only.keys():            
+            self.values[o] = dict()
+            self.extremum[o] = dict()
             for s in subjects:
-                # f.write(m+"\n")                
-                f.write(s+"\n")
-                # for s in subjects:
-                for m in models:
-                    line=m+"\t"+" \t".join([k+"="+str(np.round(self.extremum[s][m][k],4)) for k in self.p_order[m]])+"\tloglikelihood = "+str(self.data[m][s][0][0,2]-2000)+"\n"      
-                    f.write(line)                
-                f.write("\n")
+                self.extremum[o][s] = dict()                
+                value = []
+                self.values[o][s] = dict()
+                data_best_ind = dict()
+                for m in models:       
+                    # print s, m
+                    data = []
+                    for i in self.data[m][s].iterkeys():
+                        tmp = np.hstack((np.ones((len(self.data[m][s][i]),1))*i,self.data[m][s][i]))
+                        data.append(tmp)
+                    data = np.vstack(data)
+                    data[:,3]-=2000.0
+                    
+                    if o == 'bic':
+                        data[:,3] = 2*data[:,3]-float(len(self.p_order[m]))*np.log(self.N) # BIC                    
+                    elif o == 'r2':
+                        data[:,3] = 1.0-(data[:,3])/(self.N*np.log(0.2)) # r2
+                    elif o == 'log':
+                        data[:,3] = data[:,3]
+                    elif o == 'aic':
+                        data[:,3] = 2*data[:,3]-2.0*float(len(self.p_order[m])) # AIC 
+                                    
+                    self.values[o][s][m] = np.max(data[:,3])
+                    best_ind = np.argmax(data[:,3])
+                    data_best_ind[m] = data[best_ind,5:]
+                    gen = data[best_ind,1]
+                    ind = data[best_ind,2]
+                    value.append(np.max(data[:,3]))                
+                m_ind = np.argmax(value)
+                winning_model = models[m_ind]                    
+                self.choice_only[o][winning_model].append(s)
+                self.extremum[o][s][winning_model] = dict(zip(self.p_order[winning_model][0:-1],data_best_ind[winning_model]))                
+        # writing parameters because fuck you that's why
+        # with open("parameters.txt", 'w') as f:
+        #     # for m in models:
+        #     for s in subjects:
+        #         # f.write(m+"\n")                
+        #         f.write(s+"\n")
+        #         # for s in subjects:
+        #         for m in models:
+        #             line=m+"\t"+" \t".join([k+"="+str(np.round(self.extremum[s][m][k],4)) for k in self.p_order[m]])+"\tloglikelihood = "+str(self.data[m][s][0][0,2]-2000)+"\n"      
+        #             f.write(line)                
+        #         f.write("\n")
 
-        with open("values.txt", 'w') as f:
-            # for s in subjects:
-            #     f.write(s+"\n")
-            #     for m in ['bayesian', 'fusion', 'selection', 'mixture', 'qlearning']:
-            #         f.write(str(np.round(values[s][m],2))+"\n")
-            #     f.write("\n")
-            for m in ['bayesian', 'fusion', 'selection', 'mixture', 'qlearning']:
-                f.write(m+",")
-                line = ",".join(str(np.round(values[s][m],2)) for s in subjects)
-                # for s in subjects:
-                    # f.write(str(np.round(values[s][m],2))+" ")
-                f.write(line+"\n")
+        # with open("values.txt", 'w') as f:
+        #     # for s in subjects:
+        #     #     f.write(s+"\n")
+        #     #     for m in ['bayesian', 'fusion', 'selection', 'mixture', 'qlearning']:
+        #     #         f.write(str(np.round(values[s][m],2))+"\n")
+        #     #     f.write("\n")
+        #     for m in ['bayesian', 'fusion', 'selection', 'mixture', 'qlearning']:
+        #         f.write(m+",")
+        #         line = ",".join(str(np.round(values[s][m],2)) for s in subjects)
+        #         # for s in subjects:
+        #             # f.write(str(np.round(values[s][m],2))+" ")
+        #         f.write(line+"\n")
                 
 
-        self.obj_choice = dict()
+        # self.obj_choice = dict()
         # for m in self.choice_only.iterkeys():
         #     if len(self.choice_only[m]):
         #         self.obj_choice[m] = dict()

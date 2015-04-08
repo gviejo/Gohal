@@ -73,7 +73,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 10
+nb_repeat = 100
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
                 "qlearning":QLearning(cats.states, cats.actions),
@@ -92,7 +92,8 @@ super_data = dict()
 
 for m in p_test.iterkeys():    
     super_data[m] = dict()
-    for o in p_test[m].iterkeys():
+    # for o in p_test[m].iterkeys():
+    for o in ['tche']:
         super_data[m][o] = dict({'pcr':{},'rt':{}})
 
         super_state = []
@@ -148,20 +149,20 @@ for m in p_test.iterkeys():
         super_data[m][o]['rt']['model'] = rt_model
         super_data[m][o]['rt']['fmri'] = rt_fmri
 
-        # fig = figure(figsize = (15, 12))
-        # colors = ['blue', 'red', 'green']
-        # ax1 = fig.add_subplot(1,2,1)
-        # for i in xrange(3):
-        #     plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
-        #     errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
-        #     plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
-        #     #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
+        fig = figure(figsize = (15, 12))
+        colors = ['blue', 'red', 'green']
+        ax1 = fig.add_subplot(1,2,1)
+        for i in xrange(3):
+            plot(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], linewidth = 2, linestyle = '-', color = colors[i], label= 'Stim '+str(i+1))    
+            errorbar(range(1, len(pcr['mean'][i])+1), pcr['mean'][i], pcr['sem'][i], linewidth = 2, linestyle = '-', color = colors[i])
+            plot(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], linewidth = 2.5, linestyle = '--', color = colors[i], alpha = 0.7)    
+            #errorbar(range(1, len(pcr_human['mean'][i])+1), pcr_human['mean'][i], pcr_human['sem'][i], linewidth = 2, linestyle = ':', color = colors[i], alpha = 0.6)
 
-        # ax1 = fig.add_subplot(1,2,2)
-        # ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, color = 'grey', alpha = 0.5)
-        # ax1.errorbar(range(1, len(rt_model[0])+1), rt_model[0], rt_model[1], linewidth = 2, color = 'black', alpha = 0.9)
+        ax1 = fig.add_subplot(1,2,2)
+        ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, color = 'grey', alpha = 0.5)
+        ax1.errorbar(range(1, len(rt_model[0])+1), rt_model[0], rt_model[1], linewidth = 2, color = 'black', alpha = 0.9)
 
-        # show()
+        show()
 
 
 

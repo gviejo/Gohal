@@ -400,11 +400,11 @@ class BayesianWorkingMemory():
         # if np.isnan(self.values).sum(): self.p_a = np.isnan(self.values)*0.9995+0.0001
             
         self.Hb = -(self.values*np.log2(self.values)).sum()
-        self.N = float(self.nb_inferences+1)
+        self.N = self.nb_inferences
         # if np.isnan(H): H = 0.005
 
         self.value[ind] = float(np.log(self.values[self.current_action]))
-        self.reaction[ind] = float(np.log2(self.N)**self.parameters['sigma'] + self.Hb)
+        self.reaction[ind] = float(np.log2(float(self.nb_inferences+1))**self.parameters['sigma'] + self.Hb)
 
     def chooseAction(self, state):
         self.state[-1].append(state)

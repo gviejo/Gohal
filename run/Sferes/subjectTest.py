@@ -74,7 +74,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 20
+nb_repeat = 100
 case = 'fmri'
 
 cats = CATS(nb_trials)
@@ -116,7 +116,7 @@ for o in ['tche']:
         for k in xrange(nb_repeat):
             for i in xrange(nb_blocs):
                 cats.reinitialize()
-                cats.stimuli = np.array(map(_convertStimulus, human.subject[case][s][i+1]['sar'][:,0]))[0:nb_trials]
+                # cats.stimuli = np.array(map(_convertStimulus, human.subject[case][s][i+1]['sar'][:,0]))[0:nb_trials]
                 models[m].startBloc()
                 for j in xrange(nb_trials):                    
                     state = cats.getStimulus(j)
@@ -190,17 +190,17 @@ for o in ['tche']:
         ht[i] = ht[i]/(np.percentile(ht[i], 75)-np.percentile(ht[i], 25))
     ht = ht.reshape(len(human.subject[case])*4, nb_trials)    
     step, indice = getRepresentativeSteps(ht, human.stimulus[case], human.action[case], human.responses[case], case)
-    rt_meg = computeMeanRepresentativeSteps(step) 
+    rt_fmri = computeMeanRepresentativeSteps(step) 
 
     #SAVING DATA
-    # data = dict()
-    # data['pcr'] = dict({'model':pcr,case:pcr_human})
-    # data['rt'] = dict({'model':rt,case:rt_fmri})
-    # data['s'] = dict()
-    # for i, s in zip(xrange(14), p_test[o].keys()):
-    #     data['s'][s] = dict()
-    #     data['s'][s]['m'] = hrtm[i]
-    #     data['s'][s]['h'] = hrt[i]
+    data2 = dict()
+    data2['pcr'] = dict({'model':pcr_model,case:pcr_human})
+    data2['rt'] = dict({'model':rt,case:rt_fmri})
+    data2['s'] = dict()
+    for i, s in zip(xrange(len(p_test[o].keys())), p_test[o].keys()):
+        data2['s'][s] = dict()
+        data2['s'][s]['m'] = hrtm[i]
+        data2['s'][s]['h'] = hrt[i]
 
 
 
@@ -214,7 +214,7 @@ for o in ['tche']:
 
 
     ax1 = fig.add_subplot(4,4,2)
-    ax1.errorbar(range(1, len(rt_meg[0])+1), rt_meg[0], rt_meg[1], linewidth = 2, color = 'grey', alpha = 0.5)
+    ax1.errorbar(range(1, len(rt_fmri[0])+1), rt_fmri[0], rt_fmri[1], linewidth = 2, color = 'grey', alpha = 0.5)
     ax1.errorbar(range(1, len(rt[0])+1), rt[0], rt[1], linewidth = 2, color = 'black', alpha = 0.9)
 
 
@@ -227,16 +227,16 @@ for o in ['tche']:
 
     show()
 
-    super_data[o] = data
+    super_data[o] = data2
     hrt = np.array(hrt)
     hrtm = np.array(hrtm)
     super_rt[o]['rt'] = np.zeros((hrtm.shape[0], hrtm.shape[1], 2))
     super_rt[o]['rt'][:,:,0] = hrt
     super_rt[o]['rt'][:,:,1] = hrtm
 
-# saving = input("Save ? : y/n : ")
-# if saving == "y":
-#     with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_model.pickle") , 'wb') as handle:    
-#          pickle.dump(super_data, handle)
-#     with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rts_all_subjects.pickle") , 'wb') as handle:    
-#          pickle.dump(super_rt, handle)
+saving = raw_input("Save ? : y/n : ")
+if saving == "y":
+    with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_model.pickle") , 'wb') as handle:    
+         pickle.dump(super_data, handle)
+    with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rts_all_subjects.pickle") , 'wb') as handle:    
+         pickle.dump(super_rt, handle)
