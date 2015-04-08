@@ -70,7 +70,6 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 with open("extremum.pickle", 'r') as f:
     p_test = pickle.load(f)
 
-
 colors_m = dict({'fusion':'#F1433F',
                 'bayesian': '#D5A253',
                 'qlearning': '#6E8243',

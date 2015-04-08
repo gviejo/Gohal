@@ -446,29 +446,50 @@ def extractStimulusPresentation2(data, stimulus, action, responses):
     dict[2] = 0/1 for three-error stimulus
     dict[3] = 0/1 for four-error stimulus
     """
+    tmp = dict({1:[],2:[],3:[]})
     m, n = responses.shape
     assert(stimulus.shape == responses.shape == action.shape == data.shape)
-    
-    length = np.zeros((m, 3))
-    order = np.zeros((m, 3))
-    for i in xrange(m):
-        first, second, third = searchStimOrder(stimulus[i], action[i], responses[i])
-        order[i, 0] = first
-        order[i, 1] = second
-        order[i, 2] = third
-        length[i, 0] = len(data[i, stimulus[i] == first][0:n/3])
-        length[i, 1] = len(data[i, stimulus[i] == second][0:n/3])
-        length[i, 2] = len(data[i, stimulus[i] == third][0:n/3])
-        
-    l = np.min(length)
-    tmp = dict()
-    for j in xrange(3):
-        tmp[j+1] = np.zeros((m, l))
-    for i in xrange(m):
-        for j in xrange(3):
-            tmp[j+1][i] = data[i, stimulus[i] == order[i, j]][0:l]
+    bad_trials = 0
+    incorrect_trials = 0
 
-    return tmp
+    for i in xrange(m):        
+        first, second, third = searchStimOrder(stimulus[i], action[i], responses[i])
+        tmp[1].append(data[i,stimulus[i] == first][0:n/3])
+        tmp[2].append(data[i,stimulus[i] == second][0:n/3])
+        tmp[3].append(data[i,stimulus[i] == third][0:n/3])
+
+    sett = dict()
+    for i in tmp.keys():
+        sett[i] = dict({j:[] for j in range(13)})
+        for j in xrange(len(tmp[i])):
+            for k in xrange(len(tmp[i][j])):
+                sett[i][k].append(tmp[i][j][k])
+        for k in xrange(13):
+            sett[i][k] = np.array(sett[i][k])
+    return sett
+    # m, n = responses.shape
+    # assert(stimulus.shape == responses.shape == action.shape == data.shape)
+    
+    # length = np.zeros((m, 3))
+    # order = np.zeros((m, 3))
+    # for i in xrange(m):
+    #     first, second, third = searchStimOrder(stimulus[i], action[i], responses[i])
+    #     order[i, 0] = first
+    #     order[i, 1] = second
+    #     order[i, 2] = third
+    #     length[i, 0] = len(data[i, stimulus[i] == first][0:n/3])
+    #     length[i, 1] = len(data[i, stimulus[i] == second][0:n/3])
+    #     length[i, 2] = len(data[i, stimulus[i] == third][0:n/3])
+        
+    # l = np.min(length)
+    # tmp = dict()
+    # for j in xrange(3):
+    #     tmp[j+1] = np.zeros((m, l))
+    # for i in xrange(m):
+    #     for j in xrange(3):
+    #         tmp[j+1][i] = data[i, stimulus[i] == order[i, j]][0:l]
+
+    # return tmp
 
     
 def convertStimulus(state):

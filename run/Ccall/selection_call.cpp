@@ -159,7 +159,7 @@ void sigmapoint(double (*point) [15], double *weight, double (*values) [5], doub
 	}
 }
 // void sferes_call(double * fit, const char* data_dir, double beta_, double eta_, double length_, double threshold_, double noise_, double sigma_, doubl)
-void sferes_call(double * fit, const int N, const char* data_dir, double beta_, double eta_, double length_, double threshold_, double noise_, double sigma_, double sigma_rt_)
+void sferes_call(double * fit, const int N, const char* data_dir, double beta_, double eta_, double length_, double threshold_, double noise_, double sigma_, double sigma_rt_=1.0)
 {
 	///////////////////
 	double max_entropy = -log2(0.2);

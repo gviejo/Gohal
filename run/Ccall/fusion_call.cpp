@@ -133,7 +133,7 @@ double sum_prod(double *a, double *b, int n) {
 	return tmp;
 }
 // void sferes_call(double * fit, const char* data_dir, double alpha_, double beta_, double noise_, double length_, double gain_, double threshold_, double gamma_)
-void sferes_call(double * fit, const int N, const char* data_dir, double alpha_, double beta_, double noise_, double length_, double gain_, double threshold_, double gamma_, double sigma_)
+void sferes_call(double * fit, const int N, const char* data_dir, double alpha_, double beta_, double noise_, double length_, double gain_, double threshold_, double gamma_, double sigma_=1.0)
 {
 	///////////////////
 	// parameters
@@ -386,16 +386,16 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 		error+=pow(mean_rt[i]-mean_model[i],2.0);		
 	}	
 	for (int i=0;i<N;i++) fit[0]+=values[i];	
-	fit[1] = -error;
+	// fit[1] = -error;
 	
 	if (isnan(fit[0]) || isinf(fit[0]) || isinf(fit[1]) || isnan(fit[1]) || fit[0]<-10000 || fit[1]<-10000) {
 		fit[0]=-1000.0;
-		fit[1]=-1000.0;
+		// fit[1]=-1000.0;
 		return;
 	}
 	else {
 		fit[0]+=2000.0;
-		fit[1]+=500.0;
+		// fit[1]+=500.0;
 		return ;
 	}
 }
