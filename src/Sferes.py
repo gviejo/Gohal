@@ -20,7 +20,7 @@ import mmap
 import numpy as np
 if os.uname()[1] in ['atlantis', 'paradise']:
     from multiprocessing import Pool, Process
-    from pylab import *
+#     from pylab import *
 
 #from fonctions import *
 from Selection import *
@@ -730,6 +730,40 @@ class pareto():
                 self.timing[o][s][m].append(np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))
                 opt.model.reaction = opt.model.reaction / (np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))        
                 self.timing[o][s][m] = np.array(self.timing[o][s][m])
+                opt.fit[1] = float(-opt.leastSquares()) + 500.0
+                # # Check if coherent                 
+                ind = self.indd[o][s]
+                m = self.m_order[int(ind[0])]
+                real = self.data[m][s][int(ind[1])][ind[3]][2:4]
+                
+                if np.sum(np.round(real,2)==np.round(opt.fit, 2))!= 2:
+                    print o, s, m
+                    print "from test :", opt.fit
+                    print "from sferes :", real
+
+    def timeConversion_singleStrategy(self, p_test):
+        o = 'tche'
+        timing = dict(o:{}})
+        for m in ['bayesian','qlearning']:
+            for s in p_test[m][o].iterkeys():
+                timing[o][s] = dict()
+                parameters = p_test[m][o][s][m]
+                # MAking a sferes call to compute a time conversion
+                with open(self.case+"/"+s+".pickle", "rb") as f:
+                    data = pickle.load(f)
+                self.models[m].__init__(['s1', 's2', 's3'], ['thumb', 'fore', 'midd', 'ring', 'little'], parameters, sferes = True)
+                opt = EA(data, s, self.models[m])                                
+                for i in xrange(opt.n_blocs):
+                    opt.model.startBloc()
+                    for j in xrange(opt.n_trials):
+                        opt.model.computeValue(opt.state[i,j]-1, opt.action[i,j]-1, (i,j))
+                        opt.model.updateValue(opt.responses[i,j])
+                opt.fit[0] = float(np.sum(opt.model.value)) + 2000.0
+                timing[o][s][m] = [np.median(opt.model.reaction)]
+                opt.model.reaction = opt.model.reaction - np.median(opt.model.reaction)
+                timing[o][s][m].append(np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))
+                opt.model.reaction = opt.model.reaction / (np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))        
+                timing[o][s][m] = np.array(timing[o][s][m])
                 opt.fit[1] = float(-opt.leastSquares()) + 500.0
                 # # Check if coherent                 
                 ind = self.indd[o][s]
