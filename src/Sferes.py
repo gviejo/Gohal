@@ -745,8 +745,9 @@ class pareto():
         o = 'tche'
         timing = dict(o:{}})
         for m in ['bayesian','qlearning']:
+            timing[o][m] = dict()
             for s in p_test[m][o].iterkeys():
-                timing[o][s] = dict()
+                timing[o][m][s] = dict()
                 parameters = p_test[m][o][s][m]
                 # MAking a sferes call to compute a time conversion
                 with open(self.case+"/"+s+".pickle", "rb") as f:
@@ -759,11 +760,11 @@ class pareto():
                         opt.model.computeValue(opt.state[i,j]-1, opt.action[i,j]-1, (i,j))
                         opt.model.updateValue(opt.responses[i,j])
                 opt.fit[0] = float(np.sum(opt.model.value)) + 2000.0
-                timing[o][s][m] = [np.median(opt.model.reaction)]
+                timing[o][m][s][m] = [np.median(opt.model.reaction)]
                 opt.model.reaction = opt.model.reaction - np.median(opt.model.reaction)
-                timing[o][s][m].append(np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))
+                timing[o][m][s][m].append(np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))
                 opt.model.reaction = opt.model.reaction / (np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))        
-                timing[o][s][m] = np.array(timing[o][s][m])
+                timing[o][m][s][m] = np.array(timing[o][m][s][m])
                 opt.fit[1] = float(-opt.leastSquares()) + 500.0
                 # # Check if coherent                 
                 ind = self.indd[o][s]
