@@ -88,24 +88,36 @@ double sigmoide(double Hb, double Hf, double n, double i, double t, double g) {
 }
 void fusion(double *p_a, double *mb, double *mf, double beta) {
 	double tmp[5];
+	int tmp2[5];
 	double sum = 0.0;
+	double ninf = 0;
 	// std::cout << "beta = "  << beta << std::endl;
 	for (int i=0;i<5;i++) {				
-		tmp[i] = exp((mb[i]+mf[i])*beta);		
+		tmp[i] = exp((mb[i]+mf[i])*beta);
+		if (isinf(tmp[i])) {
+			tmp2[i] = 1;
+			ninf += 1.0;
+		} else {
+			tmp2[i] = 0;
+		}
 		sum+=tmp[i];
 	}
-	for (int i=0;i<5;i++) {
-		if (isinf(tmp[i])) {
-			for (int j=0;j<5;j++) {
-				p_a[j] = 0.0000001;
-			}			
-			p_a[i] = 0.9999996;
-			return ;
-		}	
-	}	
-	for (int i=0;i<5;i++) {				
-		p_a[i] = tmp[i]/sum;
+	
+	if (ninf > 0.0) {
+		for (int i=0;i<5;i++) {
+			if (tmp2[i] == 1) {				
+				p_a[i] = (1.0 - 0.0000001 * (5.0 - ninf))/ninf;
+			}
+			else {
+				p_a[i] = 0.0000001;
+			}
+		}
 	}
+	else {
+		for (int i=0;i<5;i++) {				
+			p_a[i] = tmp[i]/sum;
+		}
+	}	
 	for (int i=0;i<5;i++) {
 		if (p_a[i] == 0) {
 			sum = 0.0;
@@ -305,17 +317,41 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 				// SIGMOIDE
 				double pA = sigmoide(Hb, Hf, n_element, nb_inferences, threshold, gain);				
 
+				// if (i==1 && j==15 && k==8) {
+				// 	for (int m=0;m<5;m++) std::cout << p_a[m] << " "; std::cout << std::endl;					
+					// for (int m=0;m<5;m++) std::cout << values_mb[m]+values_mf[s][m] << " "; std::cout << std::endl;					
+					// double tmp[5];
+					// double sum = 0.0;
+					
+					// for (int m=0;m<5;m++) {				
+					// 	tmp[m] = exp((values_mb[m]+values_mf[s][m])*beta);								
+					// 	sum+=tmp[m];
+					// }
+					// std::cout << beta << std::endl;
+					// for (int m=0;m<5;m++) std::cout << tmp[m] << " "; std::cout << std::endl;					
+					// for (int m=0;m<5;m++) std::cout << p_a[m] << " "; std::cout << std::endl;					
+					// std::cout << k << " " << Hb << " " << Hf << " " << pA << " " << threshold << " " << gain << std::endl;
+				// }
+				
+
 				// std::cout << pA << std::endl;
 				p_decision[k+1] = pA*p_retrieval[k];
 				p_retrieval[k+1] = (1.0-pA)*p_retrieval[k];
 			}
+			
+
 			// std::cout << "mb = "; for (int k=0;k<5;k++) std::cout << values_mb[k] << " "; std::cout << std::endl;			
 			// std::cout << "mf = "; for (int k=0;k<5;k++) std::cout << values_mf[s][k] << " "; std::cout << std::endl;			
-			// std::cout << "p_ak = "; for (int k=0;k<n_element+1;k++) std::cout << p_ak[k] << " "; std::cout << std::endl;
-			// std::cout << "p_de = "; for (int k=0;k<n_element+1;k++) std::cout << p_decision[k] << " "; std::cout << std::endl;
+			// std::cout << "p_ak = "; for (int k=0;k<n_element+1;k++) std::cout << p_ak[k] << " "; std::cout << std::endl;			
 			// std::cout << "rt = "; for (int k=0;k<n_element+1;k++) std::cout << reaction[k] << " "; std::cout << std::endl;						 
 			
 			values[j+i*nb_trials] = log(sum_prod(p_ak, p_decision, n_element+1));
+			// if (i==1 && j==15) {
+			// 	std::cout << n_element << std::endl;
+			// 	std::cout << "p_a(k) "; for (int k=0;k<n_element+1;k++) std::cout << p_ak[k] << " "; std::cout << std::endl;
+			// 	std::cout << "p_d " << n_element+1 << " "; for (int k=0;k<n_element+1;k++) std::cout << p_decision[k] << " "; std::cout << std::endl;
+			// 	std::cout << values[j+i*nb_trials] << std::endl;
+			// }
 			double val = sum_prod(p_ak, p_decision, n_element+1);						
 			
 			rt[j+i*nb_trials] = sum_prod(reaction, p_decision, n_element+1);			
@@ -385,17 +421,22 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 		mean_model[i]/=tmp2[i];
 		error+=pow(mean_rt[i]-mean_model[i],2.0);		
 	}	
+
+	// for (int i=0;i<N;i++) {
+	// 	std::cout << values[i] << std::endl;
+	// }
+
 	for (int i=0;i<N;i++) fit[0]+=values[i];	
-	// fit[1] = -error;
+	fit[1] = -error;
 	
 	if (isnan(fit[0]) || isinf(fit[0]) || isinf(fit[1]) || isnan(fit[1]) || fit[0]<-10000 || fit[1]<-10000) {
 		fit[0]=-1000.0;
-		// fit[1]=-1000.0;
+		fit[1]=-1000.0;
 		return;
 	}
 	else {
 		fit[0]+=2000.0;
-		// fit[1]+=500.0;
+		fit[1]+=500.0;
 		return ;
 	}
 }

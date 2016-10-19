@@ -67,11 +67,11 @@ void sferes_call(double * fit, const int N, const char* data_dir, double length_
 	int n_action = 5;
 	int n_r = 2;	
 	///////////////////
-	int sari [156][4];	
+	int sari [N][4];	
 	double mean_rt [15];
 	double mean_model [15];	
-	double values [156]; // action probabilities according to subject
-	double rt [156]; // rt du model	
+	double values [N]; // action probabilities according to subject
+	double rt [N]; // rt du model	
 	double p_a_mb [n_action];	
 
 	const char* _data_dir = data_dir;
@@ -79,11 +79,13 @@ void sferes_call(double * fit, const int N, const char* data_dir, double length_
 	std::string file2 = _data_dir;
 	file1.append("sari.txt");
 	file2.append("mean.txt");	
+	// std::cout << file1 << std::endl;
+	// std::cout << file2 << std::endl;	
 	std::ifstream data_file1(file1.c_str());
 	string line;
 	if (data_file1.is_open())
 	{ 
-		for (int i=0;i<156;i++) 
+		for (int i=0;i<N;i++) 
 		{  
 			getline (data_file1,line);			
 			stringstream stream(line);
@@ -97,6 +99,7 @@ void sferes_call(double * fit, const int N, const char* data_dir, double length_
 		}
 	data_file1.close();	
 	}
+	
 	std::ifstream data_file2(file2.c_str());	
 	if (data_file2.is_open())
 	{
@@ -108,6 +111,7 @@ void sferes_call(double * fit, const int N, const char* data_dir, double length_
 		}
 	data_file2.close();	
 	}		
+	// std::cout << " yo" << std::endl;
 	for (int i=0;i<4;i++)	
 	// for (int i=0;i<1;i++)	
 	{		
@@ -246,15 +250,15 @@ void sferes_call(double * fit, const int N, const char* data_dir, double length_
 	}	
 	
 	// ALIGN TO MEDIAN
-	alignToMedian(rt, 156);	
-	// for (int i=0;i<156;i++) std::cout << rt[i] << std::endl;
+	alignToMedian(rt, N);	
+	// for (int i=0;i<N;i++) std::cout << rt[i] << std::endl;
 	double tmp2[15];
 	for (int i=0;i<15;i++) {
 		mean_model[i] = 0.0;
 		tmp2[i] = 0.0;
 	}
 
-	for (int i=0;i<156;i++) {
+	for (int i=0;i<N;i++) {
 		mean_model[sari[i][3]-1]+=rt[i];
 		tmp2[sari[i][3]-1]+=1.0;				
 	}	
@@ -263,7 +267,7 @@ void sferes_call(double * fit, const int N, const char* data_dir, double length_
 		mean_model[i]/=tmp2[i];
 		error+=pow(mean_rt[i]-mean_model[i],2.0);		
 	}	
-	for (int i=0;i<156;i++) fit[0]+=values[i];	
+	for (int i=0;i<N;i++) fit[0]+=values[i];	
 	fit[1] = -error;
 	
 	if (isnan(fit[0]) || isinf(fit[0]) || isinf(fit[1]) || isnan(fit[1]) || fit[0]<-10000 || fit[1]<-10000) {
