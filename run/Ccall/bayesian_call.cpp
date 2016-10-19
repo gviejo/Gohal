@@ -31,6 +31,7 @@ void alignToMedian(double *daArray, int iSize) {
     // std::cout << dpSorted[(iSize/4)*3+1] << std::endl;
     delete [] dpSorted;
     for (int i=0;i<iSize;i++) daArray[i] = daArray[i]/(dQ3-dQ1);    
+    std::cout << dMedian << " " << (dQ3-dQ1) << std::endl;
 }
 void softmax(double *p, double *v, double b) {
 	double sum = 0.0;
@@ -60,7 +61,11 @@ void sferes_call(double * fit, const int N, const char* data_dir, double length_
 	int length=1+(10-1)*length_;
 	double threshold=0.01+(max_entropy-0.01)*threshold_;
 	double sigma=0.0+(20.0-0.0)*sigma_;
-	// double sigma = 1.0;
+
+	double noise = noise_;
+	int length = length_;
+	double threshold = threshold_;
+	double sigma = sigma_;
 
 	int nb_trials = N/4;
 	int n_state = 3;

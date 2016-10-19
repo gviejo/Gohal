@@ -15,8 +15,8 @@ from Models import *
 
 # Parameters for sferes optimization 
 # To speed up the process and avoid list
-n_trials = 39
-# n_trials = 48
+# n_trials = 39
+n_trials = 48
 n_blocs = 4
 
 class FSelection():
@@ -38,7 +38,7 @@ class FSelection():
                             "length":[1, 10],
                             "threshold":[0.00001, 1000.0], # sigmoide parameter
                             "noise":[0.0, 0.1],
-                            "gain":[0.00001, 10000.0], # sigmoide parameter 
+                            "gain":[0.00001, 1000.0], # sigmoide parameter 
                             "sigma":[0.0, 20.0],
                             "gamma":[0.0, 100.0]}) # temperature for entropy from qlearning soft-max
                             
@@ -508,7 +508,7 @@ class KSelection():
         self.Hf = -(values*np.log2(values)).sum()       
         t =self.n_action*self.current_state
         vpi = computeVPIValues(self.values_mf[self.current_state], self.covariance['cov'].diagonal()[t:t+self.n_action])
-        self.vpi[-1].append(vpi)
+        
         self.used = -1
         if np.sum(vpi > self.reward_rate[self.current_state]):
             self.used = 1
@@ -525,21 +525,13 @@ class KSelection():
         self.action[-1].append(self.current_action)
         H = -(values*np.log2(values)).sum()
         N = float(self.nb_inferences+1)
-        self.Hl = H
-        # self.reaction[-1].append(H*self.parameters['sigma_rt']+np.log2(N))
+        self.Hl = H        
         self.reaction[-1].append((np.log2(N)**self.parameters['sigma_rt'])+H)
-        #self.sigma_test[-1].append([self.parameters['sigma_ql'], self.parameters['sigma_bwm']][int(self.nb_inferences != 0)])
+
         self.Hall[-1].append([float(self.Hb), float(self.Hf)])
         self.pdf[-1].append(N)
-        # while self.nb_inferences < self.n_element:            
-        #     self.inferenceModule()
-        #     self.evaluationModule()
-        #     d = (self.Hb > self.parameters['threshold'] and self.nb_inferences < self.n_element)*1.0
-        #     pdf[self.nb_inferences] = 1.0-float(d)            
 
-        # pdf = pdf/pdf.sum()
-        # self.pdf.append(pdf)
-        
+        self.vpi[-1].append(vpi[self.current_action])        
         # qlearning        
         self.h_ql_only = self.Hf
         # bayesian            

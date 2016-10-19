@@ -13,7 +13,6 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
-sys.path.append("../../src")
 import os
 from optparse import OptionParser
 import numpy as np

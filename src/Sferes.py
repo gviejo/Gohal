@@ -20,7 +20,7 @@ import mmap
 import numpy as np
 if os.uname()[1] in ['atlantis', 'paradise']:
     from multiprocessing import Pool, Process
-#     from pylab import *
+    from pylab import *
 
 #from fonctions import *
 from Selection import *
@@ -247,7 +247,8 @@ class pareto():
         if 'one' in self.directory:
             self.simpleLoadData()
         elif 'two' in self.directory:
-            self.loadData()
+            # self.loadData()
+            self.simpleLoadData()
         else:
             print "Speficify one or two objectifs."
         
@@ -305,6 +306,7 @@ class pareto():
             scale = self.models[m.split("_")[0]].bounds
 
             for r in lrun:
+                print r
                 s = r.split("_")[3]                
                 n = int(r.split("_")[4].split(".")[0])                
                 if s in self.data[m].keys():
@@ -529,8 +531,8 @@ class pareto():
                 ind = self.mixed[s][:,0] == m
                 ax4.plot(self.mixed[s][ind,4], self.mixed[s][ind,5], 'o-', color = self.colors_m[self.m_order[int(m)]])
                 ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,2]),0], self.zoom[s][np.argmin(self.zoom[s][:,2]),1], '*', markersize = 10)
-                ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 10)
-                ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 10)
+                # ax4.plot(self.zoom[s][np.argmax(self.zoom[s][:,3]),0], self.zoom[s][np.argmax(self.zoom[s][:,3]),1], '^', markersize = 10)
+                # ax4.plot(self.zoom[s][np.argmin(self.zoom[s][:,4]),0], self.zoom[s][np.argmin(self.zoom[s][:,4]),1], 'o', markersize = 10)
         ax4.set_xlim(0,1)
         ax4.set_ylim(0,1)
 
@@ -586,10 +588,12 @@ class pareto():
         # order is distance, owa , tchenbytchev
         data = {}
         p_test = {}
+        self.best_ind_single_strategy = dict()
         for m in ['bayesian', 'qlearning']:
             p_test[m] = dict({'tche':dict(),'owa':dict(),'distance':dict()})
             data[m] = dict()
             subjects = self.pareto[m].keys()
+            self.best_ind_single_strategy[m] = dict()
             for s in subjects:
                 if len(self.pareto[m][s]):                
                     data[m][s] = np.zeros((self.pareto[m][s].shape[0],5))                
@@ -606,6 +610,7 @@ class pareto():
                     data[m][s][:,4] = value
                     ind_best_point = np.argmin(value)            
                     best_ind = self.pareto[m][s][ind_best_point]
+                    self.best_ind_single_strategy[m][s] = best_ind
                     p_test[m]['tche'][s] = dict({m:dict(zip(self.p_order[m],best_ind[5:]))})                                          
                     # owa ranking
                     data[m][s][:,3] = np.sum(np.sort(tmp)*[0.5, 0.5], 1)                    
@@ -620,61 +625,95 @@ class pareto():
         return data, p_test
             
     def classifySubject(self):
-        models = self.data.keys()
-        # self.choice_only = {o:{m:[] for m in models} for o in ['r2', 'bic']}
-        self.choice_only = {'r2':{m:[] for m in models},'bic':{m:[] for m in models},'log':{m:[] for m in models}}
-        # subjects = self.data['fusion'].keys()
+        models = self.data.keys()                
         subjects = self.human.keys()
         self.values = dict()
-        self.extremum = dict()        
+        self.extremum = dict()                
+        for s in subjects:
+            self.extremum[s] = dict()            
+            self.values[s] = dict()
+            data_best_ind = dict()
+            for m in models:
+                self.extremum[s][m] = dict()
+                self.values[s][m] = dict()
+                data = []
+                for i in self.data[m][s].iterkeys():
+                    #max_gen = np.max(self.data[m][s][i][:,0])
+                    #size_max_gen = np.sum(self.data[m][s][i][:,0]==max_gen)
+                    tmp = np.hstack((np.ones((len(self.data[m][s][i]),1))*i,self.data[m][s][i]))                    
+                    #tmp = np.hstack((np.ones((size_max_gen,1))*i,self.data[m][s][i][-size_max_gen:]))
+                    data.append(tmp)
+                data = np.vstack(data)
+                data[:,3]-=2000.0
+                # LOG                
+                self.values[s][m]['log'] = np.max(data[:,3])
+                best_ind = np.argmax(data[:,3])
+                data_best_ind[m] = data[best_ind,5:]
+                gen = data[best_ind,1]
+                ind = data[best_ind,2]
+                self.extremum[s][m] = dict(zip(self.p_order[m][0:-1],data_best_ind[m]))                
+                # BIC
+                self.values[s][m]['bic'] = 2.0*self.values[s][m]['log'] - float(len(self.p_order[m])-1)*np.log(self.N)
+               
+        self.best_extremum = dict({'bic':{m:[] for m in models},'log':{m:[] for m in models}})
+        self.p_test_extremum = dict({'bic':{},'log':{}})
+        for s in self.values.iterkeys():
+            for o in ['log', 'bic']:
+                best = np.argmax([self.values[s][m][o] for m in models])
+                self.best_extremum[o][models[best]].append(s)
+                self.p_test_extremum[o][s] = {models[best]:self.extremum[s][models[best]]}
 
-        for o in self.choice_only.keys():            
-            self.values[o] = dict()
-            self.extremum[o] = dict()
+        #writing parameters because fuck you that's why
+        with open("parameters.txt", 'w') as f:
+            # for m in models:
             for s in subjects:
-                self.extremum[o][s] = dict()                
-                value = []
-                self.values[o][s] = dict()
-                data_best_ind = dict()
-                for m in models:       
-                    # print s, m
-                    data = []
-                    for i in self.data[m][s].iterkeys():
-                        tmp = np.hstack((np.ones((len(self.data[m][s][i]),1))*i,self.data[m][s][i]))
-                        data.append(tmp)
-                    data = np.vstack(data)
-                    data[:,3]-=2000.0
-                    
-                    if o == 'bic':
-                        data[:,3] = 2*data[:,3]-float(len(self.p_order[m]))*np.log(self.N) # BIC                    
-                    elif o == 'r2':
-                        data[:,3] = 1.0-(data[:,3])/(self.N*np.log(0.2)) # r2
-                    elif o == 'log':
-                        data[:,3] = data[:,3]
-                    elif o == 'aic':
-                        data[:,3] = 2*data[:,3]-2.0*float(len(self.p_order[m])) # AIC 
-                                    
-                    self.values[o][s][m] = np.max(data[:,3])
-                    best_ind = np.argmax(data[:,3])
-                    data_best_ind[m] = data[best_ind,5:]
-                    gen = data[best_ind,1]
-                    ind = data[best_ind,2]
-                    value.append(np.max(data[:,3]))                
-                m_ind = np.argmax(value)
-                winning_model = models[m_ind]                    
-                self.choice_only[o][winning_model].append(s)
-                self.extremum[o][s][winning_model] = dict(zip(self.p_order[winning_model][0:-1],data_best_ind[winning_model]))                
-        # writing parameters because fuck you that's why
-        # with open("parameters.txt", 'w') as f:
-        #     # for m in models:
+                # f.write(m+"\n")                
+                f.write(s+"\n")
+                # for s in subjects:
+                for m in models:                    
+                    line=m+"\t"+" \t".join([k+"="+str(np.round(self.extremum[s][m][k],4)) for k in self.p_order[m][0:-1]])+"\tloglikelihood = "+str(self.values[s][m]['log'])+"\n"      
+                    f.write(line)                
+                f.write("\n")
+
+
+        return 
+        # for o in self.choice_only.keys():            
+        #     self.values[o] = dict()
+        #     self.extremum[o] = dict()
         #     for s in subjects:
-        #         # f.write(m+"\n")                
-        #         f.write(s+"\n")
-        #         # for s in subjects:
-        #         for m in models:
-        #             line=m+"\t"+" \t".join([k+"="+str(np.round(self.extremum[s][m][k],4)) for k in self.p_order[m]])+"\tloglikelihood = "+str(self.data[m][s][0][0,2]-2000)+"\n"      
-        #             f.write(line)                
-        #         f.write("\n")
+        #         self.extremum[o][s] = dict()                
+        #         value = []
+        #         self.values[o][s] = dict()
+        #         data_best_ind = dict()
+        #         for m in models:       
+        #             # print s, m
+        #             data = []
+        #             for i in self.data[m][s].iterkeys():
+        #                 tmp = np.hstack((np.ones((len(self.data[m][s][i]),1))*i,self.data[m][s][i]))
+        #                 data.append(tmp)
+        #             data = np.vstack(data)
+        #             data[:,3]-=2000.0
+                    
+        #             if o == 'bic':
+        #                 data[:,3] = 2*data[:,3]-float(len(self.p_order[m]))*np.log(self.N) # BIC                    
+        #             elif o == 'r2':
+        #                 data[:,3] = 1.0-(data[:,3])/(self.N*np.log(0.2)) # r2
+        #             elif o == 'log':
+        #                 data[:,3] = data[:,3]
+        #             elif o == 'aic':
+        #                 data[:,3] = 2*data[:,3]-2.0*float(len(self.p_order[m])) # AIC 
+                                    
+        #             self.values[o][s][m] = np.max(data[:,3])
+        #             best_ind = np.argmax(data[:,3])
+        #             data_best_ind[m] = data[best_ind,5:]
+        #             gen = data[best_ind,1]
+        #             ind = data[best_ind,2]
+        #             value.append(np.max(data[:,3]))                
+        #         m_ind = np.argmax(value)
+        #         winning_model = models[m_ind]                    
+        #         self.choice_only[o][winning_model].append(s)
+        #         self.extremum[o][s][winning_model] = dict(zip(self.p_order[winning_model][0:-1],data_best_ind[winning_model]))                
+
 
         # with open("values.txt", 'w') as f:
         #     # for s in subjects:
@@ -733,7 +772,9 @@ class pareto():
                 opt.fit[1] = float(-opt.leastSquares()) + 500.0
                 # # Check if coherent                 
                 ind = self.indd[o][s]
-                m = self.m_order[int(ind[0])]
+                m2 = self.m_order[int(ind[0])]
+                if m != m2:
+                    sys.exit()
                 real = self.data[m][s][int(ind[1])][ind[3]][2:4]
                 
                 if np.sum(np.round(real,2)==np.round(opt.fit, 2))!= 2:
@@ -741,9 +782,9 @@ class pareto():
                     print "from test :", opt.fit
                     print "from sferes :", real
 
-    def timeConversion_singleStrategy(self, p_test):
+    def timeConversion_singleStrategy(self, p_test, rank):
         o = 'tche'
-        timing = dict(o:{}})
+        timing = {o:{}}
         for m in ['bayesian','qlearning']:
             timing[o][m] = dict()
             for s in p_test[m][o].iterkeys():
@@ -758,20 +799,21 @@ class pareto():
                     opt.model.startBloc()
                     for j in xrange(opt.n_trials):
                         opt.model.computeValue(opt.state[i,j]-1, opt.action[i,j]-1, (i,j))
-                        opt.model.updateValue(opt.responses[i,j])
-                opt.fit[0] = float(np.sum(opt.model.value)) + 2000.0
+                        opt.model.updateValue(opt.responses[i,j])                
+                # opt.fit[0] = float(np.sum(opt.model.value))
+                opt.fit[0] = 1.0 - (float(np.sum(opt.model.value)))/(self.N*np.log(0.2))
                 timing[o][m][s][m] = [np.median(opt.model.reaction)]
                 opt.model.reaction = opt.model.reaction - np.median(opt.model.reaction)
                 timing[o][m][s][m].append(np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))
                 opt.model.reaction = opt.model.reaction / (np.percentile(opt.model.reaction, 75)-np.percentile(opt.model.reaction, 25))        
                 timing[o][m][s][m] = np.array(timing[o][m][s][m])
-                opt.fit[1] = float(-opt.leastSquares()) + 500.0
-                # # Check if coherent                 
-                ind = self.indd[o][s]
-                m = self.m_order[int(ind[0])]
-                real = self.data[m][s][int(ind[1])][ind[3]][2:4]
+                opt.fit[1] = float(-opt.leastSquares())
+                #opt.fit[1] = 1.0 - (-opt.fit[1])/(np.power(2*self.human[s]['mean'][0], 2).sum())
+                # Check if coherent                                 
+                real = self.best_ind_single_strategy[m][s][3:5]
                 
                 if np.sum(np.round(real,2)==np.round(opt.fit, 2))!= 2:
                     print o, s, m
                     print "from test :", opt.fit
                     print "from sferes :", real
+        return timing

@@ -19,8 +19,8 @@ from fonctions import *
 
 from Models import *
 
-# from matplotlib import *
-# from pylab import *
+from matplotlib import *
+from pylab import *
 
 from Sferes import pareto
 from itertools import *
@@ -42,24 +42,24 @@ parser.add_option("-o", "--output", action="store", help="The output file of bes
 # -----------------------------------
 # LOADING DATA
 # -----------------------------------
-front = pareto(options.input, case = 'fmri')
+front = pareto(options.input, case = 'meg')
 
 # front.showBrute()
 front.constructParetoFrontier('r2') # 'r2', 'bic', 'aic' , 'log'
 front.removeIndivDoublons()
 front.constructMixedParetoFrontier()
-# front.rankDistance()
-# front.rankOWA()
-# front.rankTchebytchev()
-# front.retrieveRanking()
-# front.timeConversion()
+front.rankDistance()
+front.rankOWA()
+front.rankTchebytchev()
+front.retrieveRanking()
+front.timeConversion()
 # front.writeParameters("parameters_2criterion.txt")
-# front.classifySubject()
-# front.preview()
-data_single, p_test_single = front.rankIndividualStrategy()
-timing_single = front.timeConversion_singleStrategy(p_test_single)
+front.classifySubject()
+front.preview()
+# data_single, p_test_single = front.rankIndividualStrategy()
+# timing_single = front.timeConversion_singleStrategy(p_test_single, data_single)
 # show()
-
+# sys.exit()
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/pareto_front.pickle") , 'wb') as handle:    
 #     pickle.dump(front.pareto, handle)
 
@@ -72,21 +72,24 @@ timing_single = front.timeConversion_singleStrategy(p_test_single)
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/parameters.pickle"), 'wb') as handle:
 # 	pickle.dump(front.p_test, handle)
 
-# with open("parameters.pickle", 'wb') as f:
-# 	pickle.dump(front.p_test, f)
+with open("parameters_meg.pickle", 'wb') as f:
+	pickle.dump(front.p_test, f)
 
-# with open("timing.pickle", 'wb') as f:
-# 	pickle.dump(front.timing, f)
+with open("timing_meg.pickle", 'wb') as f:
+	pickle.dump(front.timing, f)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_single.pickle"), 'wb') as handle:
-	pickle.dump(data_single, handle)
+# with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rank_single.pickle"), 'wb') as handle:
+# 	pickle.dump(data_single, handle)
 
-with open("parameters_single.pickle", 'wb') as f:
-	pickle.dump(p_test_single, f)
+# with open("parameters_single.pickle", 'wb') as f:
+# 	pickle.dump(p_test_single, f)
 
-# # fit to choice extremum of the front
-# with open("extremum.pickle", 'wb') as f:
-# 	pickle.dump(front.extremum, f)
+# with open("timing_single.pickle", 'wb') as f:
+#     pickle.dump(timing_single, f)
+
+# fit to choice extremum of the front
+with open("extremum.pickle", 'wb') as f:
+	pickle.dump(front.p_test_extremum, f)
 
 # value of maximum BIC normalized 
 # with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/obj_choice.pickle"), 'wb') as f:

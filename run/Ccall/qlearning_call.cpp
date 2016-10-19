@@ -31,6 +31,7 @@ void alignToMedian(double *daArray, int iSize) {
     // std::cout << dpSorted[(iSize/4)*3+1] << std::endl;
     delete [] dpSorted;
     for (int i=0;i<iSize;i++) daArray[i] = daArray[i]/(dQ3-dQ1);    
+    std::cout << dMedian << " " << (dQ3-dQ1) << std::endl;
 }
 void softmax(double *p, double *v, double b) {
 	double sum = 0.0;
@@ -64,12 +65,16 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 {
 	///////////////////	
 	// parameters
-	double alpha=0.0+alpha_*(1.0-0.0); //alpha +
-	// double gamma=0.0+gamma_*(0.99-0.00); //alpha -
-	double beta=0.0+beta_*(100.0-0.0);
-	double sigma=0.0+(20.0-0.0)*sigma_;
-	// double omega=0.0+omega_*(0.999999-0.0);
+	// double alpha=0.0+alpha_*(1.0-0.0); //alpha +
+	// // double gamma=0.0+gamma_*(0.99-0.00); //alpha -
+	// double beta=0.0+beta_*(100.0-0.0);
+	// double sigma=0.0+(20.0-0.0)*sigma_;
+	// // double omega=0.0+omega_*(0.999999-0.0);
 	
+	double alpha = alpha_;
+	double beta = beta_;
+	double sigma = sigma_;
+
 	int nb_trials = N/4;
 	int n_state = 3;
 	int n_action = 5;
@@ -82,7 +87,10 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 	double rt [N]; // rt du model	
 	double p_a_mf [n_action];
 
+
+
 	const char* _data_dir = data_dir;
+
 	std::string file1 = _data_dir;
 	std::string file2 = _data_dir;
 	file1.append("sari.txt");

@@ -146,7 +146,15 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 	double sigma=0.0+(20.0-0.0)*sigma_;	
 	double gamma=0.0+(100.0-0.0)*gamma_;
 
-	// std::cout << noise << " " << length << " " << beta << " " << gain << " " << threshold << " " << alpha << " " << sigma << " " << gamma << std::endl;
+	std::cout << alpha << std::endl;
+	std::cout << beta << std::endl;
+	std::cout << gain << std::endl;
+	std::cout << gamma << std::endl;
+	std::cout << length << std::endl;
+	std::cout << noise << std::endl;
+	std::cout << sigma << std::endl;
+	std::cout << threshold << std::endl;
+		
 	int nb_trials = N/4;
 	int n_state = 3;
 	int n_action = 5;
@@ -386,16 +394,16 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 		error+=pow(mean_rt[i]-mean_model[i],2.0);		
 	}	
 	for (int i=0;i<N;i++) fit[0]+=values[i];	
-	// fit[1] = -error;
+	fit[1] = -error;
 	
 	if (isnan(fit[0]) || isinf(fit[0]) || isinf(fit[1]) || isnan(fit[1]) || fit[0]<-10000 || fit[1]<-10000) {
 		fit[0]=-1000.0;
-		// fit[1]=-1000.0;
+		fit[1]=-1000.0;
 		return;
 	}
 	else {
 		fit[0]+=2000.0;
-		// fit[1]+=500.0;
+		fit[1]+=500.0;
 		return ;
 	}
 }

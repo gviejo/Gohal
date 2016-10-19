@@ -70,7 +70,7 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # -----------------------------------
 nb_blocs = 4
 nb_trials = 39
-nb_repeat = 10
+nb_repeat = 100
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
 				"qlearning":QLearning(cats.states, cats.actions),
@@ -104,182 +104,100 @@ colors_m = dict({'fusion':'#F1433F',
 				'qlearning': '#6E8243',
 				'selection':'#70B7BA',
 				'mixture':'#3D4C53'})
+
 data = {}
-# Start with selection 
-# m = 'selection'
-# for s in groups['selection']:
-# 	print "Testing "+s+" with "+m+" selected by "+o
-# 	models[m].setAllParameters(p_test[o][s][m])
-# 	models[m].startExp()
-# 	count = np.zeros((nb_repeat,nb_blocs,nb_trials))
-# 	for k in xrange(nb_repeat):
-# 		for i in xrange(nb_blocs):
-# 			cats.reinitialize()
-# 			cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))
-# 			models[m].startBloc()			
-# 			for j in xrange(nb_trials):
-# 				state = cats.getStimulus(j)
-# 				action = models[m].chooseAction(state)
-# 				count[k,i,j] = models[m].used
-# 				reward = cats.getOutcome(state, action, case='fmri')
-# 				models[m].updateValue(reward)                                    
-# 	state = convertStimulus(np.array(models[m].state))
-# 	action = np.array(models[m].action)
-# 	responses = np.array(models[m].responses)        
-# 	count = count.reshape(nb_blocs*nb_repeat, nb_trials)
-# 	data[s] = extractStimulusPresentation(count, state, action, responses)
-# 	# step, indice = getRepresentativeSteps(count, state, action, responses)
-# 	# data[s] = computeMeanRepresentativeSteps(step)
-# 	sys.exit()
-# # Then mixture
-# m = 'mixture'
-# for s in groups['mixture']:
-# 	print "Testing "+s+" with "+m+" selected by "+o
-# 	models[m].setAllParameters(p_test[o][s][m])
-# 	models[m].startExp()
-# 	weight = np.zeros((nb_repeat,nb_blocs,nb_trials))
-# 	for k in xrange(nb_repeat):
-# 		for i in xrange(nb_blocs):
-# 			cats.reinitialize()
-# 			cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))
-# 			models[m].startBloc()			
-# 			for j in xrange(nb_trials):
-# 				state = cats.getStimulus(j)
-# 				action = models[m].chooseAction(state)
-# 				weight[k,i,j] = models[m].w[models[m].current_state]
-# 				reward = cats.getOutcome(state, action, case='fmri')
-# 				models[m].updateValue(reward)                                    
-# 	state = convertStimulus(np.array(models[m].state))
-# 	action = np.array(models[m].action)
-# 	responses = np.array(models[m].responses)        
-# 	weight = weight.reshape(nb_blocs*nb_repeat, nb_trials)
-# 	weight = (weight*2.0)-1.0
-# 	data[s] = extractStimulusPresentation(weight, state, action, responses)
-# 	# step, indice = getRepresentativeSteps(weight, state, action, responses)
-# 	# data[s] = computeMeanRepresentativeSteps(step)
 
-# And fusion to finish
-m = 'fusion'
-for s in groups['fusion']:
-	print "Testing "+s+" with "+m+" selected by "+o
-	models[m].setAllParameters(p_test[o][s][m])
-	models[m].startExp()
-	entropy = np.zeros((nb_repeat,nb_blocs,nb_trials))
-	for k in xrange(nb_repeat):
-		for i in xrange(nb_blocs):
-			cats.reinitialize()
-			cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))
-			models[m].startBloc()			
-			for j in xrange(nb_trials):
-				state = cats.getStimulus(j)
-				action = models[m].chooseAction(state)
-				entropy[k,i,j] = models[m].Hf-models[m].Hb
-				reward = cats.getOutcome(state, action, case='fmri')
-				models[m].updateValue(reward)                                    
-	state = convertStimulus(np.array(models[m].state))
-	action = np.array(models[m].action)
-	responses = np.array(models[m].responses)        
-	entropy = entropy.reshape(nb_blocs*nb_repeat, nb_trials)
-	sys.exit()
-	entropy = (entropy+models[m].max_entropy)/(2*models[m].max_entropy)
-	entropy = (entropy*2.0)-1.0
-	data[s] = extractStimulusPresentation(entropy, state, action, responses)
-	# step, indice = getRepresentativeSteps(entropy, state, action, responses)
-	# data[s] = computeMeanRepresentativeSteps(step)	
+for m in ['fusion', 'selection', 'mixture']:
+	sstate = []
+	aaction = []
+	rresponses = []
+	eentropy = []
+	w = []
+	vpi = []
+	rrate = []
+	data[m] = {}
+	nb_sujet = 0
+	for s in groups[m]:
+		print "Testing "+s+" with "+m+" selected by "+o
+		models[m].setAllParameters(p_test[o][s][m])
+		models[m].startExp()
+		entropy = np.zeros((nb_repeat,nb_blocs,nb_trials,6))
+		for k in xrange(nb_repeat):
+			for i in xrange(nb_blocs):
+				cats.reinitialize()
+				models[m].startBloc()			
+				for j in xrange(nb_trials):	
+					state = cats.getStimulus(j)
+					action = models[m].chooseAction(state)					
+					entropy[k,i,j,0] = models[m].h_bayes_only
+					entropy[k,i,j,1] = models[m].h_ql_only
+					entropy[k,i,j,2] = models[m].Hl
+					entropy[k,i,j,3] = models[m].nb_inferences
+					reward = cats.getOutcome(state, action, case='fmri')
+					models[m].updateValue(reward)                                    
 
-# figure()
-# for i in xrange(3):
-# 	subplot(1,3,i+1)
-# for s in data.keys():
-# 	plot(data[s][0])
-# show()
+		state = convertStimulus(np.array(models[m].state))
+		action = np.array(models[m].action)
+		responses = np.array(models[m].responses)        
+		entropy = entropy.reshape(nb_blocs*nb_repeat, nb_trials, 6)		
+		sstate.append(state)
+		aaction.append(action)
+		rresponses.append(responses)
+		eentropy.append(entropy)
+		if m == 'mixture':
+			w.append(np.array(models[m].weights))
+		elif m == 'selection':
+			vpi.append(np.array(models[m].vpi))
+			rrate.append(np.array(models[m].rrate))
+		nb_sujet+=1
 
-data['groups'] = groups
+	sstate = np.array(sstate).reshape(nb_sujet*nb_repeat*nb_blocs,39)
+	aaction = np.array(aaction).reshape(nb_sujet*nb_repeat*nb_blocs,39)
+	rresponses = np.array(rresponses).reshape(nb_sujet*nb_repeat*nb_blocs,39)
+	eentropy = np.array(eentropy).reshape(nb_sujet*nb_repeat*nb_blocs,39,6)
 
-with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_contribution_dual_models.pickle") , 'wb') as handle:    
-    pickle.dump(data, handle)
+	hb = computeMeanRepresentativeSteps(getRepresentativeSteps(eentropy[:,:,0], sstate, aaction, rresponses)[0])
+	hf = computeMeanRepresentativeSteps(getRepresentativeSteps(eentropy[:,:,1], sstate, aaction, rresponses)[0])
+	hl = computeMeanRepresentativeSteps(getRepresentativeSteps(eentropy[:,:,2], sstate, aaction, rresponses)[0])
+	data[m] = {'hb':hb,'hf':hf,'hl':hl}
 
-
-
-# # for o in p_test.iterkeys():
-# for o in ['tche']:
-# 	data[o] = {'Hb':{},'Hf':{}}
-# 	entropy = dict()
-# 	for g in groups[o].iterkeys():
-# 		entropy[g] = dict({'Hb':{}, 'Hf':{}, 'N':{}})			
-# 		for s in groups[o][g]:			
-# 			m = p_test[o][s].keys()[0]
-# 			print "Testing "+s+" with "+m+" selected by "+o+" in group "+g
-# 			models[m].setAllParameters(p_test[o][s][m])	        
-# 			models[m].startExp()
-# 			for k in xrange(nb_repeat):
-# 				for i in xrange(nb_blocs):
-# 					cats.reinitialize()
-# 					cats.stimuli = np.array(map(_convertStimulus, human.subject['fmri'][s][i+1]['sar'][:,0]))
-# 					models[m].startBloc()
-# 					for j in xrange(nb_trials):
-# 						state = cats.getStimulus(j)
-# 						action = models[m].chooseAction(state)
-# 						reward = cats.getOutcome(state, action, case='fmri')
-# 						models[m].updateValue(reward)                                    
-# 			# rtm = np.array(models[m].reaction).reshape(nb_repeat, nb_blocs, nb_trials)                        
-# 			# state = convertStimulus(np.array(models[m].state)).reshape(nb_repeat, nb_blocs, nb_trials)
-# 	  #       action = np.array(models[m].action).reshape(nb_repeat, nb_blocs, nb_trials)
-# 	  #       responses = np.array(models[m].responses).reshape(nb_repeat, nb_blocs, nb_trials)
-# 	  #       tmp = np.zeros((nb_repeat, 15))
-# 	  #       for i in xrange(nb_repeat):
-# 	  #           rtm[i] = center(rtm[i], o, s, m)
-#    #  	        step, indice = getRepresentativeSteps(rtm[i], state[i], action[i], responses[i])
-#    #      	    tmp[i] = computeMeanRepresentativeSteps(step)[0]        			
-# 			state = convertStimulus(np.array(models[m].state))
-# 			action = np.array(models[m].action)
-# 			responses = np.array(models[m].responses)        
-# 			hall = np.array(models[m].Hall)
-# 			N = np.array(models[m].pdf)
-
-# 			data[o]['Hb'][s] = {m:extractStimulusPresentation(hall[:,:,0], state, action, responses)}        
-# 			data[o]['Hf'][s] = {m:extractStimulusPresentation(hall[:,:,1], state, action, responses)}
-
-# 			entropy[g]['Hb'][s] = extractStimulusPresentation(hall[:,:,0], state, action, responses)
-# 			entropy[g]['Hf'][s] = extractStimulusPresentation(hall[:,:,1], state, action, responses)
-# 			entropy[g]['N'][s] = extractStimulusPresentation(N, state, action, responses)
+	if m == 'mixture':
+		w = np.array(w).reshape(nb_sujet*nb_repeat*nb_blocs,39)
+		wm = computeMeanRepresentativeSteps(getRepresentativeSteps(w, sstate, aaction, rresponses)[0])
+		data[m]['w'] = wm
+	elif m == 'selection':
+		vpi = np.array(vpi).reshape(nb_sujet*nb_repeat*nb_blocs,39)
+		rrate = np.array(rrate).reshape(nb_sujet*nb_repeat*nb_blocs,39)
+		data[m]['vpi'] = computeMeanRepresentativeSteps(getRepresentativeSteps(vpi, sstate, aaction, rresponses)[0])
+		data[m]['rrate'] = computeMeanRepresentativeSteps(getRepresentativeSteps(rrate, sstate, aaction, rresponses)[0])
 	
-# 	fig = figure()
 
-# 	axes = {'Hb':{i:fig.add_subplot(2,3,i+1) for i in xrange(3)}, 'Hf':{i:fig.add_subplot(2,3,i+4) for i in xrange(3)}}
+	
 
-# 	for g in entropy.iterkeys():
-# 		for h in ['Hb', 'Hf']:
-# 			for s in entropy[g][h].iterkeys():
-# 				for i in xrange(3):
-# 					y = entropy[g][h][s]['mean'][i]
-# 					x = range(1, len(y)+1)
-# 					e = entropy[g][h][s]['sem'][i]
-# 					axes[h][i].plot(x, y, linewidth = 2, color = colors_m[g]) 
-# 					axes[h][i].fill_between(x, y-e, y+e, facecolor = colors_m[g], alpha = 0.1)
-# 					axes[h][i].set_ylim(0,np.log2(5))
-# 					# if h == 'Hb':
-# 					# 	ax2 = axes[h][i].twinx()
-# 					# 	ax2.plot(x, entropy[g]['N'][s]['mean'][i], '--', color = colors_m[g], linewidth = 3)
-# 	axes['Hb'][0].set_ylabel("Entropy BWM")
-# 	axes['Hf'][0].set_ylabel("Entropy Q-L")
-# 	for i in xrange(3): axes['Hf'][i].set_xlabel("Trials")
-# 	for i in xrange(3): axes['Hb'][i].set_title("Stimulus "+str(i+1))
+figure()
+pl = 1
+for m in data.keys():	
+	subplot(2,3,pl)
+	for h in ['hb', 'hf', 'hl']:
+		errorbar(range(15), data[m][h][0], data[m][h][1], label = h)
 
-# 	# fig2 = figure()
-# 	# axes = {i:fig2.add_subplot(1,3,i+1) for i in xrange(3)}
-# 	# for m in groups['tche'].iterkeys():
-# 	# 	for s in groups['tche'][m]:
-# 	# 		hb = entropy[m]['Hb'][s]['mean']
-# 	# 		hf = entropy[m]['Hf'][s]['sem']
-# 	# 		r = hb-hf
-# 	# 		for i in xrange(3):
-# 	# 			x = range(1, len(r[i])+1)
-# 	# 			axes[i].plot(x, r[i], linewidth=2, color = colors_m[m])
+	legend()
+	# twinx()
+	# plot(data[m][s]['N'][0], '--', color = 'black', linewidth = 3)		
+	title(m+" "+s)
+	pl+=1
+	# ylim(0,10)
 
-# 	# legend()
-# 	tight_layout()
-# 	savefig("contributionSystem.pdf")
-# 	os.system("evince contributionSystem.pdf")
-			
-			
+subplot(2,3,5)
+errorbar(range(15), data['selection']['vpi'][0], data['selection']['vpi'][1], label = 'vpi')
+errorbar(range(15), data['selection']['rrate'][0], data['selection']['rrate'][1], label = 'r')
+legend()
+
+subplot(2,3,6)
+errorbar(range(15), data['mixture']['w'][0], data['mixture']['w'][1])
+
+show()
+
+
+with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/beh_contribution.pickle") , 'wb') as handle:    
+     pickle.dump(data, handle)
