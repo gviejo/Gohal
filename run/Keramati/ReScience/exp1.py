@@ -9,7 +9,7 @@ Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
 import sys
-sys.path.append("../../src")
+sys.path.append(".")
 import os
 from optparse import OptionParser
 import numpy as np
@@ -219,7 +219,7 @@ for i in range(deval_ext_time, nb_iter_ext):
 for i in data.iterkeys():
     data[i] = np.array(data[i])
     data2[i] = np.array(data2[i])
-"""
+
 d = dict({'data':data,'data2':data2})
 saveData(options.output, d)
 
@@ -282,7 +282,7 @@ ylim(0,0.5)
 
 show()
 # -----------------------------------
-
+"""
 
 
 

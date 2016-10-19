@@ -13,7 +13,7 @@ run subjectTest.py -i data
 Copyright (c) 2013 Guillaume VIEJO. All rights reserved.
 """
 
-import sys
+import sys, os
 
 from optparse import OptionParser
 import numpy as np
@@ -73,9 +73,9 @@ human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../..
 # PARAMETERS + INITIALIZATION
 # -----------------------------------
 nb_blocs = 4
-nb_trials = 39
-nb_repeat = 100
-case = 'fmri'
+nb_trials = 48
+nb_repeat = 10
+case = 'meg'
 
 cats = CATS(nb_trials)
 models = dict({"fusion":FSelection(cats.states, cats.actions),
@@ -87,10 +87,10 @@ models = dict({"fusion":FSelection(cats.states, cats.actions),
 # ------------------------------------
 # Parameter testing
 # ------------------------------------
-with open("parameters.pickle", 'r') as f:
+with open("parameters_meg.pickle", 'r') as f:
   p_test = pickle.load(f)
 
-with open("timing.pickle", 'rb') as f:
+with open("timing_meg.pickle", 'rb') as f:
     timing = pickle.load(f)
 
 super_data = dict()
@@ -100,12 +100,10 @@ super_rt = dict()
 for o in ['tche']:
     hrt = []
     hrtm = []
-    pcrm = dict({'s':[], 'a':[], 'r':[], 't':[]})
-    rt_all = []
-    rtm_all = []
+    pcrm = dict({'s':[], 'a':[], 'r':[], 't':[], 't2':[]})
     super_rt[o] = dict({'model':[]})
     for s in p_test[o].iterkeys():        
-        with open("fmri/"+s+".pickle", "rb") as f:
+        with open(case+"/"+s+".pickle", "rb") as f:
             data = pickle.load(f)
         # with open("meg/"+s+".pickle", "rb") as f:
         #      data = pickle.load(f)                          
@@ -116,7 +114,7 @@ for o in ['tche']:
         for k in xrange(nb_repeat):
             for i in xrange(nb_blocs):
                 cats.reinitialize()
-                # cats.stimuli = np.array(map(_convertStimulus, human.subject[case][s][i+1]['sar'][:,0]))[0:nb_trials]
+                #cats.stimuli = np.array(map(_convertStimulus, human.subject[case][s][i+1]['sar'][:,0]))[0:nb_trials]
                 models[m].startBloc()
                 for j in xrange(nb_trials):                    
                     state = cats.getStimulus(j)
@@ -135,13 +133,12 @@ for o in ['tche']:
             step, indice = getRepresentativeSteps(rtm[i], state[i], action[i], responses[i], case)
             tmp[i] = computeMeanRepresentativeSteps(step)[0]
 
-
         pcrm['s'].append(state.reshape(nb_repeat*nb_blocs, nb_trials))
         pcrm['a'].append(action.reshape(nb_repeat*nb_blocs, nb_trials))
         pcrm['r'].append(responses.reshape(nb_repeat*nb_blocs, nb_trials))
         
-
         pcrm['t'].append(tmp)        
+        pcrm['t2'].append(rtm)
         hrtm.append(np.mean(tmp,0))
         hrt.append(data['mean'][0])
         
@@ -162,8 +159,7 @@ for o in ['tche']:
 
         super_rt[o]['model'].append(m)
 
-    rt_all = np.array(rt_all)
-    rtm_all = np.array(rtm_all)    
+    
     pcr_human = extractStimulusPresentation(human.responses[case], human.stimulus[case], human.action[case], human.responses[case])
 
     for i in pcrm.iterkeys():
@@ -172,8 +168,8 @@ for o in ['tche']:
     pcrm['a'] = pcrm['a'].reshape(len(p_test[o].keys())*nb_repeat*nb_blocs, nb_trials)
     pcrm['r'] = pcrm['r'].reshape(len(p_test[o].keys())*nb_repeat*nb_blocs, nb_trials)
     pcrm['t'] = pcrm['t'].reshape(len(p_test[o].keys())*nb_repeat, 15)
+    
     pcr_model = extractStimulusPresentation(pcrm['r'], pcrm['s'], pcrm['a'], pcrm['r'])
-
     rt = (np.mean(pcrm['t'],0), sem(pcrm['t'],0))
 
     # ht = np.reshape(human.reaction[case], (14, 4*39))
@@ -240,3 +236,5 @@ if saving == "y":
          pickle.dump(super_data, handle)
     with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/rts_all_subjects.pickle") , 'wb') as handle:    
          pickle.dump(super_rt, handle)
+    with open(os.path.expanduser("~/Dropbox/ISIR/GoHal/Draft/data/choice_rt_all_data.pickle"), 'wb') as handle:
+	    pickle.dump(pcrm, handle)

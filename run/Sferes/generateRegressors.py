@@ -36,6 +36,7 @@ parser.add_option("-i", "--input", action="store", help="The name of the directo
 parser.add_option("-m", "--model", action="store", help="The name of the model to test \n If none is provided, all files are loaded", default=False)
 parser.add_option("-o", "--output", action="store", help="The output file of best parameters to test", default=False)
 (options, args) = parser.parse_args()
+
 # -----------------------------------
 def rankTchebytchebv(tmp, lambdaa = 0.5, epsilon = 0.001):
 	ideal = np.max(tmp, 0)
@@ -43,10 +44,13 @@ def rankTchebytchebv(tmp, lambdaa = 0.5, epsilon = 0.001):
 	value = lambdaa*((ideal-tmp)/(ideal-nadir))
 	value = np.max(value,1)+epsilon*np.sum(value,1)
 	return value
+
 # -----------------------------------
 # HUMAN LEARNING
 # -----------------------------------
 human = HLearning(dict({'meg':('../../PEPS_GoHaL/Beh_Model/',48), 'fmri':('../../fMRI',39)}))
+
+sys.exit()
 # -----------------------------------
 # VARIABLES NAME 
 # -----------------------------------
@@ -62,8 +66,18 @@ variables = {'bayesian':['p_a', 'Hb', 'N', 'Q'],
 front = pareto(options.input, case = 'meg')
 front.constructParetoFrontier('r2') # 'r2', 'bic', 'aic' , 'log'
 front.removeIndivDoublons()
-models = front.pareto.keys()
+front.constructMixedParetoFrontier()
+front.rankTchebytchev()
+front.timeConversion()
 
+with open("parameters_meg.pickle", 'wb') as handle:
+	pickle.dump(front.p_test, handle)
+
+with open("timing_meg.pickle", 'wb') as f:
+	pickle.dump(front.timing, f)
+
+sys.exit()
+models = front.pareto.keys()
 for s in human.subject['meg'].keys():
 	for m in models:	
 		print s, m
