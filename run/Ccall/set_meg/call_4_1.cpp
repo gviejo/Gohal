@@ -318,6 +318,12 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 			if (r == 0) {reward = -1.0;} else {reward = 1.0;}
 			double delta = reward - values_mf[s][a];
 			values_mf[s][a]+=(alpha*delta);
+			// forgetting
+			for (int m=0;m<5;m++) {
+				if (m != a) {
+					values_mf[s][m] += (1.0 - kappa)*(0.0 - values_mf[s][m]);
+				}
+			}			
 			if (delta < shift) {
 				// UPDATE MEMORY 						
 				for (int k=length-1;k>0;k--) {

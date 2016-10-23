@@ -86,7 +86,7 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 	double sigma=0.0+(20.0-0.0)*sigma_;	
 	double weight=0.0+(1.0-0.0)*weight_;
 	double kappa=0.0+(1.0-0.0)*kappa_;
-	double shift=0.0+(1.0-0.0)*shift_;	
+	double shift=-20.0+(20.0+20.0)*shift_;	
 	
 	int nb_trials = N/4;
 	int n_state = 3;
@@ -261,41 +261,43 @@ void sferes_call(double * fit, const int N, const char* data_dir, double alpha_,
 				p_rl = 1.0 - p_a_mf[a];
 			}			
 			
-			weigh[s] = (p_wmc*weigh[s])/(p_wmc*weigh[s]+p_rl*(1.0-weigh[s]));			
-			// UPDATE MEMORY 						
-			for (int k=length-1;k>0;k--) {
-				for (int n=0;n<3;n++) {
-					p_s[k][n] = p_s[k-1][n]*(1.0-noise)+noise*(1.0/n_state);
-					for (int m=0;m<5;m++) {
-						p_a_s[k][n][m] = p_a_s[k-1][n][m]*(1.0-noise)+noise*(1.0/n_action);
-						for (int o=0;o<2;o++) {
-							p_r_as[k][n][m][o] = p_r_as[k-1][n][m][o]*(1.0-noise)+noise*0.5;				
-						}
-					}
-				}
-			}						
-			if (n_element < length) n_element+=1;
-			for (int n=0;n<3;n++) {
-				p_s[0][n] = 0.0;
-				for (int m=0;m<5;m++) {
-					p_a_s[0][n][m] = 1./n_action;
-					for (int o=0;o<2;o++) {
-						p_r_as[0][n][m][o] = 0.5;
-					}
-				}
-			}			
-			p_s[0][s] = 1.0;
-			for (int m=0;m<5;m++) {
-				p_a_s[0][s][m] = 0.0;
-			}
-			p_a_s[0][s][a] = 1.0;
-			p_r_as[0][s][a][(r-1)*(r-1)] = 0.0;
-			p_r_as[0][s][a][r] = 1.0;
+			weigh[s] = (p_wmc*weigh[s])/(p_wmc*weigh[s]+p_rl*(1.0-weigh[s]));
 			//MODEL FFEE
 			double reward;
 			if (r == 0) {reward = -1.0;} else {reward = 1.0;}
 			double delta = reward - values_mf[s][a];
 			values_mf[s][a]+=(alpha*delta);
+			if (delta < shift) {						
+				// UPDATE MEMORY 						
+				for (int k=length-1;k>0;k--) {
+					for (int n=0;n<3;n++) {
+						p_s[k][n] = p_s[k-1][n]*(1.0-noise)+noise*(1.0/n_state);
+						for (int m=0;m<5;m++) {
+							p_a_s[k][n][m] = p_a_s[k-1][n][m]*(1.0-noise)+noise*(1.0/n_action);
+							for (int o=0;o<2;o++) {
+								p_r_as[k][n][m][o] = p_r_as[k-1][n][m][o]*(1.0-noise)+noise*0.5;				
+							}
+						}
+					}
+				}						
+				if (n_element < length) n_element+=1;
+				for (int n=0;n<3;n++) {
+					p_s[0][n] = 0.0;
+					for (int m=0;m<5;m++) {
+						p_a_s[0][n][m] = 1./n_action;
+						for (int o=0;o<2;o++) {
+							p_r_as[0][n][m][o] = 0.5;
+						}
+					}
+				}			
+				p_s[0][s] = 1.0;
+				for (int m=0;m<5;m++) {
+					p_a_s[0][s][m] = 0.0;
+				}
+				p_a_s[0][s][a] = 1.0;
+				p_r_as[0][s][a][(r-1)*(r-1)] = 0.0;
+				p_r_as[0][s][a][r] = 1.0;
+			}
 
 		}
 	}	
